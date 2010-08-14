@@ -9,6 +9,8 @@
 ||HORN||喇叭||
 ||B_LAMP||大灯||
 ||PRESS||气压||
-||DOOR_OPEN||车门开||
-||DOOR_CLOSE||车门关||
+||DOOR1_OPEN||车门开||
+||DOOR1_CLOSE||车门关||
+||DOOR2_OPEN||车门开||
+||DOOR2_CLOSE||车门关||
 ||STATION_IND||报站器||
