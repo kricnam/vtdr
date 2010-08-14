@@ -2,10 +2,13 @@
 
 ||代号||名称||说明||
 ||POWER||电源||12 ~ 24V, 瞬间电压可能到100V||
-||POWERON||上电||
+||POWERON||上电||点火信号||
 ||BREAK||刹车||
 ||L_LAMP||左转灯||
 ||R_LAMP||右转灯||
 ||HORN||喇叭||
-||B_LAMP||倒车灯||
-||PRESS||
+||B_LAMP||大灯||
+||PRESS||气压||
+||DOOR_OPEN||车门开||
+||DOOR_CLOSE||车门关||
+||STATION_IND||报站器||
