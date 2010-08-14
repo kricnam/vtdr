@@ -1,0 +1,4 @@
+#summary Input signal
+
+||代号||名称||说明||
+||POWER||电源||12 ~ 24V, 瞬间电压可能到100V||
