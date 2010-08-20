@@ -1,16 +1,16 @@
 #summary Input signal
 
-||代号||名称||说明||
-||POWER||电源||12 ~ 24V, 瞬间电压可能到100V||
-||POWERON||上电||点火信号||
-||BREAK||刹车||
-||L_LAMP||左转灯||
-||R_LAMP||右转灯||
-||HORN||喇叭||
-||B_LAMP||大灯||
-||PRESS||气压||
-||DOOR1_OPEN||车门开||
-||DOOR1_CLOSE||车门关||
-||DOOR2_OPEN||车门开||
-||DOOR2_CLOSE||车门关||
-||STATION_IND||报站器||
+||No||代号||名称||说明||
+||0||POWER||电源||12 ~ 24V, 瞬间电压可能到100V||
+||1||POWERON||上电||点火信号||
+||2||BREAK||刹车||
+||3||L_LAMP||左转灯||
+||4||R_LAMP||右转灯||
+||5||HORN||喇叭||
+||6||B_LAMP||大灯||
+||7||PRESS||气压||
+||8||DOOR1_OPEN||车门开||
+||9||DOOR1_CLOSE||车门关||
+||10||DOOR2_OPEN||车门开||
+||11||DOOR2_CLOSE||车门关||
+||12||STATION_IND||报站器||
