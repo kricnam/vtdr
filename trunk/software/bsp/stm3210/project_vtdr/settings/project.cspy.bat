@@ -22,12 +22,12 @@
 @REM but they are listed at the end of this file for reference.
 
 
-"E:\Program Files\IAR Systems\Embedded Workbench 5.4\common\bin\cspybat" "E:\Program Files\IAR Systems\Embedded Workbench 5.4\arm\bin\armproc.dll" "E:\Program Files\IAR Systems\Embedded Workbench 5.4\arm\bin\armjlink.dll"  %1 --plugin "E:\Program Files\IAR Systems\Embedded Workbench 5.4\arm\bin\<libsupport_plugin>" --backend -B "--endian=little" "--cpu=Cortex-M3" "--fpu=None" "-p" "E:\Program Files\IAR Systems\Embedded Workbench 5.4\arm\CONFIG\debugger\ST\iostm32f107xx.ddf" "--semihosting=none" "--device=STM32F107xC" "--drv_communication=USB0" "--jlink_speed=auto" "--jlink_initial_speed=32" "--jlink_reset_strategy=0,0" "--jlink_interface=SWD" "--drv_catch_exceptions=0x000" 
+"C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\common\bin\cspybat" "C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\arm\bin\armproc.dll" "C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\arm\bin\armjlink.dll"  %1 --plugin "C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\arm\bin\<libsupport_plugin>" --backend -B "--endian=little" "--cpu=Cortex-M3" "--fpu=None" "-p" "C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\arm\CONFIG\debugger\ST\iostm32f105xx.ddf" "--semihosting=none" "--device=STM32F105xC" "--drv_communication=USB0" "--jlink_speed=auto" "--jlink_initial_speed=32" "--jlink_reset_strategy=0,0" "--jlink_interface=SWD" "--drv_catch_exceptions=0x000" 
 
 
 @REM Loaded plugins:
-@REM    E:\Program Files\IAR Systems\Embedded Workbench 5.4\arm\bin\armlibsupport.dll
-@REM    E:\Program Files\IAR Systems\Embedded Workbench 5.4\common\plugins\CodeCoverage\CodeCoverage.dll
-@REM    E:\Program Files\IAR Systems\Embedded Workbench 5.4\common\plugins\Profiling\Profiling.dll
-@REM    E:\Program Files\IAR Systems\Embedded Workbench 5.4\common\plugins\stack\stack.dll
-@REM    E:\Program Files\IAR Systems\Embedded Workbench 5.4\common\plugins\SymList\SymList.dll
+@REM    C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\arm\bin\armlibsupport.dll
+@REM    C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\common\plugins\CodeCoverage\CodeCoverage.dll
+@REM    C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\common\plugins\Profiling\Profiling.dll
+@REM    C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\common\plugins\stack\stack.dll
+@REM    C:\Program Files\IAR Systems\Embedded Workbench 5.4 Kickstart\common\plugins\SymList\SymList.dll

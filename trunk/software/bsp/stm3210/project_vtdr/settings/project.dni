@@ -11,7 +11,7 @@ ActionState=1
 Enabled=0
 ShowSource=1
 [DebugChecksum]
-Checksum=1611786015
+Checksum=-1750594020
 [DisAssemblyWindow]
 NumStates=_ 1
 State 1=_ 1
@@ -52,14 +52,6 @@ SumEnabled=0
 GraphEnabled=0
 ShowTimeLog=1
 ShowTimeSum=1
-[Disassemble mode]
-mode=0
-[Breakpoints]
-Bp0=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\PROJECT_FILESYSTEM\usart.c}.255.2@1" 1 0 0 0 "" 0 "" 0
-Bp1=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\PROJECT_FILESYSTEM\usart.c}.275.2@1" 1 0 0 0 "" 0 "" 0
-Bp2=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\LIBRARIES\STM32F10X_STDPERIPH_DRIVER\SRC\stm32f10x_usart.c}.175.27@1" 1 0 0 0 "" 0 "" 0
-Bp3=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\LIBRARIES\STM32F10X_STDPERIPH_DRIVER\SRC\stm32f10x_usart.c}.269.3@1" 1 0 0 0 "" 0 "" 0
-Count=4
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
@@ -67,9 +59,6 @@ Category=_ 0
 [TermIOLog]
 LoggingEnabled=_ 0
 LogFile=_ ""
-[Aliases]
-Count=0
-SuppressDialog=0
 [InterruptLog]
 LogEnabled=0
 SumEnabled=0
@@ -95,3 +84,15 @@ Enabled=0
 Enabled=0
 Mode=3
 Graph=0
+Symbiont=0
+[Disassemble mode]
+mode=0
+[Breakpoints]
+Bp0=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\PROJECT_FILESYSTEM\usart.c}.255.2@1" 0 0 0 0 "" 0 "" 0
+Bp1=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\PROJECT_FILESYSTEM\usart.c}.275.2@1" 0 0 0 0 "" 0 "" 0
+Bp2=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\LIBRARIES\STM32F10X_STDPERIPH_DRIVER\SRC\stm32f10x_usart.c}.175.27@1" 0 0 0 0 "" 0 "" 0
+Bp3=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\LIBRARIES\STM32F10X_STDPERIPH_DRIVER\SRC\stm32f10x_usart.c}.269.3@1" 0 0 0 0 "" 0 "" 0
+Count=4
+[Aliases]
+Count=0
+SuppressDialog=0
