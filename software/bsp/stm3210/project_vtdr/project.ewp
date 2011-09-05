@@ -29,7 +29,7 @@
         </option>
         <option>
           <name>Variant</name>
-          <version>16</version>
+          <version>17</version>
           <state>37</state>
         </option>
         <option>
@@ -91,7 +91,7 @@
         </option>
         <option>
           <name>OGLastSavedByProductVersion</name>
-          <state>5.50.0.51907</state>
+          <state>5.50.6.52043</state>
         </option>
         <option>
           <name>GeneralEnableMisra</name>
@@ -103,7 +103,7 @@
         </option>
         <option>
           <name>OGChipSelectEditMenu</name>
-          <state>STM32F107xC	ST STM32F107xC</state>
+          <state>STM32F105xC	ST STM32F105xC</state>
         </option>
         <option>
           <name>GenLowLevelInterface</name>
@@ -850,7 +850,7 @@
         </option>
         <option>
           <name>Variant</name>
-          <version>16</version>
+          <version>17</version>
           <state>37</state>
         </option>
         <option>
@@ -1662,7 +1662,7 @@
       <name>$PROJ_DIR$\..\..\..\filesystem\dfs\src\dfs_init.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\..\..\filesystem\dfs\src\dfs_posix.c</name>
+      <name>$PROJ_DIR$\..\..\..\FILESYSTEM\dfs\src\dfs_posix.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\..\..\..\filesystem\dfs\src\dfs_raw.c</name>
@@ -1812,7 +1812,7 @@
       <name>$PROJ_DIR$\..\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_dac.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_dbgmcu.c</name>
+      <name>$PROJ_DIR$\..\LIBRARIES\STM32F10X_STDPERIPH_DRIVER\src\stm32f10x_dbgmcu.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\..\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_dma.c</name>
