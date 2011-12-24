@@ -79,7 +79,8 @@ struct rt_device uart3_device;
 #define UART1_TX_DMA		DMA1_Channel4
 #define UART1_RX_DMA		DMA1_Channel5
 
-#if defined(STM32F10X_LD) || defined(STM32F10X_MD) || defined(STM32F10X_CL)
+
+#if defined(STM32F10X_LD) || defined(STM32F10X_MD) //|| defined(STM32F10X_CL)---2011 del
 #define UART2_GPIO_TX	    GPIO_Pin_5
 #define UART2_GPIO_RX	    GPIO_Pin_6
 #define UART2_GPIO	    	GPIOD
@@ -113,7 +114,7 @@ static void RCC_Configuration(void)
 
 #ifdef RT_USING_UART2
 
-#if (defined(STM32F10X_LD) || defined(STM32F10X_MD) || defined(STM32F10X_CL))
+#if (defined(STM32F10X_LD) || defined(STM32F10X_MD)) //|| defined(STM32F10X_CL))--2011del
     /* Enable AFIO and GPIOD clock */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOD, ENABLE);
 
@@ -285,7 +286,7 @@ void rt_hw_usart_init()
 #endif
 
 #ifdef RT_USING_UART2
-	USART_InitStructure.USART_BaudRate = 115200;
+	USART_InitStructure.USART_BaudRate = 115200; 
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
