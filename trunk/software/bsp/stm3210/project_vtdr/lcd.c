@@ -76,16 +76,15 @@ void rt_hw_lcd_init(void)
     lcd_Reset();
 
 }
-
+// delay ms
 void lcd_delay(int n)
 {
-	for(int i=0;i<n;i++)
-	{
-		for(int j=0;j<100;j++)
-		{
-
-		}
-	}
+  for(int i =0;i<n;i++)
+  {
+    for(int j=0;j<10;j++)
+    {
+    }
+  }	
 }
 
 void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
@@ -97,7 +96,7 @@ void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 | lcd_RW);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
 	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|((cCmd|oprand) & 0x00FF)));
-	lcd_delay(10);
+	lcd_delay(1);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
 }
 
@@ -105,7 +104,7 @@ void lcd_Reset(void)
 {
 	GPIO_SetBits(lcd_gpio_reset,lcd_RST);
 	GPIO_ResetBits(lcd_gpio_reset,lcd_RST);
-	lcd_delay(10);
+	lcd_delay(1);
 	GPIO_SetBits(lcd_gpio_reset,lcd_RST);
 }
 

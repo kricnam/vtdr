@@ -27,6 +27,7 @@
 /* dfs Filesystem APIs */
 #include <dfs_fs.h>
 #endif
+#include "led.h"
 
 void rt_init_thread_entry(void* parameter)
 {
@@ -47,6 +48,14 @@ void rt_init_thread_entry(void* parameter)
 #endif
 	}
 #endif
+        for(;;)
+        {
+          rt_hw_led_on(0);
+          rt_thread_delay(10);
+          rt_hw_led_off(0);
+          rt_thread_delay(1000);
+        }
+            
 }
 
 int rt_application_init()
