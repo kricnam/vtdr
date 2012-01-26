@@ -1767,6 +1767,9 @@
       <name>$PROJ_DIR$\board.c</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\lcd.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\led.c</name>
     </file>
     <file>

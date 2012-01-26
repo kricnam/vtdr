@@ -121,6 +121,9 @@ void rtthread_startup(void)
 	/* init idle thread */
 	rt_thread_idle_init();
 
+	/* light led	 */
+	rt_hw_led_on(0);
+	rt_hw_lcd_on();
 	/* start scheduler */
 	rt_system_scheduler_start();
 
