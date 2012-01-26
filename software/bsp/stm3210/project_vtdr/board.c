@@ -18,6 +18,7 @@
 
 #include "stm32f10x.h"
 #include "stm32f10x_fsmc.h"
+#include "misc.h"
 #include "board.h"
 
 /**
@@ -183,6 +184,8 @@ void rt_hw_board_init()
 #endif
 
 	rt_hw_usart_init();
+	rt_hw_led_init();
+	rt_hw_lcd_init();
 	rt_console_set_device(CONSOLE_DEVICE);
 }
 

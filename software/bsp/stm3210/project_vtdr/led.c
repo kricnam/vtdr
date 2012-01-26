@@ -13,7 +13,9 @@
  */
 #include <rtthread.h>
 #include <stm32f10x.h>
-
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_gpio.h>
+#include "led.h"
 #ifdef STM32_SIMULATOR
 #define led1_rcc                    RCC_APB2Periph_GPIOA
 #define led1_gpio                   GPIOA
@@ -23,44 +25,22 @@
 #define led2_gpio                   GPIOA
 #define led2_pin                    (GPIO_Pin_6)
 #else
-#define led1_rcc                    RCC_APB2Periph_GPIOF
-#define led1_gpio                   GPIOF
-#define led1_pin                    (GPIO_Pin_6 | GPIO_Pin_7)
-
-#define led2_rcc                    RCC_APB2Periph_GPIOF
-#define led2_gpio                   GPIOF
-#define led2_pin                    (GPIO_Pin_8)
+#define led1_rcc                    RCC_APB2Periph_GPIOA
+#define led1_gpio                   GPIOA
+#define led1_pin                    (GPIO_Pin_4)
 #endif
 
 void rt_hw_led_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
-    RCC_APB2PeriphClockCmd(led1_rcc|led2_rcc,ENABLE);
 
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
     GPIO_InitStructure.GPIO_Pin   = led1_pin;
     GPIO_Init(led1_gpio, &GPIO_InitStructure);
-
-    GPIO_InitStructure.GPIO_Pin   = led2_pin;
-    GPIO_Init(led2_gpio, &GPIO_InitStructure);
-}
-
-void rt_hw_led_on(rt_uint32_t n)
-{
-    switch (n)
-    {
-    case 0:
-        GPIO_SetBits(led1_gpio, led1_pin);
-        break;
-    case 1:
-        GPIO_SetBits(led2_gpio, led2_pin);
-        break;
-    default:
-        break;
-    }
+    rt_hw_led_off(0);
 }
 
 void rt_hw_led_off(rt_uint32_t n)
@@ -68,10 +48,25 @@ void rt_hw_led_off(rt_uint32_t n)
     switch (n)
     {
     case 0:
+        GPIO_SetBits(led1_gpio, led1_pin);
+        break;
+    case 1:
+    //    GPIO_SetBits(led2_gpio, led2_pin);
+        break;
+    default:
+        break;
+    }
+}
+
+void rt_hw_led_on(rt_uint32_t n)
+{
+    switch (n)
+    {
+    case 0:
         GPIO_ResetBits(led1_gpio, led1_pin);
         break;
     case 1:
-        GPIO_ResetBits(led2_gpio, led2_pin);
+    //    GPIO_ResetBits(led2_gpio, led2_pin);
         break;
     default:
         break;
@@ -86,7 +81,7 @@ void led(rt_uint32_t led, rt_uint32_t value)
     /* init led configuration if it's not inited. */
     if (!led_inited)
     {
-        rt_hw_led_init();
+        rt_hw_lcd_init();
         led_inited = 1;
     }
 

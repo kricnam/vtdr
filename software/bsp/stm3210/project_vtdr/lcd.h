@@ -12,13 +12,15 @@
  * 2009-01-05     Bernard      the first version
  */
 
-#ifndef __LED_H__
-#define __LED_H__
+#ifndef __LCD_H__
+#define __LCD_H__
 
 #include <rtthread.h>
 
-void rt_hw_led_init(void);
-void rt_hw_led_on(rt_uint32_t led);
-void rt_hw_led_off(rt_uint32_t led);
+void rt_hw_lcd_init(void);
+void rt_hw_lcd_on(void);
+void rt_hw_lcd_off(void);
+
+void lcd_Reset(void);
 
 #endif

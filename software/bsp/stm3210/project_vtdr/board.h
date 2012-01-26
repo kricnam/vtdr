@@ -15,6 +15,8 @@
 // <<< Use Configuration Wizard in Context Menu >>>
 #ifndef __BOARD_H__
 #define __BOARD_H__
+#include "lcd.h"
+#include "led.h"
 
 /* board configuration */
 // <o> SDCard Driver <1=>SDIO sdcard <0=>SPI MMC card
@@ -46,8 +48,8 @@
 // 	<i>Default: 0
 #define STM32_ETH_IF			0
 
-void rt_hw_board_led_on(int n);
-void rt_hw_board_led_off(int n);
+#define rt_hw_board_led_on() rt_hw_led_on(0)
+#define rt_hw_board_led_off() rt_hw_led_off(0)
 void rt_hw_board_init(void);
 
 #if STM32_CONSOLE_USART == 0
@@ -63,12 +65,8 @@ void rt_hw_board_init(void);
 void rt_hw_usart_init(void);
 
 /* SD Card init function */
-void rt_hw_sdcard_init(void);
 void rt_hw_msd_init(void);
 
-/* ETH interface init function */
-void rt_hw_enc28j60_init(void);
-void rt_hw_dm9000_init(void);
 
 #endif
 

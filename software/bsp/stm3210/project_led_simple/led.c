@@ -32,7 +32,7 @@
 #define led2_pin                    (GPIO_Pin_8)
 #endif
 
-void rt_hw_led_init(void)
+void rt_hw_lcd_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -86,7 +86,7 @@ void led(rt_uint32_t led, rt_uint32_t value)
     /* init led configuration if it's not inited. */
     if (!led_inited)
     {
-        rt_hw_led_init();
+        rt_hw_lcd_init();
         led_inited = 1;
     }
 
