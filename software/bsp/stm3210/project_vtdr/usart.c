@@ -16,7 +16,9 @@
 #include "usart.h"
 #include <serial.h>
 #include <stm32f10x_dma.h>
-
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_usart.h>
 /*
  * Use UART1 as console output and finsh input
  * interrupt Rx and poll Tx (stream mode)
