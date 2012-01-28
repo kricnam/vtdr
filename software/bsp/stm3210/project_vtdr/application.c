@@ -28,6 +28,8 @@
 #include <dfs_fs.h>
 #endif
 #include "led.h"
+#include "font_lib.h"
+#include "lcd.h"
 
 void rt_init_thread_entry(void* parameter)
 {
@@ -48,6 +50,7 @@ void rt_init_thread_entry(void* parameter)
 #endif
 	}
 #endif
+        lcd_write_matrix(0,0,(unsigned char*)distance_cheng);
         for(;;)
         {
           rt_hw_led_on(0);
