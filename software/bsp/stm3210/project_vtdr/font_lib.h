@@ -7,7 +7,9 @@
 
 #ifndef FONT_LIB_H_
 #define FONT_LIB_H_
-typedef unsigned char FONT_MATRIX;
+#ifndef FONT_MATRIX
+#define  FONT_MATRIX unsigned char
+#endif
 //数字0-9
 const FONT_MATRIX percent[]={
 	0x1c,0x22,0x1f,0x05,0x1a,0x21,

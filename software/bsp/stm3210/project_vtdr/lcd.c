@@ -17,15 +17,7 @@
 #include <stm32f10x_rcc.h>
 #include <stm32f10x_gpio.h>
 
-#ifdef STM32_SIMULATOR
-#define led1_rcc                    RCC_APB2Periph_GPIOA
-#define led1_gpio                   GPIOA
-#define led1_pin                    (GPIO_Pin_5)
 
-#define led2_rcc                    RCC_APB2Periph_GPIOA
-#define led2_gpio                   GPIOA
-#define led2_pin                    (GPIO_Pin_6)
-#else
 #define lcd_data 					RCC_APB2Periph_GPIOC
 #define lcd_gpio_data				GPIOC
 #define lcd_data_pin                ((uint16_t)0x00FF)
@@ -41,7 +33,7 @@
 #define lcd_reset					RCC_APB2Periph_GPIOA
 #define lcd_gpio_reset				GPIOA
 #define lcd_RST						(GPIO_Pin_8)
-#endif
+
 
 enum LCD_CMD
 {
@@ -100,6 +92,19 @@ void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
 }
 
+void lcd_write_data(int bank, unsigned char data)
+{
+	uint16_t pinEnable;
+	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
+
+	GPIO_SetBits(lcd_gpio_ctrl,lcd_A0 );
+	GPIO_ResetBits(lcd_gpio_ctrl,lcd_RW);
+	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
+	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(data & 0x00FF)));
+	lcd_delay(1);
+	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
+}
+
 void lcd_Reset(void)
 {
 	GPIO_SetBits(lcd_gpio_reset,lcd_RST);
@@ -127,6 +132,23 @@ void rt_hw_lcd_on(void)
 void rt_hw_lcd_off(void)
 {
 
+}
+
+void lcd_set_column(char nCol)
+{
+	lcd_write_cmd(0,Column_Set,nCol & 0x7F);
+}
+
+void lcd_write_matrix(u_char row,u_char column,FONT_MATRIX *pt)
+{
+	    u_char i;
+	    u_char  tempCol;
+	    lcd_set_column(column);
+
+		for (i=0;i<24;i++)
+		{
+			lcd_write_data(0, (*(unsigned char*)pt++));
+		}
 }
 
 #ifdef RT_USING_FINSH
