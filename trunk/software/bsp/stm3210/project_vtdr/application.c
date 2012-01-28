@@ -51,9 +51,13 @@ void rt_init_thread_entry(void* parameter)
         for(;;)
         {
           rt_hw_led_on(0);
-          rt_thread_delay(10);
+          volatile int n;
+          for(int i=0;i<5000;i++)
+          {
+            n++;
+          }
           rt_hw_led_off(0);
-          rt_thread_delay(1000);
+          rt_thread_delay(1);
         }
             
 }
