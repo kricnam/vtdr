@@ -17,10 +17,16 @@
 
 #include <rtthread.h>
 
+#ifndef FONT_MATRIX
+#define  FONT_MATRIX unsigned char
+#endif
+
+typedef unsigned char u_char;
+
 void rt_hw_lcd_init(void);
 void rt_hw_lcd_on(void);
 void rt_hw_lcd_off(void);
-
+void lcd_write_matrix(u_char row,u_char column,FONT_MATRIX *pt);
 void lcd_Reset(void);
 
 #endif
