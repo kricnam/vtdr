@@ -168,6 +168,26 @@ void rt_hw_timer_handler(void)
 	rt_interrupt_leave();
 }
 
+void rt_hw_buzz_off(void)
+{
+	GPIO_ResetBits(GPIOB,BUZZ_PIN);
+}
+
+void rt_hw_buzz_on(void)
+{
+	GPIO_SetBits(GPIOB,BUZZ_PIN);
+}
+
+void rt_hw_buzz_init()
+{
+    GPIO_InitTypeDef GPIO_InitStructure;
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB , ENABLE);
+
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_InitStructure.GPIO_Pin   = BUZZ_PIN;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+}
 /**
  * This function will initial STM32 board.
  */
@@ -186,6 +206,7 @@ void rt_hw_board_init()
 	rt_hw_usart_init();
 	rt_hw_led_init();
 	rt_hw_lcd_init();
+	rt_hw_buzz_init();
 	rt_console_set_device(CONSOLE_DEVICE);
 }
 

@@ -58,9 +58,9 @@ u_char lcd_bit_reverse(u_char byte)
     newvalue |= ((byte >> 5)&0x02);
     newvalue |= ((byte >> 3)&0x04);
     newvalue |= ((byte >> 1)&0x08);
-    newvalue |= ((byte >> 1)&0x10);
-    newvalue |= ((byte >> 3)&0x20);
-    newvalue |= ((byte >> 5)&0x40);
+    newvalue |= ((byte << 1)&0x10);
+    newvalue |= ((byte << 3)&0x20);
+    newvalue |= ((byte << 5)&0x40);
                
    	return newvalue;
 }
@@ -70,20 +70,47 @@ void rt_hw_lcd_init(void)
     GPIO_InitTypeDef GPIO_InitStructure;
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
 
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Pin   = lcd_data_pin;
     GPIO_Init(lcd_gpio_data, &GPIO_InitStructure);
 
-    GPIO_InitStructure.GPIO_Pin   = lcd_A0 | lcd_E1 | lcd_E2 | lcd_RW | lcd_BK;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
+    GPIO_InitStructure.GPIO_Pin   = lcd_A0 | lcd_E1 | lcd_E2 | lcd_RW ;
     GPIO_Init(lcd_gpio_ctrl, &GPIO_InitStructure);
-
+    
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Pin   = lcd_BK;
+    GPIO_Init(lcd_gpio_ctrl, &GPIO_InitStructure);
+    
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
     GPIO_InitStructure.GPIO_Pin   = lcd_RST;
     GPIO_Init(lcd_gpio_reset, &GPIO_InitStructure);
 
     lcd_Reset();
 
 }
+
+void lcd_set_date_port_read(void)
+{
+    return;
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin   = lcd_data_pin;
+    GPIO_Init(lcd_gpio_data, &GPIO_InitStructure);
+}
+
+void lcd_set_date_port_write(void)
+{
+    return;
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin   = lcd_data_pin;
+    GPIO_Init(lcd_gpio_data, &GPIO_InitStructure);
+}
+
 // delay ms
 void lcd_delay(int n)
 {
@@ -102,15 +129,18 @@ unsigned char lcd_read_status(int bank)
 	uint16_t pinEnable;
 	uint16_t value = 0xFFFF;
 	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
+	lcd_set_date_port_read();
 	GPIO_SetBits(lcd_gpio_ctrl,lcd_RW);
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 );
 
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(1);
+        lcd_delay(10);  
+        GPIO_Write(lcd_gpio_data,(GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(0x00FF));
 	value = GPIO_ReadInputData(lcd_gpio_data);
 	value = lcd_bit_reverse(value & 0x00FF);
-	lcd_delay(1);
+	lcd_delay(2);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
+	lcd_set_date_port_write();
 	return (unsigned char)(value & 0x00FF);
 }
 
@@ -131,14 +161,14 @@ void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
 
 	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(1);
+	lcd_delay(10);
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 | lcd_RW);
-	lcd_delay(1);
+	lcd_delay(10);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
 	u_char value = lcd_bit_reverse(cCmd | oprand);
 	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(value & 0x00FF)));
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(1);
+	lcd_delay(10);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
 }
 
@@ -156,8 +186,9 @@ void lcd_write_data(int bank, unsigned char data)
 	GPIO_SetBits(lcd_gpio_ctrl,lcd_A0 );
 	data = lcd_bit_reverse(data);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
+        lcd_delay(10);
 	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(data & 0x00FF)));
-	lcd_delay(1);
+	lcd_delay(10);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
 }
 
