@@ -65,7 +65,7 @@ void rt_hw_board_init(void);
 void rt_hw_usart_init(void);
 
 /* SD Card init function */
-void rt_hw_msd_init(void);
+void rt_hw_dataflash_init(void);
 
 
 #endif
