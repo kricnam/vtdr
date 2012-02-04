@@ -62,8 +62,11 @@ void rt_hw_board_init(void);
 #define CONSOLE_DEVICE "uart3"
 #endif
 
-void rt_hw_usart_init(void);
+#define BUZZ_PIN			(GPIO_Pin_12)
 
+void rt_hw_usart_init(void);
+void rt_hw_buzz_on(void);
+void rt_hw_buzz_off(void);
 /* SD Card init function */
 void rt_hw_dataflash_init(void);
 
