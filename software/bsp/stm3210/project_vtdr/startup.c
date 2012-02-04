@@ -96,12 +96,8 @@ void rtthread_startup(void)
 	/* init scheduler system */
 	rt_system_scheduler_init();
 
-	/* init sdcard driver */
-#if STM32_USE_SDIO
-	rt_hw_sdcard_init();
-#else
-	rt_hw_msd_init();
-#endif
+	/* init dataflash driver */
+	rt_hw_dataflash_init();
 
 	/* init all device */
 	rt_device_init_all();
