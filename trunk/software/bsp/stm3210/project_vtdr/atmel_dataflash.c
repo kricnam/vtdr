@@ -41,10 +41,16 @@
 #define DATAFLASH_SPI         SPI1
 #define DATAFLASH_RCC_SPI     RCC_APB2Periph_SPI1
 #define DATAFLASH_Manufacturer_ATMEL 0x1F
+#define DATAFLASH_READSUCCESS(x)  (((x>>8) & 0x00FF)!=0)
+#define DATAFLASH_READ_BYTE(x)    (u8)(x&0x00FF)
 /* Private function prototypes -----------------------------------------------*/
 static void SPI_Config(void);
 /* Private functions ---------------------------------------------------------*/
 
+void dataflash_delay(u16 n)
+{
+	for(u16 i=0;i<n;i++);
+}
 /*******************************************************************************
  * Function Name  : DATAFLASH_Init
  * Description    : Initializes the DATAFLASH/SD communication.
@@ -430,27 +436,31 @@ u8 DATAFLASH_GetCSDRegister(sDATAFLASH_CSD* DATAFLASH_csd)
  *******************************************************************************/
 u8 DATAFLASH_GetDeviceID(sDATAFLASH_CID* DATAFLASH_cid)
 {
-	u32 i = 0;
 	u8 rvalue = DATAFLASH_RESPONSE_FAILURE;
-	u8 CID_Tab[3];
+	u8 CID_Tab[4];
 
+	DATAFLASH_CS_HIGH();
+	dataflash_delay(20);
 	/* DATAFLASH chip select low */
 	DATAFLASH_CS_LOW();
 	/* Send CMD10 (CID register) */
+	dataflash_delay(10);
 	DATAFLASH_WriteByte(DATAFLASH_READ_CID);
 
 	/* Store CID register value on CID_Tab */
 	/* Wait until a data is received */
-	u8 count = 100;
-	while (count-- && SPI_I2S_GetFlagStatus(DATAFLASH_SPI, SPI_I2S_FLAG_RXNE)
-			== RESET)
-		;
-	/* Get the received data */
-	if (count)
+	for (int i=0;i < 4;i++)
 	{
-		CID_Tab[0] = SPI_I2S_ReceiveData(DATAFLASH_SPI);
-
-		/* Set response value to success */
+		u16 data = DATAFLASH_ReadByte();
+		if (DATAFLASH_READSUCCESS(data))
+		{
+			CID_Tab[i] = DATAFLASH_READ_BYTE(data);
+		}
+		else
+		{
+			rvalue = DATAFLASH_RESPONSE_FAILURE;
+			break;
+		}
 		rvalue = DATAFLASH_RESPONSE_NO_ERROR;
 	}
 
@@ -625,6 +635,8 @@ u16 DATAFLASH_GetStatus(void)
  *******************************************************************************/
 u8 DATAFLASH_GoIdleState(void)
 {
+	DATAFLASH_CS_LOW();
+
 	/* DATAFLASH chip select low */
 	DATAFLASH_CS_LOW();
 	/* Send CMD0 (GO_IDLE_STATE) to put DATAFLASH in SPI mode */
@@ -683,18 +695,18 @@ void DATAFLASH_WriteByte(u8 Data)
  * Output         : None
  * Return         : The received byte.
  *******************************************************************************/
-u8 DATAFLASH_ReadByte(void)
+u16 DATAFLASH_ReadByte(void)
 {
 	u8 Data = 0;
-
+	u8 count=0xFF;
 	/* Wait until a data is received */
-	while (SPI_I2S_GetFlagStatus(DATAFLASH_SPI, SPI_I2S_FLAG_RXNE) == RESET)
+	while ((count--) && SPI_I2S_GetFlagStatus(DATAFLASH_SPI, SPI_I2S_FLAG_RXNE) == RESET)
 		;
 	/* Get the received data */
 	Data = SPI_I2S_ReceiveData(DATAFLASH_SPI);
 
 	/* Return the shifted data */
-	return Data;
+	return ((count << 8)&0xFF00) | (0x00FF & Data);
 }
 
 /*******************************************************************************
