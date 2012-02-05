@@ -61,9 +61,7 @@ void dataflash_delay(u16 n)
  *******************************************************************************/
 u8 DATAFLASH_Init(void)
 {
-	u32 i = 0;
-
-	/* Initialize SPI */
+        /* Initialize SPI */
 	SPI_Config();
 	/* DATAFLASH chip select high */
 	DATAFLASH_CS_HIGH();
@@ -440,11 +438,11 @@ u8 DATAFLASH_GetDeviceID(sDATAFLASH_CID* DATAFLASH_cid)
 	u8 CID_Tab[4];
 
 	DATAFLASH_CS_HIGH();
-	dataflash_delay(20);
+	dataflash_delay(2000);
 	/* DATAFLASH chip select low */
 	DATAFLASH_CS_LOW();
 	/* Send CMD10 (CID register) */
-	dataflash_delay(10);
+	dataflash_delay(1000);
 	DATAFLASH_WriteByte(DATAFLASH_READ_CID);
 
 	/* Store CID register value on CID_Tab */
@@ -700,7 +698,7 @@ u16 DATAFLASH_ReadByte(void)
 	u8 Data = 0;
 	u8 count=0xFF;
 	/* Wait until a data is received */
-	while ((count--) && SPI_I2S_GetFlagStatus(DATAFLASH_SPI, SPI_I2S_FLAG_RXNE) == RESET)
+	while ((--count) && SPI_I2S_GetFlagStatus(DATAFLASH_SPI, SPI_I2S_FLAG_RXNE) == RESET)
 		;
 	/* Get the received data */
 	Data = SPI_I2S_ReceiveData(DATAFLASH_SPI);
@@ -743,9 +741,9 @@ void SPI_Config(void)
 	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
 	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
 	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
-	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
+	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
 	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
-	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
 	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
 	SPI_InitStructure.SPI_CRCPolynomial = 7;
 	SPI_Init(DATAFLASH_SPI, &SPI_InitStructure);
