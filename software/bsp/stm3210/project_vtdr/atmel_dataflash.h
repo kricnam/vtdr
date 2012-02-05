@@ -161,7 +161,7 @@ u16 DATAFLASH_GetStatus(void);
 
 /*----- Low layer function -----*/
 void DATAFLASH_WriteByte(u8 byte);
-u8 DATAFLASH_ReadByte(void);
+u16 DATAFLASH_ReadByte(void);
 
 #endif /* __DATAFLASH_H */
 
