@@ -1764,6 +1764,9 @@
       <name>$PROJ_DIR$\application.c</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\atmel_dataflash.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\board.c</name>
     </file>
     <file>
@@ -1771,9 +1774,6 @@
     </file>
     <file>
       <name>$PROJ_DIR$\led.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\msd.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\rtconfig.h</name>
