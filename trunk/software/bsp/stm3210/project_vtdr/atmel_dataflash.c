@@ -447,10 +447,10 @@ u8 DATAFLASH_GetDeviceID(sDATAFLASH_CID* DATAFLASH_cid)
 	DATAFLASH_ReadByte();
 	/* Store CID register value on CID_Tab */
 	/* Wait until a data is received */
-	for (int i=0;i < 4;i++)
+	for (int i = 0; i < 4; i++)
 	{
-		
-DATAFLASH_WriteByte(0xFF);
+
+		DATAFLASH_WriteByte(0xFF);
 		u16 data = DATAFLASH_ReadByte();
 		if (DATAFLASH_READSUCCESS(data))
 		{
@@ -462,7 +462,7 @@ DATAFLASH_WriteByte(0xFF);
 			break;
 		}
 		rvalue = DATAFLASH_RESPONSE_NO_ERROR;
-                
+
 	}
 
 	/* DATAFLASH chip select high */
