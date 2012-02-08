@@ -145,19 +145,25 @@ sDATAFLASH_CID;
 
 /*----- High layer function -----*/
 u8 DATAFLASH_Init(void);
-u8 DATAFLASH_WriteBlock(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite);
-u8 DATAFLASH_ReadBlock(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead);
-u8 DATAFLASH_WriteBuffer(u8* pBuffer, u32 WriteAddr, u32 NumByteToWrite);
-u8 DATAFLASH_ReadBuffer(u8* pBuffer, u32 ReadAddr, u32 NumByteToRead);
-u8 DATAFLASH_GetCSDRegister(sDATAFLASH_CSD* DATAFLASH_csd);
+
 u8 DATAFLASH_GetDeviceID(sDATAFLASH_CID* DATAFLASH_cid);
 
 /*----- Medium layer function -----*/
-void DATAFLASH_SendCmd(u8 Cmd, u32 Arg, u8 Crc);
-u8 DATAFLASH_GetResponse(u8 Response);
-u8 DATAFLASH_GetDataResponse(void);
-u8 DATAFLASH_GoIdleState(void);
-u16 DATAFLASH_GetStatus(void);
+/*----- High layer function -----*/
+void SPI_FLASH_Init(void);
+void SPI_FLASH_SectorErase(u32 SectorAddr);
+void SPI_FLASH_BulkErase(void);
+void SPI_FLASH_PageWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite);
+void SPI_FLASH_BufferWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite);
+void SPI_FLASH_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead);
+void SPI_FLASH_StartReadSequence(u32 ReadAddr);
+
+/*----- Low layer function -----*/
+u8 SPI_FLASH_ReadByte(void);
+u8 SPI_FLASH_SendByte(u8 byte);
+u16 SPI_FLASH_SendHalfWord(u16 HalfWord);
+void SPI_FLASH_WriteEnable(void);
+void SPI_FLASH_WaitForWriteEnd(void);
 
 /*----- Low layer function -----*/
 void DATAFLASH_WriteByte(u8 byte);

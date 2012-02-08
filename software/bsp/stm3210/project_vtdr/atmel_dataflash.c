@@ -31,13 +31,35 @@
 #include <stm32f10x_spi.h>
 #include <stm32f10x_gpio.h>
 #include <stm32f10x_rcc.h>
+
 /* Private typedef -----------------------------------------------------------*/
+#define SPI_FLASH_PageSize 256
+
+#define WRITE      0x02  /* Write to Memory instruction */
+#define WRSR       0x01  /* Write Status Register instruction */
+#define WREN       0x06  /* Write enable instruction */
+
+#define READ       0x03  /* Read from Memory instruction */
+#define RDSR       0x05  /* Read Status Register instruction  */
+#define RDID       0x9F  /* Read identification */
+#define SE         0xD8  /* Sector Erase instruction */
+#define BE         0xC7  /* Bulk Erase instruction */
+
+#define WIP_Flag   0x01  /* Write In Progress (WIP) flag */
+
+#define Dummy_Byte 0x00
+
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Select DATAFLASH Card: ChipSelect pin low  */
 #define DATAFLASH_CS_LOW()    GPIO_ResetBits(GPIOA, GPIO_Pin_4)
 /* Deselect DATAFLASH Card: ChipSelect pin high */
 #define DATAFLASH_CS_HIGH()   GPIO_SetBits(GPIOA, GPIO_Pin_4)
+/* Select SPI FLASH: ChipSelect pin low  */
+#define SPI_FLASH_CS_LOW()     GPIO_ResetBits(GPIOA, GPIO_Pin_4)
+/* Deselect SPI FLASH: ChipSelect pin high */
+#define SPI_FLASH_CS_HIGH()    GPIO_SetBits(GPIOA, GPIO_Pin_4)
+
 #define DATAFLASH_SPI         SPI1
 #define DATAFLASH_RCC_SPI     RCC_APB2Periph_SPI1
 #define DATAFLASH_Manufacturer_ATMEL 0x1F
@@ -74,353 +96,6 @@ u8 DATAFLASH_Init(void)
 	return (DATAFLASH_GetDeviceID(&cid));
 }
 
-/*******************************************************************************
- * Function Name  : DATAFLASH_WriteBlock
- * Description    : Writes a block on the DATAFLASH
- * Input          : - pBuffer : pointer to the buffer containing the data to be
- *                    written on the DATAFLASH.
- *                  - WriteAddr : address to write on.
- *                  - NumByteToWrite: number of data to write
- * Output         : None
- * Return         : The DATAFLASH Response: - DATAFLASH_RESPONSE_FAILURE: Sequence failed
- *                                    - DATAFLASH_RESPONSE_NO_ERROR: Sequence succeed
- *******************************************************************************/
-u8 DATAFLASH_WriteBlock(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite)
-{
-	u32 i = 0;
-	u8 rvalue = DATAFLASH_RESPONSE_FAILURE;
-
-	/* DATAFLASH chip select low */
-	DATAFLASH_CS_LOW();
-	/* Send CMD24 (DATAFLASH_WRITE_BLOCK) to write multiple block */
-	DATAFLASH_SendCmd(DATAFLASH_WRITE_BLOCK, WriteAddr, 0xFF);
-
-	/* Check if the DATAFLASH acknowledged the write block command: R1 response (0x00: no errors) */
-	if (!DATAFLASH_GetResponse(DATAFLASH_RESPONSE_NO_ERROR))
-	{
-		/* Send a dummy byte */
-		DATAFLASH_WriteByte(DUMMY);
-		/* Send the data token to signify the start of the data */
-		DATAFLASH_WriteByte(0xFE);
-		/* Write the block data to DATAFLASH : write count data by block */
-		for (i = 0; i < NumByteToWrite; i++)
-		{
-			/* Send the pointed byte */
-			DATAFLASH_WriteByte(*pBuffer);
-			/* Point to the next location where the byte read will be saved */
-			pBuffer++;
-		}
-		/* Put CRC bytes (not really needed by us, but required by DATAFLASH) */
-		DATAFLASH_ReadByte();
-		DATAFLASH_ReadByte();
-		/* Read data response */
-		if (DATAFLASH_GetDataResponse() == DATAFLASH_DATA_OK)
-		{
-			rvalue = DATAFLASH_RESPONSE_NO_ERROR;
-		}
-	}
-
-	/* DATAFLASH chip select high */
-	DATAFLASH_CS_HIGH();
-	/* Send dummy byte: 8 Clock pulses of delay */
-	DATAFLASH_WriteByte(DUMMY);
-	/* Returns the reponse */
-	return rvalue;
-}
-
-/*******************************************************************************
- * Function Name  : DATAFLASH_ReadBlock
- * Description    : Reads a block of data from the DATAFLASH.
- * Input          : - pBuffer : pointer to the buffer that receives the data read
- *                    from the DATAFLASH.
- *                  - ReadAddr : DATAFLASH's internal address to read from.
- *                  - NumByteToRead : number of bytes to read from the DATAFLASH.
- * Output         : None
- * Return         : The DATAFLASH Response: - DATAFLASH_RESPONSE_FAILURE: Sequence failed
- *                                    - DATAFLASH_RESPONSE_NO_ERROR: Sequence succeed
- *******************************************************************************/
-u8 DATAFLASH_ReadBlock(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead)
-{
-	u32 i = 0;
-	u8 rvalue = DATAFLASH_RESPONSE_FAILURE;
-
-	/* DATAFLASH chip select low */
-	DATAFLASH_CS_LOW();
-	/* Send CMD17 (DATAFLASH_READ_SINGLE_BLOCK) to read one block */
-	DATAFLASH_SendCmd(DATAFLASH_READ_SINGLE_BLOCK, ReadAddr, 0xFF);
-
-	/* Check if the DATAFLASH acknowledged the read block command: R1 response (0x00: no errors) */
-	if (!DATAFLASH_GetResponse(DATAFLASH_RESPONSE_NO_ERROR))
-	{
-		/* Now look for the data token to signify the start of the data */
-		if (!DATAFLASH_GetResponse(DATAFLASH_START_DATA_SINGLE_BLOCK_READ))
-		{
-			/* Read the DATAFLASH block data : read NumByteToRead data */
-			for (i = 0; i < NumByteToRead; i++)
-			{
-				/* Save the received data */
-				*pBuffer = DATAFLASH_ReadByte();
-				/* Point to the next location where the byte read will be saved */
-				pBuffer++;
-			}
-			/* Get CRC bytes (not really needed by us, but required by DATAFLASH) */
-			DATAFLASH_ReadByte();
-			DATAFLASH_ReadByte();
-			/* Set response value to success */
-			rvalue = DATAFLASH_RESPONSE_NO_ERROR;
-		}
-	}
-
-	/* DATAFLASH chip select high */
-	DATAFLASH_CS_HIGH();
-	/* Send dummy byte: 8 Clock pulses of delay */
-	DATAFLASH_WriteByte(DUMMY);
-	/* Returns the reponse */
-	return rvalue;
-}
-
-/*******************************************************************************
- * Function Name  : DATAFLASH_WriteBuffer
- * Description    : Writes many blocks on the DATAFLASH
- * Input          : - pBuffer : pointer to the buffer containing the data to be
- *                    written on the DATAFLASH.
- *                  - WriteAddr : address to write on.
- *                  - NumByteToWrite: number of data to write
- * Output         : None
- * Return         : The DATAFLASH Response: - DATAFLASH_RESPONSE_FAILURE: Sequence failed
- *                                    - DATAFLASH_RESPONSE_NO_ERROR: Sequence succeed
- *******************************************************************************/
-u8 DATAFLASH_WriteBuffer(u8* pBuffer, u32 WriteAddr, u32 NumByteToWrite)
-{
-	u32 i = 0, NbrOfBlock = 0, Offset = 0;
-	u8 rvalue = DATAFLASH_RESPONSE_FAILURE;
-
-	/* Calculate number of blocks to write */
-	NbrOfBlock = NumByteToWrite / BLOCK_SIZE;
-	/* DATAFLASH chip select low */
-	DATAFLASH_CS_LOW();
-
-	/* Data transfer */
-	while (NbrOfBlock--)
-	{
-		/* Send CMD24 (DATAFLASH_WRITE_BLOCK) to write blocks */
-		DATAFLASH_SendCmd(DATAFLASH_WRITE_BLOCK, WriteAddr + Offset, 0xFF);
-
-		/* Check if the DATAFLASH acknowledged the write block command: R1 response (0x00: no errors) */
-		if (DATAFLASH_GetResponse(DATAFLASH_RESPONSE_NO_ERROR))
-		{
-			return DATAFLASH_RESPONSE_FAILURE;
-		}
-		/* Send dummy byte */
-		DATAFLASH_WriteByte(DUMMY);
-		/* Send the data token to signify the start of the data */
-		DATAFLASH_WriteByte(DATAFLASH_START_DATA_SINGLE_BLOCK_WRITE);
-		/* Write the block data to DATAFLASH : write count data by block */
-		for (i = 0; i < BLOCK_SIZE; i++)
-		{
-			/* Send the pointed byte */
-			DATAFLASH_WriteByte(*pBuffer);
-			/* Point to the next location where the byte read will be saved */
-			pBuffer++;
-		}
-		/* Set next write address */
-		Offset += 512;
-		/* Put CRC bytes (not really needed by us, but required by DATAFLASH) */
-		DATAFLASH_ReadByte();
-		DATAFLASH_ReadByte();
-		/* Read data response */
-		if (DATAFLASH_GetDataResponse() == DATAFLASH_DATA_OK)
-		{
-			/* Set response value to success */
-			rvalue = DATAFLASH_RESPONSE_NO_ERROR;
-		}
-		else
-		{
-			/* Set response value to failure */
-			rvalue = DATAFLASH_RESPONSE_FAILURE;
-		}
-	}
-
-	/* DATAFLASH chip select high */
-	DATAFLASH_CS_HIGH();
-	/* Send dummy byte: 8 Clock pulses of delay */
-	DATAFLASH_WriteByte(DUMMY);
-	/* Returns the reponse */
-	return rvalue;
-}
-
-/*******************************************************************************
- * Function Name  : DATAFLASH_ReadBuffer
- * Description    : Reads multiple block of data from the DATAFLASH.
- * Input          : - pBuffer : pointer to the buffer that receives the data read
- *                    from the DATAFLASH.
- *                  - ReadAddr : DATAFLASH's internal address to read from.
- *                  - NumByteToRead : number of bytes to read from the DATAFLASH.
- * Output         : None
- * Return         : The DATAFLASH Response: - DATAFLASH_RESPONSE_FAILURE: Sequence failed
- *                                    - DATAFLASH_RESPONSE_NO_ERROR: Sequence succeed
- *******************************************************************************/
-u8 DATAFLASH_ReadBuffer(u8* pBuffer, u32 ReadAddr, u32 NumByteToRead)
-{
-	u32 i = 0, NbrOfBlock = 0, Offset = 0;
-	u8 rvalue = DATAFLASH_RESPONSE_FAILURE;
-
-	/* Calculate number of blocks to read */
-	NbrOfBlock = NumByteToRead / BLOCK_SIZE;
-	/* DATAFLASH chip select low */
-	DATAFLASH_CS_LOW();
-
-	/* Data transfer */
-	while (NbrOfBlock--)
-	{
-		/* Send CMD17 (DATAFLASH_READ_SINGLE_BLOCK) to read one block */
-		DATAFLASH_SendCmd(DATAFLASH_READ_SINGLE_BLOCK, ReadAddr + Offset, 0xFF);
-		/* Check if the DATAFLASH acknowledged the read block command: R1 response (0x00: no errors) */
-		if (DATAFLASH_GetResponse(DATAFLASH_RESPONSE_NO_ERROR))
-		{
-			return DATAFLASH_RESPONSE_FAILURE;
-		}
-		/* Now look for the data token to signify the start of the data */
-		if (!DATAFLASH_GetResponse(DATAFLASH_START_DATA_SINGLE_BLOCK_READ))
-		{
-			/* Read the DATAFLASH block data : read NumByteToRead data */
-			for (i = 0; i < BLOCK_SIZE; i++)
-			{
-				/* Read the pointed data */
-				*pBuffer = DATAFLASH_ReadByte();
-				/* Point to the next location where the byte read will be saved */
-				pBuffer++;
-			}
-			/* Set next read address*/
-			Offset += 512;
-			/* get CRC bytes (not really needed by us, but required by DATAFLASH) */
-			DATAFLASH_ReadByte();
-			DATAFLASH_ReadByte();
-			/* Set response value to success */
-			rvalue = DATAFLASH_RESPONSE_NO_ERROR;
-		}
-		else
-		{
-			/* Set response value to failure */
-			rvalue = DATAFLASH_RESPONSE_FAILURE;
-		}
-	}
-
-	/* DATAFLASH chip select high */
-	DATAFLASH_CS_HIGH();
-	/* Send dummy byte: 8 Clock pulses of delay */
-	DATAFLASH_WriteByte(DUMMY);
-	/* Returns the reponse */
-	return rvalue;
-}
-
-/*******************************************************************************
- * Function Name  : DATAFLASH_GetCSDRegister
- * Description    : Read the CSD card register.
- *                  Reading the contents of the CSD register in SPI mode
- *                  is a simple read-block transaction.
- * Input          : - DATAFLASH_csd: pointer on an SCD register structure
- * Output         : None
- * Return         : The DATAFLASH Response: - DATAFLASH_RESPONSE_FAILURE: Sequence failed
- *                                    - DATAFLASH_RESPONSE_NO_ERROR: Sequence succeed
- *******************************************************************************/
-u8 DATAFLASH_GetCSDRegister(sDATAFLASH_CSD* DATAFLASH_csd)
-{
-	u32 i = 0;
-	u8 rvalue = DATAFLASH_RESPONSE_FAILURE;
-	u8 CSD_Tab[16];
-
-	/* DATAFLASH chip select low */
-	DATAFLASH_CS_LOW();
-	/* Send CMD9 (CSD register) or CMD10(CSD register) */
-	DATAFLASH_SendCmd(DATAFLASH_SEND_CSD, 0, 0xFF);
-
-	/* Wait for response in the R1 format (0x00 is no errors) */
-	if (!DATAFLASH_GetResponse(DATAFLASH_RESPONSE_NO_ERROR))
-	{
-		if (!DATAFLASH_GetResponse(DATAFLASH_START_DATA_SINGLE_BLOCK_READ))
-		{
-			for (i = 0; i < 16; i++)
-			{
-				/* Store CSD register value on CSD_Tab */
-				CSD_Tab[i] = DATAFLASH_ReadByte();
-			}
-		}
-		/* Get CRC bytes (not really needed by us, but required by DATAFLASH) */
-		DATAFLASH_WriteByte(DUMMY);
-		DATAFLASH_WriteByte(DUMMY);
-		/* Set response value to success */
-		rvalue = DATAFLASH_RESPONSE_NO_ERROR;
-	}
-
-	/* DATAFLASH chip select high */
-	DATAFLASH_CS_HIGH();
-	/* Send dummy byte: 8 Clock pulses of delay */
-	DATAFLASH_WriteByte(DUMMY);
-
-	/* Byte 0 */
-	DATAFLASH_csd->CSDStruct = (CSD_Tab[0] & 0xC0) >> 6;
-	DATAFLASH_csd->SysSpecVersion = (CSD_Tab[0] & 0x3C) >> 2;
-	DATAFLASH_csd->Reserved1 = CSD_Tab[0] & 0x03;
-	/* Byte 1 */
-	DATAFLASH_csd->TAAC = CSD_Tab[1];
-	/* Byte 2 */
-	DATAFLASH_csd->NSAC = CSD_Tab[2];
-	/* Byte 3 */
-	DATAFLASH_csd->MaxBusClkFrec = CSD_Tab[3];
-	/* Byte 4 */
-	DATAFLASH_csd->CardComdClasses = CSD_Tab[4] << 4;
-	/* Byte 5 */
-	DATAFLASH_csd->CardComdClasses |= (CSD_Tab[5] & 0xF0) >> 4;
-	DATAFLASH_csd->RdBlockLen = CSD_Tab[5] & 0x0F;
-	/* Byte 6 */
-	DATAFLASH_csd->PartBlockRead = (CSD_Tab[6] & 0x80) >> 7;
-	DATAFLASH_csd->WrBlockMisalign = (CSD_Tab[6] & 0x40) >> 6;
-	DATAFLASH_csd->RdBlockMisalign = (CSD_Tab[6] & 0x20) >> 5;
-	DATAFLASH_csd->DSRImpl = (CSD_Tab[6] & 0x10) >> 4;
-	DATAFLASH_csd->Reserved2 = 0; /* Reserved */
-	DATAFLASH_csd->DeviceSize = (CSD_Tab[6] & 0x03) << 10;
-	/* Byte 7 */
-	DATAFLASH_csd->DeviceSize |= (CSD_Tab[7]) << 2;
-	/* Byte 8 */
-	DATAFLASH_csd->DeviceSize |= (CSD_Tab[8] & 0xC0) >> 6;
-	DATAFLASH_csd->MaxRdCurrentVDDMin = (CSD_Tab[8] & 0x38) >> 3;
-	DATAFLASH_csd->MaxRdCurrentVDDMax = (CSD_Tab[8] & 0x07);
-	/* Byte 9 */
-	DATAFLASH_csd->MaxWrCurrentVDDMin = (CSD_Tab[9] & 0xE0) >> 5;
-	DATAFLASH_csd->MaxWrCurrentVDDMax = (CSD_Tab[9] & 0x1C) >> 2;
-	DATAFLASH_csd->DeviceSizeMul = (CSD_Tab[9] & 0x03) << 1;
-	/* Byte 10 */
-	DATAFLASH_csd->DeviceSizeMul |= (CSD_Tab[10] & 0x80) >> 7;
-	DATAFLASH_csd->EraseGrSize = (CSD_Tab[10] & 0x7C) >> 2;
-	DATAFLASH_csd->EraseGrMul = (CSD_Tab[10] & 0x03) << 3;
-	/* Byte 11 */
-	DATAFLASH_csd->EraseGrMul |= (CSD_Tab[11] & 0xE0) >> 5;
-	DATAFLASH_csd->WrProtectGrSize = (CSD_Tab[11] & 0x1F);
-	/* Byte 12 */
-	DATAFLASH_csd->WrProtectGrEnable = (CSD_Tab[12] & 0x80) >> 7;
-	DATAFLASH_csd->ManDeflECC = (CSD_Tab[12] & 0x60) >> 5;
-	DATAFLASH_csd->WrSpeedFact = (CSD_Tab[12] & 0x1C) >> 2;
-	DATAFLASH_csd->MaxWrBlockLen = (CSD_Tab[12] & 0x03) << 2;
-	/* Byte 13 */
-	DATAFLASH_csd->MaxWrBlockLen |= (CSD_Tab[13] & 0xc0) >> 6;
-	DATAFLASH_csd->WriteBlockPaPartial = (CSD_Tab[13] & 0x20) >> 5;
-	DATAFLASH_csd->Reserved3 = 0;
-	DATAFLASH_csd->ContentProtectAppli = (CSD_Tab[13] & 0x01);
-	/* Byte 14 */
-	DATAFLASH_csd->FileFormatGrouop = (CSD_Tab[14] & 0x80) >> 7;
-	DATAFLASH_csd->CopyFlag = (CSD_Tab[14] & 0x40) >> 6;
-	DATAFLASH_csd->PermWrProtect = (CSD_Tab[14] & 0x20) >> 5;
-	DATAFLASH_csd->TempWrProtect = (CSD_Tab[14] & 0x10) >> 4;
-	DATAFLASH_csd->FileFormat = (CSD_Tab[14] & 0x0C) >> 2;
-	DATAFLASH_csd->ECC = (CSD_Tab[14] & 0x03);
-	/* Byte 15 */
-	DATAFLASH_csd->msd_CRC = (CSD_Tab[15] & 0xFE) >> 1;
-	DATAFLASH_csd->Reserved4 = 1;
-
-	/* Return the reponse */
-	return rvalue;
-}
 
 /*******************************************************************************
  * Function Name  : DATAFLASH_GetCIDRegister
@@ -450,7 +125,7 @@ u8 DATAFLASH_GetDeviceID(sDATAFLASH_CID* DATAFLASH_cid)
 	for (int i = 0; i < 4; i++)
 	{
 
-		DATAFLASH_WriteByte(0xFF);
+		DATAFLASH_WriteByte(Dummy_Byte);
 		u16 data = DATAFLASH_ReadByte();
 		if (DATAFLASH_READSUCCESS(data))
 		{
@@ -480,200 +155,6 @@ u8 DATAFLASH_GetDeviceID(sDATAFLASH_CID* DATAFLASH_cid)
 }
 
 /*******************************************************************************
- * Function Name  : DATAFLASH_SendCmd
- * Description    : Send 5 bytes command to the DATAFLASH card.
- * Input          : - Cmd: the user expected command to send to DATAFLASH card
- *                  - Arg: the command argument
- *                  - Crc: the CRC
- * Output         : None
- * Return         : None
- *******************************************************************************/
-void DATAFLASH_SendCmd(u8 Cmd, u32 Arg, u8 Crc)
-{
-	u32 i = 0x00;
-	u8 Frame[6];
-
-	/* Construct byte1 */
-	Frame[0] = (Cmd | 0x40);
-	/* Construct byte2 */
-	Frame[1] = (u8) (Arg >> 24);
-	/* Construct byte3 */
-	Frame[2] = (u8) (Arg >> 16);
-	/* Construct byte4 */
-	Frame[3] = (u8) (Arg >> 8);
-	/* Construct byte5 */
-	Frame[4] = (u8) (Arg);
-	/* Construct CRC: byte6 */
-	Frame[5] = (Crc);
-
-	/* Send the Cmd bytes */
-	for (i = 0; i < 6; i++)
-	{
-		DATAFLASH_WriteByte(Frame[i]);
-	}
-}
-
-/*******************************************************************************
- * Function Name  : DATAFLASH_GetDataResponse
- * Description    : Get DATAFLASH card data response.
- * Input          : None
- * Output         : None
- * Return         : The DATAFLASH status: Read data response xxx0<status>1
- *                   - status 010: Data accecpted
- *                   - status 101: Data rejected due to a crc error
- *                   - status 110: Data rejected due to a Write error.
- *                   - status 111: Data rejected due to other error.
- *******************************************************************************/
-u8 DATAFLASH_GetDataResponse(void)
-{
-	u32 i = 0;
-	u8 response, rvalue;
-
-	while (i <= 64)
-	{
-		/* Read resonse */
-		response = DATAFLASH_ReadByte();
-		/* Mask unused bits */
-		response &= 0x1F;
-
-		switch (response)
-		{
-		case DATAFLASH_DATA_OK:
-		{
-			rvalue = DATAFLASH_DATA_OK;
-			break;
-		}
-
-		case DATAFLASH_DATA_CRC_ERROR:
-			return DATAFLASH_DATA_CRC_ERROR;
-
-		case DATAFLASH_DATA_WRITE_ERROR:
-			return DATAFLASH_DATA_WRITE_ERROR;
-
-		default:
-		{
-			rvalue = DATAFLASH_DATA_OTHER_ERROR;
-			break;
-		}
-		}
-		/* Exit loop in case of data ok */
-		if (rvalue == DATAFLASH_DATA_OK)
-			break;
-		/* Increment loop counter */
-		i++;
-	}
-	/* Wait null data */
-	while (DATAFLASH_ReadByte() == 0)
-		;
-	/* Return response */
-	return response;
-}
-
-/*******************************************************************************
- * Function Name  : DATAFLASH_GetResponse
- * Description    : Returns the DATAFLASH response.
- * Input          : None
- * Output         : None
- * Return         : The DATAFLASH Response: - DATAFLASH_RESPONSE_FAILURE: Sequence failed
- *                                    - DATAFLASH_RESPONSE_NO_ERROR: Sequence succeed
- *******************************************************************************/
-u8 DATAFLASH_GetResponse(u8 Response)
-{
-	u32 Count = 0xFFF;
-
-	/* Check if response is got or a timeout is happen */
-	while ((DATAFLASH_ReadByte() != Response) && Count)
-	{
-		Count--;
-	}
-
-	if (Count == 0)
-	{
-		/* After time out */
-		return DATAFLASH_RESPONSE_FAILURE;
-	}
-	else
-	{
-		/* Right response got */
-		return DATAFLASH_RESPONSE_NO_ERROR;
-	}
-}
-
-/*******************************************************************************
- * Function Name  : DATAFLASH_GetStatus
- * Description    : Returns the DATAFLASH status.
- * Input          : None
- * Output         : None
- * Return         : The DATAFLASH status.
- *******************************************************************************/
-u16 DATAFLASH_GetStatus(void)
-{
-	u16 Status = 0;
-
-	/* DATAFLASH chip select low */
-	DATAFLASH_CS_LOW();
-	/* Send CMD13 (DATAFLASH_SEND_STATUS) to get DATAFLASH status */
-	DATAFLASH_SendCmd(DATAFLASH_SEND_STATUS, 0, 0xFF);
-
-	Status = DATAFLASH_ReadByte();
-	Status |= (u16) (DATAFLASH_ReadByte() << 8);
-
-	/* DATAFLASH chip select high */
-	DATAFLASH_CS_HIGH();
-	/* Send dummy byte 0xFF */
-	DATAFLASH_WriteByte(DUMMY);
-
-	return Status;
-}
-
-/*******************************************************************************
- * Function Name  : DATAFLASH_GoIdleState
- * Description    : Put DATAFLASH in Idle state.
- * Input          : None
- * Output         : None
- * Return         : The DATAFLASH Response: - DATAFLASH_RESPONSE_FAILURE: Sequence failed
- *                                    - DATAFLASH_RESPONSE_NO_ERROR: Sequence succeed
- *******************************************************************************/
-u8 DATAFLASH_GoIdleState(void)
-{
-	DATAFLASH_CS_LOW();
-
-	/* DATAFLASH chip select low */
-	DATAFLASH_CS_LOW();
-	/* Send CMD0 (GO_IDLE_STATE) to put DATAFLASH in SPI mode */
-	DATAFLASH_SendCmd(DATAFLASH_GO_IDLE_STATE, 0, 0x95);
-
-	/* Wait for In Idle State Response (R1 Format) equal to 0x01 */
-	if (DATAFLASH_GetResponse(DATAFLASH_IN_IDLE_STATE))
-	{
-		/* No Idle State Response: return response failue */
-		return DATAFLASH_RESPONSE_FAILURE;
-	}
-	/*----------Activates the card initialization process-----------*/
-	do
-	{
-		/* DATAFLASH chip select high */
-		DATAFLASH_CS_HIGH();
-		/* Send Dummy byte 0xFF */
-		DATAFLASH_WriteByte(DUMMY);
-
-		/* DATAFLASH chip select low */
-		DATAFLASH_CS_LOW();
-
-		/* Send CMD1 (Activates the card process) until response equal to 0x0 */
-		DATAFLASH_SendCmd(DATAFLASH_SEND_OP_COND, 0, 0xFF);
-		/* Wait for no error Response (R1 Format) equal to 0x00 */
-	} while (DATAFLASH_GetResponse(DATAFLASH_RESPONSE_NO_ERROR));
-
-	/* DATAFLASH chip select high */
-	DATAFLASH_CS_HIGH();
-	/* Send dummy byte 0xFF */
-	DATAFLASH_WriteByte(DUMMY);
-
-	return DATAFLASH_RESPONSE_NO_ERROR;
-}
-
-/*******************************************************************************
  * Function Name  : DATAFLASH_WriteByte
  * Description    : Write a byte on the DATAFLASH.
  * Input          : Data: byte to send.
@@ -682,12 +163,13 @@ u8 DATAFLASH_GoIdleState(void)
  *******************************************************************************/
 void DATAFLASH_WriteByte(u8 Data)
 {
-	/* Wait until the transmit buffer is empty */
-	while (SPI_I2S_GetFlagStatus(DATAFLASH_SPI, SPI_I2S_FLAG_TXE) == RESET)
-		;
-	/* Send the byte */
-	SPI_I2S_SendData(DATAFLASH_SPI, Data);
+        /* Wait until the transmit buffer is empty */
+        while (SPI_I2S_GetFlagStatus(DATAFLASH_SPI, SPI_I2S_FLAG_TXE) == RESET)
+                ;
+        /* Send the byte */
+        SPI_I2S_SendData(DATAFLASH_SPI, Data);
 }
+
 
 /*******************************************************************************
  * Function Name  : DATAFLASH_ReadByte
@@ -709,6 +191,7 @@ u16 DATAFLASH_ReadByte(void)
 	/* Return the shifted data */
 	return ((count << 8)&0xFF00) | (0x00FF & Data);
 }
+
 
 /*******************************************************************************
  * Function Name  : SPI_Config
@@ -757,6 +240,365 @@ void SPI_Config(void)
 	for (delay = 0; delay < 0xfffff; delay++)
 		;
 }
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_SectorErase
+* Description    : Erases the specified FLASH sector.
+* Input          : SectorAddr: address of the sector to erase.
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void SPI_FLASH_SectorErase(u32 SectorAddr)
+{
+  /* Send write enable instruction */
+  SPI_FLASH_WriteEnable();
+
+  /* Sector Erase */
+  /* Select the FLASH: Chip Select low */
+  SPI_FLASH_CS_LOW();
+  /* Send Sector Erase instruction */
+  SPI_FLASH_SendByte(SE);
+  /* Send SectorAddr high nibble address byte */
+  SPI_FLASH_SendByte((SectorAddr & 0xFF0000) >> 16);
+  /* Send SectorAddr medium nibble address byte */
+  SPI_FLASH_SendByte((SectorAddr & 0xFF00) >> 8);
+  /* Send SectorAddr low nibble address byte */
+  SPI_FLASH_SendByte(SectorAddr & 0xFF);
+  /* Deselect the FLASH: Chip Select high */
+  SPI_FLASH_CS_HIGH();
+
+  /* Wait the end of Flash writing */
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_BulkErase
+* Description    : Erases the entire FLASH.
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void SPI_FLASH_BulkErase(void)
+{
+  /* Send write enable instruction */
+  SPI_FLASH_WriteEnable();
+
+  /* Bulk Erase */
+  /* Select the FLASH: Chip Select low */
+  SPI_FLASH_CS_LOW();
+  /* Send Bulk Erase instruction  */
+  SPI_FLASH_SendByte(BE);
+  /* Deselect the FLASH: Chip Select high */
+  SPI_FLASH_CS_HIGH();
+
+  /* Wait the end of Flash writing */
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_PageWrite
+* Description    : Writes more than one byte to the FLASH with a single WRITE
+*                  cycle(Page WRITE sequence). The number of byte can't exceed
+*                  the FLASH page size.
+* Input          : - pBuffer : pointer to the buffer  containing the data to be
+*                    written to the FLASH.
+*                  - WriteAddr : FLASH's internal address to write to.
+*                  - NumByteToWrite : number of bytes to write to the FLASH,
+*                    must be equal or less than "SPI_FLASH_PageSize" value.
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void SPI_FLASH_PageWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite)
+{
+  /* Enable the write access to the FLASH */
+  SPI_FLASH_WriteEnable();
+
+  /* Select the FLASH: Chip Select low */
+  SPI_FLASH_CS_LOW();
+  /* Send "Write to Memory " instruction */
+  SPI_FLASH_SendByte(WRITE);
+  /* Send WriteAddr high nibble address byte to write to */
+  SPI_FLASH_SendByte((WriteAddr & 0xFF0000) >> 16);
+  /* Send WriteAddr medium nibble address byte to write to */
+  SPI_FLASH_SendByte((WriteAddr & 0xFF00) >> 8);
+  /* Send WriteAddr low nibble address byte to write to */
+  SPI_FLASH_SendByte(WriteAddr & 0xFF);
+
+  /* while there is data to be written on the FLASH */
+  while(NumByteToWrite--)
+  {
+    /* Send the current byte */
+    SPI_FLASH_SendByte(*pBuffer);
+    /* Point on the next byte to be written */
+    pBuffer++;
+  }
+
+  /* Deselect the FLASH: Chip Select high */
+  SPI_FLASH_CS_HIGH();
+
+  /* Wait the end of Flash writing */
+  SPI_FLASH_WaitForWriteEnd();
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_BufferWrite
+* Description    : Writes block of data to the FLASH. In this function, the
+*                  number of WRITE cycles are reduced, using Page WRITE sequence.
+* Input          : - pBuffer : pointer to the buffer  containing the data to be
+*                    written to the FLASH.
+*                  - WriteAddr : FLASH's internal address to write to.
+*                  - NumByteToWrite : number of bytes to write to the FLASH.
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void SPI_FLASH_BufferWrite(u8* pBuffer, u32 WriteAddr, u16 NumByteToWrite)
+{
+  u8 NumOfPage = 0, NumOfSingle = 0, Addr = 0, count = 0, temp = 0;
+
+  Addr = WriteAddr % SPI_FLASH_PageSize;
+  count = SPI_FLASH_PageSize - Addr;
+  NumOfPage =  NumByteToWrite / SPI_FLASH_PageSize;
+  NumOfSingle = NumByteToWrite % SPI_FLASH_PageSize;
+
+  if(Addr == 0) /* WriteAddr is SPI_FLASH_PageSize aligned  */
+  {
+    if(NumOfPage == 0) /* NumByteToWrite < SPI_FLASH_PageSize */
+    {
+      SPI_FLASH_PageWrite(pBuffer, WriteAddr, NumByteToWrite);
+    }
+    else /* NumByteToWrite > SPI_FLASH_PageSize */
+    {
+      while(NumOfPage--)
+      {
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, SPI_FLASH_PageSize);
+        WriteAddr +=  SPI_FLASH_PageSize;
+        pBuffer += SPI_FLASH_PageSize;
+      }
+
+      SPI_FLASH_PageWrite(pBuffer, WriteAddr, NumOfSingle);
+   }
+  }
+  else /* WriteAddr is not SPI_FLASH_PageSize aligned  */
+  {
+    if(NumOfPage== 0) /* NumByteToWrite < SPI_FLASH_PageSize */
+    {
+      if(NumOfSingle > count) /* (NumByteToWrite + WriteAddr) > SPI_FLASH_PageSize */
+      {
+        temp = NumOfSingle - count;
+
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, count);
+        WriteAddr +=  count;
+        pBuffer += count;
+
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, temp);
+      }
+      else
+      {
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, NumByteToWrite);
+      }
+    }
+    else /* NumByteToWrite > SPI_FLASH_PageSize */
+    {
+      NumByteToWrite -= count;
+      NumOfPage =  NumByteToWrite / SPI_FLASH_PageSize;
+      NumOfSingle = NumByteToWrite % SPI_FLASH_PageSize;
+
+      SPI_FLASH_PageWrite(pBuffer, WriteAddr, count);
+      WriteAddr +=  count;
+      pBuffer += count;
+
+      while(NumOfPage--)
+      {
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, SPI_FLASH_PageSize);
+        WriteAddr +=  SPI_FLASH_PageSize;
+        pBuffer += SPI_FLASH_PageSize;
+      }
+
+      if(NumOfSingle != 0)
+      {
+        SPI_FLASH_PageWrite(pBuffer, WriteAddr, NumOfSingle);
+      }
+    }
+  }
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_BufferRead
+* Description    : Reads a block of data from the FLASH.
+* Input          : - pBuffer : pointer to the buffer that receives the data read
+*                    from the FLASH.
+*                  - ReadAddr : FLASH's internal address to read from.
+*                  - NumByteToRead : number of bytes to read from the FLASH.
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void SPI_FLASH_BufferRead(u8* pBuffer, u32 ReadAddr, u16 NumByteToRead)
+{
+  /* Select the FLASH: Chip Select low */
+  SPI_FLASH_CS_LOW();
+
+  /* Send "Read from Memory " instruction */
+  SPI_FLASH_SendByte(READ);
+
+  /* Send ReadAddr high nibble address byte to read from */
+  SPI_FLASH_SendByte((ReadAddr & 0xFF0000) >> 16);
+  /* Send ReadAddr medium nibble address byte to read from */
+  SPI_FLASH_SendByte((ReadAddr& 0xFF00) >> 8);
+  /* Send ReadAddr low nibble address byte to read from */
+  SPI_FLASH_SendByte(ReadAddr & 0xFF);
+
+  while(NumByteToRead--) /* while there is data to be read */
+  {
+    /* Read a byte from the FLASH */
+    *pBuffer = SPI_FLASH_SendByte(Dummy_Byte);
+    /* Point to the next location where the byte read will be saved */
+    pBuffer++;
+  }
+
+  /* Deselect the FLASH: Chip Select high */
+  SPI_FLASH_CS_HIGH();
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_StartReadSequence
+* Description    : Initiates a read data byte (READ) sequence from the Flash.
+*                  This is done by driving the /CS line low to select the device,
+*                  then the READ instruction is transmitted followed by 3 bytes
+*                  address. This function exit and keep the /CS line low, so the
+*                  Flash still being selected. With this technique the whole
+*                  content of the Flash is read with a single READ instruction.
+* Input          : - ReadAddr : FLASH's internal address to read from.
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void SPI_FLASH_StartReadSequence(u32 ReadAddr)
+{
+  /* Select the FLASH: Chip Select low */
+  SPI_FLASH_CS_LOW();
+
+  /* Send "Read from Memory " instruction */
+  SPI_FLASH_SendByte(READ);
+
+/* Send the 24-bit address of the address to read from -----------------------*/
+  /* Send ReadAddr high nibble address byte */
+  SPI_FLASH_SendByte((ReadAddr & 0xFF0000) >> 16);
+  /* Send ReadAddr medium nibble address byte */
+  SPI_FLASH_SendByte((ReadAddr& 0xFF00) >> 8);
+  /* Send ReadAddr low nibble address byte */
+  SPI_FLASH_SendByte(ReadAddr & 0xFF);
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_ReadByte
+* Description    : Reads a byte from the SPI Flash.
+*                  This function must be used only if the Start_Read_Sequence
+*                  function has been previously called.
+* Input          : None
+* Output         : None
+* Return         : Byte Read from the SPI Flash.
+*******************************************************************************/
+u8 SPI_FLASH_ReadByte(void)
+{
+  return (SPI_FLASH_SendByte(Dummy_Byte));
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_SendByte
+* Description    : Sends a byte through the SPI interface and return the byte
+*                  received from the SPI bus.
+* Input          : byte : byte to send.
+* Output         : None
+* Return         : The value of the received byte.
+*******************************************************************************/
+u8 SPI_FLASH_SendByte(u8 byte)
+{
+  /* Loop while DR register in not emplty */
+  while(SPI_GetFlagStatus(SPI1, SPI_FLAG_TXE) == RESET);
+
+  /* Send byte through the SPI1 peripheral */
+  SPI_SendData(SPI1, byte);
+
+  /* Wait to receive a byte */
+  while(SPI_GetFlagStatus(SPI1, SPI_FLAG_RXNE) == RESET);
+
+  /* Return the byte read from the SPI bus */
+  return SPI_ReceiveData(SPI1);
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_SendHalfWord
+* Description    : Sends a Half Word through the SPI interface and return the
+*                  Half Word received from the SPI bus.
+* Input          : Half Word : Half Word to send.
+* Output         : None
+* Return         : The value of the received Half Word.
+*******************************************************************************/
+u16 SPI_FLASH_SendHalfWord(u16 HalfWord)
+{
+  /* Loop while DR register in not emplty */
+  while(SPI_GetFlagStatus(SPI1, SPI_FLAG_TXE) == RESET);
+
+  /* Send Half Word through the SPI1 peripheral */
+  SPI_SendData(SPI1, HalfWord);
+
+  /* Wait to receive a Half Word */
+  while(SPI_GetFlagStatus(SPI1, SPI_FLAG_RXNE) == RESET);
+
+  /* Return the Half Word read from the SPI bus */
+  return SPI_ReceiveData(SPI1);
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_WriteEnable
+* Description    : Enables the write access to the FLASH.
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void SPI_FLASH_WriteEnable(void)
+{
+  /* Select the FLASH: Chip Select low */
+  SPI_FLASH_CS_LOW();
+
+  /* Send "Write Enable" instruction */
+  SPI_FLASH_SendByte(WREN);
+
+  /* Deselect the FLASH: Chip Select high */
+  SPI_FLASH_CS_HIGH();
+}
+
+/*******************************************************************************
+* Function Name  : SPI_FLASH_WaitForWriteEnd
+* Description    : Polls the status of the Write In Progress (WIP) flag in the
+*                  FLASH's status  register  and  loop  until write  opertaion
+*                  has completed.
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void SPI_FLASH_WaitForWriteEnd(void)
+{
+  u8 FLASH_Status = 0;
+
+  /* Select the FLASH: Chip Select low */
+  SPI_FLASH_CS_LOW();
+
+  /* Send "Read Status Register" instruction */
+  SPI_FLASH_SendByte(RDSR);
+
+  /* Loop as long as the memory is busy with a write cycle */
+  do
+  {
+    /* Send a dummy byte to generate the clock needed by the FLASH
+    and put the value of the status register in FLASH_Status variable */
+    FLASH_Status = SPI_FLASH_SendByte(Dummy_Byte);
+
+  } while((FLASH_Status & WIP_Flag) == SET); /* Write in progress */
+
+  /* Deselect the FLASH: Chip Select high */
+  SPI_FLASH_CS_HIGH();
+}
+
 
 /******************* (C) COPYRIGHT 2008 STMicroelectronics *****END OF FILE****/
 
