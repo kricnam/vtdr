@@ -49,7 +49,7 @@
 
 #define Dummy_Byte 0x00
 #define SPI_FLAG_TXE SPI_I2S_FLAG_TXE
-#define SPI_FLAS_RXNE SPI_I2S_FLAG_RXNE
+#define SPI_FLAG_RXNE SPI_I2S_FLAG_RXNE
 
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
