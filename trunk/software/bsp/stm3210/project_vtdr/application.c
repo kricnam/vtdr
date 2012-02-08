@@ -52,7 +52,7 @@ void rt_init_thread_entry(void* parameter)
 	}
 #endif
         lcd_write_matrix(0,0,(unsigned char*)distance_cheng);
-        //rt_hw_buzz_on();
+        rt_hw_buzz_on();
         rt_thread_delay(10);
         rt_hw_buzz_off();
         for(;;)
