@@ -644,14 +644,14 @@ static rt_size_t rt_dataflash_read(rt_device_t dev, rt_off_t pos, void* buffer,
 	/* read all sectors */
 	for (i = 0; i < size / SECTOR_SIZE; i++)
 	{
-		status = DATAFLASH_ReadBlock((rt_uint8_t*) ((rt_uint8_t*) buffer + i
-				* SECTOR_SIZE), (part.offset + i) * SECTOR_SIZE + pos,
-				SECTOR_SIZE);
-		if (status != DATAFLASH_RESPONSE_NO_ERROR)
-		{
-			rt_kprintf("dataflash read failed\n");
-			return 0;
-		}
+//		status = DATAFLASH_ReadBlock((rt_uint8_t*) ((rt_uint8_t*) buffer + i
+//				* SECTOR_SIZE), (part.offset + i) * SECTOR_SIZE + pos,
+//				SECTOR_SIZE);
+//		if (status != DATAFLASH_RESPONSE_NO_ERROR)
+//		{
+//			rt_kprintf("dataflash read failed\n");
+//			return 0;
+//		}
 	}
 
 	if (status == DATAFLASH_RESPONSE_NO_ERROR)
@@ -673,14 +673,14 @@ static rt_size_t rt_dataflash_write(rt_device_t dev, rt_off_t pos,
 	/* read all sectors */
 	for (i = 0; i < size / SECTOR_SIZE; i++)
 	{
-		status = DATAFLASH_WriteBuffer((rt_uint8_t*) ((rt_uint8_t*) buffer + i
-				* SECTOR_SIZE), (part.offset + i) * SECTOR_SIZE + pos,
-				SECTOR_SIZE);
-		if (status != DATAFLASH_RESPONSE_NO_ERROR)
-		{
-			rt_kprintf("dataflash write failed\n");
-			return 0;
-		}
+//		status = DATAFLASH_WriteBuffer((rt_uint8_t*) ((rt_uint8_t*) buffer + i
+//				* SECTOR_SIZE), (part.offset + i) * SECTOR_SIZE + pos,
+//				SECTOR_SIZE);
+//		if (status != DATAFLASH_RESPONSE_NO_ERROR)
+//		{
+//			rt_kprintf("dataflash write failed\n");
+//			return 0;
+//		}
 	}
 
 	if (status == DATAFLASH_RESPONSE_NO_ERROR)
