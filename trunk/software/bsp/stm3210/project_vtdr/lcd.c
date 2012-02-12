@@ -37,6 +37,7 @@
 
 enum LCD_CMD
 {
+	Reset = 0xE2,
 	Display_Off = 0xAF,
 	Display_On = 0xAE,
 	Start_Line = 0xC0,
@@ -71,7 +72,7 @@ void rt_hw_lcd_init(void)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC, ENABLE);
 
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
     GPIO_InitStructure.GPIO_Pin   = lcd_data_pin;
     GPIO_Init(lcd_gpio_data, &GPIO_InitStructure);
 
@@ -91,25 +92,6 @@ void rt_hw_lcd_init(void)
 
 }
 
-void lcd_set_date_port_read(void)
-{
-    return;
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Pin   = lcd_data_pin;
-    GPIO_Init(lcd_gpio_data, &GPIO_InitStructure);
-}
-
-void lcd_set_date_port_write(void)
-{
-    return;
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Pin   = lcd_data_pin;
-    GPIO_Init(lcd_gpio_data, &GPIO_InitStructure);
-}
 
 // delay ms
 void lcd_delay(int n)
@@ -129,18 +111,18 @@ unsigned char lcd_read_status(int bank)
 	uint16_t pinEnable;
 	uint16_t value = 0xFFFF;
 	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
-	lcd_set_date_port_read();
-	GPIO_SetBits(lcd_gpio_ctrl,lcd_RW);
-	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 );
 
-	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-        lcd_delay(10);  
-        GPIO_Write(lcd_gpio_data,(GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(0x00FF));
+	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 );
+	GPIO_SetBits(lcd_gpio_ctrl,lcd_RW);
+
+    GPIO_Write(lcd_gpio_data,(GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(0x00FF));
+    GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
+    lcd_delay(5);
 	value = GPIO_ReadInputData(lcd_gpio_data);
 	value = lcd_bit_reverse(value & 0x00FF);
 	lcd_delay(2);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_set_date_port_write();
+
 	return (unsigned char)(value & 0x00FF);
 }
 
@@ -149,7 +131,7 @@ void lcd_wait(int bank)
 	unsigned char status = 0xFF;
 	do
 	{
-		lcd_delay(3);
+		lcd_delay(10);
 		status = lcd_read_status(bank);
 	}while(status & 0x80);
 	return;
@@ -160,13 +142,11 @@ void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
 	uint16_t pinEnable;
 
 	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
-	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(10);
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 | lcd_RW);
-	lcd_delay(10);
-	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
+	lcd_delay(1);
 	u_char value = lcd_bit_reverse(cCmd | oprand);
 	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(value & 0x00FF)));
+	lcd_delay(10);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
 	lcd_delay(10);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
@@ -185,9 +165,9 @@ void lcd_write_data(int bank, unsigned char data)
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_RW);
 	GPIO_SetBits(lcd_gpio_ctrl,lcd_A0 );
 	data = lcd_bit_reverse(data);
-	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-        lcd_delay(10);
 	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(data & 0x00FF)));
+    lcd_delay(10);
+	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
 	lcd_delay(10);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
 }
@@ -202,22 +182,55 @@ void lcd_Reset(void)
 {
 	GPIO_SetBits(lcd_gpio_reset,lcd_RST);
 	GPIO_ResetBits(lcd_gpio_reset,lcd_RST);
-	lcd_delay(1);
+	lcd_delay(10);
 	GPIO_SetBits(lcd_gpio_reset,lcd_RST);
+}
+
+
+void clear1520(u8 pattern)
+{
+	unsigned char i, j;
+
+	for (i = 0; i < 4; i++)
+	{
+		lcd_detect_write_cmd(0, Page_Set, i);
+		lcd_detect_write_cmd(0, Start_Line, 0);
+
+		lcd_detect_write_cmd(0, 0, 0);
+
+		for (j = 0; j < 61; j++)
+			lcd_detect_write_data(0,pattern);
+
+		lcd_detect_write_cmd(1, Page_Set, i);
+		lcd_detect_write_cmd(1, Start_Line, 0);
+
+		lcd_detect_write_cmd(1, 0, 0);
+
+		for (j = 0; j < 61; j++)
+			lcd_detect_write_data(1,pattern);
+	}
 }
 
 void rt_hw_lcd_on(void)
 {
 	lcd_Reset();
-	lcd_write_cmd(0,Display_Off,0);
-	lcd_write_cmd(0,Start_Line,0);
-	lcd_write_cmd(0,Static_Drive,0);
-	lcd_write_cmd(0,Column_Set,0);
-	lcd_write_cmd(0,Page_Set,0);
-	lcd_write_cmd(0,Duty_Set,1);
-	lcd_write_cmd(0,ADC_Select,0);
-	lcd_write_cmd(0,Read_ModiEnd,0);
+	lcd_delay(10);
+	for (int i = 0; i < 2; i++)
+	{
+	    lcd_detect_write_cmd(i,Reset,0);
+		lcd_detect_write_cmd(i, Display_Off, 0);
+		lcd_detect_write_cmd(i, Start_Line, 0);
+		lcd_detect_write_cmd(i, Static_Drive, 0);
+		lcd_detect_write_cmd(i, Column_Set, 0);
+		lcd_detect_write_cmd(i, Page_Set, 0);
+		lcd_detect_write_cmd(i, Duty_Set, 1);
+		lcd_detect_write_cmd(i, ADC_Select, 0);
+		lcd_detect_write_cmd(i, Read_ModiEnd, 0);
+	}
 
+	clear1520(0xAA);
+	lcd_detect_write_cmd(0,Display_Off,1);
+	lcd_detect_write_cmd(1,Display_Off,1);
 	GPIO_SetBits(lcd_gpio_ctrl,lcd_BK);
 
 }
