@@ -63,6 +63,8 @@ void rt_hw_board_init(void);
 #endif
 
 #define BUZZ_PIN			(GPIO_Pin_12)
+#define USB_PWR_ON			(GPIO_Pin_0)
+#define USB_OC				(GPIO_Pin_1)
 
 void rt_hw_usart_init(void);
 void rt_hw_buzz_on(void);
