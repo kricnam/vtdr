@@ -119,7 +119,7 @@ void rtthread_startup(void)
 
 	/* light led	 */
 	rt_hw_led_on(0);
-	rt_hw_lcd_on();
+	//rt_hw_lcd_on();
 	/* start scheduler */
 	rt_system_scheduler_start();
 
