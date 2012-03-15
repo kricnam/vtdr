@@ -24,7 +24,7 @@
 #define __USB_CONF__H__
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f2xx.h"
+#include "stm32f10x.h"
 
 
 /** @addtogroup USB_OTG_DRIVER
@@ -46,7 +46,7 @@
         compiler preprocessor.
    */
 #ifndef USE_USB_OTG_FS
- //#define USE_USB_OTG_FS
+ #define USE_USB_OTG_FS
 #endif /* USE_USB_OTG_FS */
 
 #ifndef USE_USB_OTG_HS
@@ -58,7 +58,7 @@
 #endif /* USE_ULPI_PHY */
 
 #ifndef USE_EMBEDDED_PHY
- //#define USE_EMBEDDED_PHY
+ #define USE_EMBEDDED_PHY
 #endif /* USE_EMBEDDED_PHY */
 
 #ifndef USE_I2C_PHY
@@ -173,9 +173,9 @@
 #endif
 
 /****************** USB OTG MODE CONFIGURATION ********************************/
-//#define USE_HOST_MODE
-#define USE_DEVICE_MODE
-//#define USE_OTG_MODE
+#define USE_HOST_MODE
+//#define USE_DEVICE_MODE
+#define USE_OTG_MODE
 
 
 #ifndef USB_OTG_FS_CORE
