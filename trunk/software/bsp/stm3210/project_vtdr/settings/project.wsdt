@@ -12,7 +12,7 @@
           
           
           
-        <Column0>282</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
+        <Column0>227</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
       </Workspace>
     <Build><ColumnWidth0>20</ColumnWidth0><ColumnWidth1>722</ColumnWidth1><ColumnWidth2>192</ColumnWidth2><ColumnWidth3>48</ColumnWidth3></Build><Debug-Log><ColumnWidth0>20</ColumnWidth0><ColumnWidth1>963</ColumnWidth1></Debug-Log><TerminalIO/><Find-in-Files><ColumnWidth0>350</ColumnWidth0><ColumnWidth1>50</ColumnWidth1><ColumnWidth2>600</ColumnWidth2></Find-in-Files></Static>
     <Windows>
@@ -25,7 +25,7 @@
             <Factory>Workspace</Factory>
             <Session>
               
-            <NodeDict><ExpandedNode>project</ExpandedNode><ExpandedNode>project/STM32</ExpandedNode><ExpandedNode>project/Startup</ExpandedNode></NodeDict></Session>
+            <NodeDict><ExpandedNode>project</ExpandedNode><ExpandedNode>project/STM32</ExpandedNode><ExpandedNode>project/StdPeriph_Driver</ExpandedNode><ExpandedNode>project/StdPeriph_Driver/USB_OTG</ExpandedNode></NodeDict></Session>
           </Tab>
         </Tabs>
         
@@ -35,14 +35,14 @@
       
       
       
-    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\DOCUMENTS\WORKSPACE\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\rtconfig.h</Filename><XPos>0</XPos><YPos>72</YPos><SelStart>1796</SelStart><SelEnd>1796</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\DOCUMENTS\WORKSPACE\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\board.c</Filename><XPos>0</XPos><YPos>180</YPos><SelStart>469</SelStart><SelEnd>469</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\DOCUMENTS\WORKSPACE\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\msd.c</Filename><XPos>0</XPos><YPos>17</YPos><SelStart>835</SelStart><SelEnd>835</SelEnd></Tab><ActiveTab>2</ActiveTab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
+    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\board.c</Filename><XPos>0</XPos><YPos>200</YPos><SelStart>6454</SelStart><SelEnd>6468</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\startup.c</Filename><XPos>0</XPos><YPos>119</YPos><SelStart>2835</SelStart><SelEnd>2835</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\lcd.c</Filename><XPos>0</XPos><YPos>234</YPos><SelStart>5777</SelStart><SelEnd>5777</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\application.c</Filename><XPos>0</XPos><YPos>47</YPos><SelStart>1291</SelStart><SelEnd>1291</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\usart.c</Filename><XPos>0</XPos><YPos>15</YPos><SelStart>0</SelStart><SelEnd>0</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\usb.c</Filename><XPos>0</XPos><YPos>51</YPos><SelStart>734</SelStart><SelEnd>734</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\usb.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>116</SelStart><SelEnd>116</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\LIBRARIES\STM32_USB_HOST_LIBRARY\CORE\SRC\usbh_stdreq.c</Filename><XPos>0</XPos><YPos>12</YPos><SelStart>1107</SelStart><SelEnd>1107</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\LIBRARIES\STM32_USB_DEVICE_LIBRARY\CORE\INC\usbd_req.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>268</SelStart><SelEnd>268</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\VTDR\SOFTWARE\BSP\STM3210\LIBRARIES\STM32_USB_DEVICE_LIBRARY\CORE\INC\usbd_def.h</Filename><XPos>0</XPos><YPos>18</YPos><SelStart>1206</SelStart><SelEnd>1206</SelEnd></Tab><ActiveTab>9</ActiveTab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
     <Positions>
       
       
       
       
       
-    <Top><Row0><Sizes><Toolbar-00a5a058><key>iaridepm.enu1</key></Toolbar-00a5a058></Sizes></Row0></Top><Left><Row0><Sizes><Wnd0><Rect><Top>-2</Top><Left>-2</Left><Bottom>538</Bottom><Right>373</Right><x>-2</x><y>-2</y><xscreen>269</xscreen><yscreen>265</yscreen><sizeHorzCX>195069</sizeHorzCX><sizeHorzCY>350993</sizeHorzCY><sizeVertCX>271936</sizeVertCX><sizeVertCY>715232</sizeVertCY></Rect></Wnd0></Sizes></Row0></Left><Right><Row0><Sizes/></Row0></Right><Bottom><Row0><Sizes><Wnd1><Rect><Top>-2</Top><Left>-2</Left><Bottom>172</Bottom><Right>1381</Right><x>-2</x><y>-2</y><xscreen>1383</xscreen><yscreen>174</yscreen><sizeHorzCX>1002901</sizeHorzCX><sizeHorzCY>230464</sizeHorzCY><sizeVertCX>195069</sizeVertCX><sizeVertCY>357616</sizeVertCY></Rect></Wnd1></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
+    <Top><Row0><Sizes><Toolbar-00a5a040><key>iaridepm.enu1</key></Toolbar-00a5a040></Sizes></Row0></Top><Left><Row0><Sizes><Wnd0><Rect><Top>-2</Top><Left>-2</Left><Bottom>369</Bottom><Right>318</Right><x>-2</x><y>-2</y><xscreen>269</xscreen><yscreen>265</yscreen><sizeHorzCX>194505</sizeHorzCX><sizeHorzCY>350993</sizeHorzCY><sizeVertCX>231381</sizeVertCX><sizeVertCY>491391</sizeVertCY></Rect></Wnd0></Sizes></Row0></Left><Right><Row0><Sizes/></Row0></Right><Bottom><Row0><Sizes><Wnd1><Rect><Top>-2</Top><Left>-2</Left><Bottom>341</Bottom><Right>1385</Right><x>-2</x><y>-2</y><xscreen>1387</xscreen><yscreen>343</yscreen><sizeHorzCX>1002892</sizeHorzCX><sizeHorzCY>454305</sizeHorzCY><sizeVertCX>194505</sizeVertCX><sizeVertCY>357616</sizeVertCY></Rect></Wnd1></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
   </Desktop>
 </Workspace>
 

@@ -11,10 +11,9 @@ ActionState=1
 Enabled=0
 ShowSource=1
 [DebugChecksum]
-Checksum=-141013185
+Checksum=-114626047
 [DisAssemblyWindow]
-NumStates=_ 1
-State 1=_ 1
+NumStates=_ 0
 [InstructionProfiling]
 Enabled=_ 0
 [CodeCoverage]
@@ -46,12 +45,6 @@ ITMportsEnable=0
 ITMportsTermIO=0
 ITMportsLogFile=0
 ITMlogFile=$PROJ_DIR$\ITM.log
-[DataLog]
-LogEnabled=0
-SumEnabled=0
-GraphEnabled=0
-ShowTimeLog=1
-ShowTimeSum=1
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
@@ -78,6 +71,12 @@ EventSLEEP=0
 [TraceHelperExtra]
 Enabled=0
 ShowSource=1
+[DataLog]
+LogEnabled=0
+SumEnabled=0
+GraphEnabled=0
+ShowTimeLog=1
+ShowTimeSum=1
 [CallStackLog]
 Enabled=0
 [DriverProfiling]
@@ -92,7 +91,12 @@ Bp0=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\PROJECT_FILESYST
 Bp1=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\PROJECT_FILESYSTEM\usart.c}.275.2@1" 0 0 0 0 "" 0 "" 0
 Bp2=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\LIBRARIES\STM32F10X_STDPERIPH_DRIVER\SRC\stm32f10x_usart.c}.175.27@1" 0 0 0 0 "" 0 "" 0
 Bp3=_ "STD_CODE" "{Z:\WORKSPACE\RTT\RT-THREAD-0.3.1\BSP\STM3210\LIBRARIES\STM32F10X_STDPERIPH_DRIVER\SRC\stm32f10x_usart.c}.269.3@1" 0 0 0 0 "" 0 "" 0
-Count=4
+Bp4=_ "STD_CODE" "{$PROJ_DIR$\atmel_dataflash.c}.735.1@1" 0 0 0 0 "" 0 "" 0
+Bp5=_ "STD_CODE" "{Z:\DOCUMENTS\WORKSPACE\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\lcd.c}.245.2@1" 0 0 0 0 "" 0 "" 0
+Bp6=_ "STD_CODE" "{Z:\DOCUMENTS\WORKSPACE\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\board.c}.220.2@1" 1 0 0 0 "" 0 "" 0
+Bp7=_ "STD_CODE" "{Z:\DOCUMENTS\WORKSPACE\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\board.c}.220.2@1" 1 0 0 0 "" 0 "" 0
+Bp8=_ "STD_CODE" "{Z:\DOCUMENTS\WORKSPACE\VTDR\SOFTWARE\BSP\STM3210\PROJECT_VTDR\board.c}.195.1@1" 1 0 0 0 "" 0 "" 0
+Count=9
 [Aliases]
 Count=0
 SuppressDialog=0
