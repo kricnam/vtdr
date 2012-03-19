@@ -23,11 +23,11 @@
   * @retval None
   */
 
-void USB_OTG_BSP_Init(void)
+void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *pdev)
 {
 	  GPIO_InitTypeDef GPIO_InitStructure;
 
-	  RCC_AHB1PeriphClockCmd(  , ENABLE);
+	  RCC_AHB1PeriphClockCmd( RCC_APB2Periph_GPIOB , ENABLE);
 
 	  /* Configure SOF VBUS ID DM DP Pins */
 	  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8  |
@@ -39,27 +39,27 @@ void USB_OTG_BSP_Init(void)
 	  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	  GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource8,GPIO_AF_OTG1_FS) ;
-	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource9,GPIO_AF_OTG1_FS) ;
-	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource11,GPIO_AF_OTG1_FS) ;
-	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource12,GPIO_AF_OTG1_FS) ;
+//	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource8,GPIO_AF_OTG1_FS) ;
+//	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource9,GPIO_AF_OTG1_FS) ;
+//	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource11,GPIO_AF_OTG1_FS) ;
+//	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource12,GPIO_AF_OTG1_FS) ;
 
 	  /* this for ID line debug */
 
 
-	  GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_10;
-	  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-	  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
-	  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	  GPIO_Init(GPIOA, &GPIO_InitStructure);
-	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource10,GPIO_AF_OTG1_FS) ;
-
-	  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-	  RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE) ;
-
-
-	  /* Intialize Timer for delay function */
-	  USB_OTG_BSP_TimeInit();
+//	  GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_10;
+//	  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+//	  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP ;
+//	  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+//	  GPIO_Init(GPIOA, &GPIO_InitStructure);
+//	  GPIO_PinAFConfig(GPIOA,GPIO_PinSource10,GPIO_AF_OTG1_FS) ;
+//
+//	  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+//	  RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE) ;
+//
+//
+//	  /* Intialize Timer for delay function */
+//	  USB_OTG_BSP_TimeInit();
 }
 /**
   * @brief  USB_OTG_BSP_EnableInterrupt
@@ -67,10 +67,10 @@ void USB_OTG_BSP_Init(void)
   * @param  None
   * @retval None
   */
-void USB_OTG_BSP_EnableInterrupt(void)
-{
-
-}
+//void USB_OTG_BSP_EnableInterrupt(void)
+//{
+//
+//}
 
 /**
   * @brief  BSP_Drive_VBUS
@@ -80,10 +80,10 @@ void USB_OTG_BSP_EnableInterrupt(void)
   * @retval None
   */
 
-void USB_OTG_BSP_DriveVBUS(uint32_t speed, uint8_t state)
-{
-
-}
+//void USB_OTG_BSP_DriveVBUS(uint32_t speed, uint8_t state)
+//{
+//
+//}
 
 /**
   * @brief  USB_OTG_BSP_ConfigVBUS
@@ -92,10 +92,10 @@ void USB_OTG_BSP_DriveVBUS(uint32_t speed, uint8_t state)
   * @retval None
   */
 
-void  USB_OTG_BSP_ConfigVBUS(uint32_t speed)
-{
-
-}
+//void  USB_OTG_BSP_ConfigVBUS(uint32_t speed)
+//{
+//
+//}
 
 /**
   * @brief  USB_OTG_BSP_TimeInit
@@ -137,12 +137,12 @@ void USB_OTG_BSP_uDelay (const uint32_t usec)
   * @param  msec : Value of delay required in milli sec
   * @retval None
   */
-void USB_OTG_BSP_mDelay (const uint32_t msec)
-{
-
-    USB_OTG_BSP_uDelay(msec * 1000);
-
-}
+//void USB_OTG_BSP_mDelay (const uint32_t msec)
+//{
+//
+//    USB_OTG_BSP_uDelay(msec * 1000);
+//
+//}
 
 
 /**
@@ -152,15 +152,15 @@ void USB_OTG_BSP_mDelay (const uint32_t msec)
   * @retval None
   */
 
-void USB_OTG_BSP_TimerIRQ (void)
-{
-
-}
+//void USB_OTG_BSP_TimerIRQ (void)
+//{
+//
+//}
 
 
 void rt_hw_usb_init()
 {
-	RCC_OTGFSCLKConfig();
+    //RCC_OTGFSCLKConfig();
     GPIO_InitTypeDef GPIO_InitStructure;
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB , ENABLE);
 
@@ -170,14 +170,20 @@ void rt_hw_usb_init()
     GPIO_InitStructure.GPIO_Pin   = USB_PWR_ON ;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-
-
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
     GPIO_InitStructure.GPIO_Pin   = USB_OC ;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-   // GPIO_ResetBits(GPIOB,USB_PWR_ON);
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin   =   USB_ID | USB_DM |USB_DP ;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Pin = USB_VBUS;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+   
+    //GPIO_ResetBits(GPIOB,USB_PWR_ON);
 }
 
 

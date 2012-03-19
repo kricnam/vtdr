@@ -62,13 +62,7 @@ void rt_hw_board_init(void);
 
 void rt_hw_usart_init(void);
 
-/* SD Card init function */
-void rt_hw_sdcard_init(void);
-void rt_hw_msd_init(void);
-
-/* ETH interface init function */
-void rt_hw_enc28j60_init(void);
-void rt_hw_dm9000_init(void);
+void rt_hw_dataflash_init(void);
 
 #endif
 

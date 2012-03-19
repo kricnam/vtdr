@@ -1799,54 +1799,6 @@
   </group>
   <group>
     <name>StdPeriph_Driver</name>
-    <group>
-      <name>USB_DEV</name>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_Device_Library\Core\src\usbd_core.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_Device_Library\Core\src\usbd_ioreq.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_Device_Library\Core\src\usbd_req.c</name>
-      </file>
-    </group>
-    <group>
-      <name>USB_HOST</name>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_HOST_Library\Core\src\usbh_core.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_HOST_Library\Core\src\usbh_hcs.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_HOST_Library\Core\src\usbh_ioreq.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\LIBRARIES\STM32_USB_HOST_LIBRARY\Core\src\usbh_stdreq.c</name>
-      </file>
-    </group>
-    <group>
-      <name>USB_OTG</name>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_OTG_Driver\src\usb_core.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_OTG_Driver\src\usb_dcd.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_OTG_Driver\src\usb_dcd_int.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_OTG_Driver\src\usb_hcd.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_OTG_Driver\src\usb_hcd_int.c</name>
-      </file>
-      <file>
-        <name>$PROJ_DIR$\..\Libraries\STM32_USB_OTG_Driver\src\usb_otg.c</name>
-      </file>
-    </group>
     <file>
       <name>$PROJ_DIR$\..\Libraries\STM32F10x_StdPeriph_Driver\src\misc.c</name>
     </file>
