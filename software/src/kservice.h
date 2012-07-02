@@ -1,7 +1,7 @@
 /*
  * File      : kservice.h
  * This file is part of RT-Thread RTOS
- * COPYRIGHT (C) 2006 - 2009, RT-Thread Development Team
+ * COPYRIGHT (C) 2006 - 2011, RT-Thread Development Team
  *
  * The license and distribution terms for this file may be
  * found in the file LICENSE in this distribution or at
@@ -22,6 +22,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @addtogroup KernelService
+ */
+/*@{*/
 
 /**
  * @brief initialize a list
@@ -92,6 +97,8 @@ rt_inline int rt_list_isempty(const rt_list_t *l)
  */
 #define rt_list_entry(node, type, member) \
     ((type *)((char *)(node) - (unsigned long)(&((type *)0)->member)))
+
+/*@}*/
 
 #ifdef __cplusplus
 }

@@ -68,7 +68,7 @@ static void workbench_entry(void* parameter)
 	demo_view_animation(workbench);
 #ifndef RTGUI_USING_SMALL_SIZE
 	demo_view_buffer_animation(workbench);
-	demo_view_instrument_panel(workbench);
+	// demo_view_instrument_panel(workbench);
 #endif
 	demo_view_window(workbench);
 	demo_view_label(workbench);
@@ -79,15 +79,25 @@ static void workbench_entry(void* parameter)
 	demo_view_radiobox(workbench);
 	demo_view_textbox(workbench);
 	demo_view_listbox(workbench);
+	demo_view_menu(workbench);
+	demo_view_listctrl(workbench);
+	demo_view_combobox(workbench);
 	demo_view_slider(workbench);
+	demo_view_notebook(workbench);
 	demo_view_mywidget(workbench);
+#if defined(RTGUI_USING_DFS_FILERW) || defined(RTGUI_USING_STDIO_FILERW)
 	demo_view_image(workbench);
+#endif
 #ifdef RT_USING_MODULE	
+#if defined(RTGUI_USING_DFS_FILERW) || defined(RTGUI_USING_STDIO_FILERW)
 	demo_view_module(workbench);
+#endif
 #endif
 	demo_listview_view(workbench);
 	demo_listview_icon_view(workbench);
+#if defined(RTGUI_USING_DFS_FILERW) || defined(RTGUI_USING_STDIO_FILERW)
 	demo_fn_view(workbench);
+#endif
 
 	/* 显示视图 */
 	demo_view_show();
@@ -110,7 +120,7 @@ void workbench_init()
 
 		tid = rt_thread_create("wb",
 			workbench_entry, RT_NULL,
-			2048, 25, 10);
+			2048 * 2, 25, 10);
 
 		if (tid != RT_NULL) rt_thread_startup(tid);
 
@@ -118,7 +128,7 @@ void workbench_init()
 	}
 }
 
-#ifdef RT_USING_RTGUI
+#ifdef RT_USING_FINSH
 #include <finsh.h>
 void workbench()
 {

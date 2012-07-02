@@ -1,10 +1,24 @@
-Import('env')
 Import('RTT_ROOT')
+Import('rtconfig')
+from building import *
 
-# The set of source files associated with this SConscript file.
-src_local = Glob('*.c')
+src	= Glob('*.c')
 
-env.Append(CPPPATH = [RTT_ROOT + '/include'])
-obj = env.Object(src_local)
+CPPPATH = [RTT_ROOT + '/include']
+if rtconfig.CROSS_TOOL == 'keil' and GetDepend('RT_USING_MODULE') == True:
+    LINKFLAGS = ' --keep __rtmsym_* '
+else:
+    LINKFLAGS = '' 
 
-Return('obj')
+if GetDepend('RT_USING_MODULE') == False:
+    SrcRemove(src, ['rtm.c', 'module.c'])
+
+if GetDepend('RT_USING_HEAP') == False or GetDepend('RT_USING_SMALL_MEM') == False:
+    SrcRemove(src, ['mem.c'])
+
+if GetDepend('RT_USING_HEAP') == False or GetDepend('RT_USING_SLAB') == False:
+    SrcRemove(src, ['slab.c'])
+
+group   = DefineGroup('Kernel', src, depend = [''], CPPPATH = CPPPATH, LINKFLAGS = LINKFLAGS)
+
+Return('group')

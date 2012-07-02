@@ -1,6 +1,6 @@
-Import('env')
+from building import *
 
-src_local = Split("""
+src = Split("""
 tc_comm.c
 thread_static.c
 thread_dynamic.c
@@ -21,6 +21,7 @@ semaphore_producer_consumer.c
 mutex_simple.c
 event_simple.c
 mbox_simple.c
+mbox_send_wait.c
 messageq_simple.c
 timer_static.c
 timer_dynamic.c
@@ -30,10 +31,9 @@ timer_timeout.c
 heap_malloc.c
 heap_realloc.c
 memp_simple.c
+tc_sample.c
 """)
 
-# The set of source files associated with this SConscript file.
-obj = env.Object(src_local)
-env.Append(CPPDEFINES='RT_USING_TC')
+group = DefineGroup('examples', src, depend = ['RT_USING_TC'])
 
-Return('obj')
+Return('group')
