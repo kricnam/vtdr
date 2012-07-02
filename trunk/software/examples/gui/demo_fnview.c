@@ -9,6 +9,7 @@
 #include <rtgui/widgets/button.h>
 #include <rtgui/widgets/filelist_view.h>
 
+#if defined(RTGUI_USING_DFS_FILERW) || defined(RTGUI_USING_STDIO_FILERW)
 /* 用于显示选择文件名的文本标签 */
 static rtgui_label_t* label;
 /* 触发文件列表视图的按钮回调函数 */
@@ -86,3 +87,4 @@ rtgui_view_t* demo_fn_view(rtgui_workbench_t* workbench)
 
 	return view;
 }
+#endif

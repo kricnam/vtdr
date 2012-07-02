@@ -10,7 +10,7 @@
 #include <string.h>
 
 #ifdef RT_USING_MODULE
-static rt_module_t module = RT_NULL;
+#if defined(RTGUI_USING_DFS_FILERW) || defined(RTGUI_USING_STDIO_FILERW)
 static rtgui_view_t* _view = RT_NULL;
 
 /* 打开按钮的回调函数 */
@@ -37,24 +37,14 @@ static void open_btn_onbutton(rtgui_widget_t* widget, struct rtgui_event* event)
 
 		/* 设置文件路径的标签 */
 		rtgui_filelist_view_get_fullpath(view, path, sizeof(path));
-#if 0
-		if (module != RT_NULL) 
-		{
-			rt_module_unload(module);
-			module = RT_NULL;
-		}
-#endif
+
 		rt_memset(name, 0, sizeof(name));
 
-		/* 获得图像的类型 */
-		if (rt_strstr(path, ".mo") != RT_NULL)
+		/* 获得应用模块的类型 */
+		if (rt_strstr(path, ".mo") != RT_NULL || rt_strstr(path, ".so") != RT_NULL)
 		{
-			memcpy(name, "mod", 4);
+			rt_module_open(path);
 		}	
-
-		/* 如果图像文件有效，创建相应的rtgui_image对象 */
-		if (name[0] != '\0')
-			module = rt_module_load_from_file(name, path);
 	}
 
 	/* 删除 文件列表 视图 */
@@ -83,3 +73,5 @@ rtgui_view_t* demo_view_module(rtgui_workbench_t* workbench)
 	return _view;
 }
 #endif
+#endif
+

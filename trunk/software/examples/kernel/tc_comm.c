@@ -1,5 +1,7 @@
 #include "tc_comm.h"
+#ifdef RT_USING_FINSH
 #include <finsh.h>
+#endif
 
 #ifdef RT_USING_TC
 #define TC_PRIORITY		25
@@ -65,6 +67,7 @@ void tc_thread_entry(void* parameter)
 		}
 	}
 
+	rt_kprintf("RT-Thread TestCase Running Done!\n");
 	/* detach tc semaphore */
 	rt_sem_detach(&_tc_sem);
 }
@@ -133,8 +136,7 @@ void tc_start(const char* tc_prefix)
 	}
 
 	rt_memset(_tc_prefix, 0, sizeof(_tc_prefix));
-	rt_snprintf(_tc_prefix, sizeof(_tc_prefix),
-		"_tc_%s", tc_prefix);
+	rt_snprintf(_tc_prefix, sizeof(_tc_prefix), "_tc_%s", tc_prefix);
 
 	result = rt_thread_init(&_tc_thread, "tc",
 		tc_thread_entry, RT_NULL,
