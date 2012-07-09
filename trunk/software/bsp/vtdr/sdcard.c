@@ -24,6 +24,7 @@
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_sdio.h"
 #include "stm32f10x_gpio.h"
+#include "stdbool.h"
 #include <rtthread.h>
 
 /** @addtogroup STM32F10x_StdPeriph_Examples

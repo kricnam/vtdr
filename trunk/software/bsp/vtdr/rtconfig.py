@@ -9,7 +9,7 @@ CROSS_TOOL='gcc'
 # 'STM32F10X_MD','STM32F10X_MD_VL',
 # 'STM32F10X_HD','STM32F10X_HD_VL',
 # 'STM32F10X_XL','STM32F10X_CL'
-STM32_TYPE = 'STM32F10X_HD'
+STM32_TYPE = 'STM32F10X_CL'
 
 # lcd panel options
 # 'FMT0371','ILI932X', 'SSD1289'
@@ -28,7 +28,8 @@ elif CROSS_TOOL == 'iar':
 	PLATFORM 	= 'iar'
 	IAR_PATH 	= 'E:/Program Files/IAR Systems/Embedded Workbench 6.0'
 
-BUILD = 'debug'
+#BUILD = 'debug'
+BUILD = ''
 
 if PLATFORM == 'gcc':
     # toolchains
@@ -54,7 +55,7 @@ if PLATFORM == 'gcc':
         CFLAGS += ' -O0 -gdwarf-2'
         AFLAGS += ' -gdwarf-2'
     else:
-        CFLAGS += ' -O2'
+        CFLAGS += ' -O0'
 
     POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'
 
