@@ -114,10 +114,10 @@ void lcd_set_date_port_write(void)
 // delay ms
 void lcd_delay(int n)
 {
-	volatile int m;
-  for(int i =0;i<n;i++)
+volatile int m,i,j;
+  for( i =0;i<n;i++)
   {
-    for(int j=0;j<10;j++)
+    for( j=0;j<10;j++)
     {
     	m++;
     }
