@@ -73,7 +73,8 @@ static void SPI_Config(void);
 
 void dataflash_delay(u16 n)
 {
-	for(u16 i=0;i<n;i++);
+	u16 i;
+	for(i=0;i<n;i++);
 }
 /*******************************************************************************
  * Function Name  : DATAFLASH_Init
@@ -124,7 +125,8 @@ u8 DATAFLASH_GetDeviceID(sDATAFLASH_CID* DATAFLASH_cid)
 	DATAFLASH_ReadByte();
 	/* Store CID register value on CID_Tab */
 	/* Wait until a data is received */
-	for (int i = 0; i < 4; i++)
+	u16 i;
+	for (i = 0; i < 4; i++)
 	{
 
 		DATAFLASH_WriteByte(Dummy_Byte);
@@ -712,7 +714,7 @@ void rt_hw_dataflash_init()
 		dataflash_device.control = rt_dataflash_control;
 
 		/* no private */
-		dataflash_device.private = RT_NULL;
+		//dataflash_device.private = RT_NULL;
 		/* get the first sector to read partition table */
 		sector = (rt_uint8_t*) rt_malloc(512);
 		if (sector == RT_NULL)
