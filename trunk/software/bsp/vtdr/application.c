@@ -75,6 +75,9 @@ static void led_thread_entry(void* parameter)
 
 void rt_init_thread_entry(void* parameter)
 {
+    rt_hw_buzz_on();
+    rt_thread_delay(10);
+    rt_hw_buzz_off();
 /* Filesystem Initialization */
 #ifdef RT_USING_DFS
 	{
@@ -95,6 +98,7 @@ void rt_init_thread_entry(void* parameter)
 #endif
 	}
 #endif
+
 
 /* LwIP Initialization */
 #ifdef RT_USING_LWIP
