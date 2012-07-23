@@ -1,0 +1,49 @@
+#summary Eclipse + GDB + openOCD调试
+
+1、启动openOCD
+{{{
+openocd -f interface/jlink.cfg -f target/stm32f1x.cfg
+}}}
+
+
+2、（可选）烧写更新程序
+{{{
+telnet localhost 4444
+>reset halt
+>flash probe 0
+>stm32f1x mass_erase 0
+>flash write_image rtthread-stm32.axf
+device id = 0x10016418
+flash size = 256kbytes
+wrote 93176 bytes from file rtthread-stm32.axf in 10.639984s (8.552 KiB/s)
+> 
+}}}
+
+3、启动gdb
+{{{
+arm-none-eabi-gdb rtthread-stm32.axf 
+GNU gdb (Sourcery CodeBench Lite 2011.09-69) 7.2.50.20100908-cvs
+Copyright (C) 2010 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "--host=i686-pc-linux-gnu --target=arm-none-eabi".
+For bug reporting instructions, please see:
+<https://support.codesourcery.com/GNUToolchain/>...
+Reading symbols from /home/mxx/workspace/vtdr/software/bsp/vtdr/rtthread-stm32.axf...done.
+(gdb) target remote localhost:3333
+Remote debugging using localhost:3333
+Reset_Handler () at Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/startup/gcc_ride7/startup_stm32f10x_cl.s:68
+68	  movs  r1, #0
+(gdb) b main
+Breakpoint 1 at 0x8000456: file startup.c, line 135.
+(gdb) c
+Continuing.
+Note: automatically using hardware breakpoints for read-only addresses.
+
+Breakpoint 1, main () at startup.c:135
+135		level = rt_hw_interrupt_disable();
+(gdb) 
+
+}}}
