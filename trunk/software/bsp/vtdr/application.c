@@ -61,14 +61,14 @@ static void led_thread_entry(void* parameter)
         rt_kprintf("led on, count : %d\r\n",count);
 #endif
         count++;
-//        rt_hw_led_on(0);
+        rt_hw_led_on(0);
         rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
 
         /* led1 off */
 #ifndef RT_USING_FINSH
         rt_kprintf("led off\r\n");
 #endif
-//        rt_hw_led_off(0);
+        rt_hw_led_off(0);
         rt_thread_delay( RT_TICK_PER_SECOND/2 );
     }
 }
@@ -91,42 +91,14 @@ void rt_init_thread_entry(void* parameter)
 		/* mount sd card fat partition 1 as root directory */
 		if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
 		{
-			rt_kprintf("File System initialized!\n");
+			rt_kprintf("\nFile System initialized!\n");
 		}
 		else
-			rt_kprintf("File System initialzation failed!\n");
+			rt_kprintf("\nFile System initialzation failed!\n");
 #endif
 	}
 #endif
 
-
-/* LwIP Initialization */
-#ifdef RT_USING_LWIP
-	{
-		extern void lwip_sys_init(void);
-
-		/* register ethernetif device */
-		eth_system_device_init();
-
-#ifdef STM32F10X_CL
-		rt_hw_stm32_eth_init();
-#else
-	/* STM32F103 */
-	#if STM32_ETH_IF == 0
-			rt_hw_enc28j60_init();
-	#elif STM32_ETH_IF == 1
-			rt_hw_dm9000_init();
-	#endif
-#endif
-
-		/* re-init device driver */
-		rt_device_init_all();
-
-		/* init lwip system */
-		lwip_sys_init();
-		rt_kprintf("TCP/IP initialized!\n");
-	}
-#endif
 
 #ifdef RT_USING_RTGUI
 	{
@@ -155,6 +127,8 @@ void rt_init_thread_entry(void* parameter)
 		rtgui_startup();
 	}
 #endif /* #ifdef RT_USING_RTGUI */
+
+	while(1) { rt_thread_delay(1000);};
 }
 
 int rt_application_init()

@@ -108,7 +108,7 @@ void rtthread_startup(void)
 #ifdef RT_USING_FINSH
 	/* init finsh */
 	finsh_system_init();
-	finsh_set_device("uart1");
+	finsh_set_device("uart2");
 #endif
 
     /* init timer thread */
@@ -116,13 +116,7 @@ void rtthread_startup(void)
 
 	/* init idle thread */
 	rt_thread_idle_init();
-
-	/* light led	 */
-	rt_hw_led_on(0);
-	rt_hw_lcd_on();
-	/* start scheduler */
 	rt_system_scheduler_start();
-
 	/* never reach here */
 	return ;
 }

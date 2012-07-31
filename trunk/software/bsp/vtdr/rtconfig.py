@@ -28,8 +28,8 @@ elif CROSS_TOOL == 'iar':
 	PLATFORM 	= 'iar'
 	IAR_PATH 	= 'E:/Program Files/IAR Systems/Embedded Workbench 6.0'
 
-#BUILD = 'debug'
-BUILD = ''
+BUILD = 'debug'
+#BUILD = ''
 
 if PLATFORM == 'gcc':
     # toolchains
