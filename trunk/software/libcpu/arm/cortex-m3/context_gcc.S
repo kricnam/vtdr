@@ -155,7 +155,7 @@ rt_hw_context_switch_to:
 	CPSIE	I						/* enable interrupts at processor level */
 
 	/* never reach here! */
-
+	NOP
 /* compatible with old version */
 	.global rt_hw_interrupt_thread_switch
 	.type rt_hw_interrupt_thread_switch, %function
