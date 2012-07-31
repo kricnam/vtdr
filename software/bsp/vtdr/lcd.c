@@ -49,10 +49,10 @@ enum LCD_CMD
 	Read_ModiEnd = 0xEE
 };
 
-u_char lcd_bit_reverse(u_char byte)
+rt_uint8_t lcd_bit_reverse(rt_uint8_t byte)
 {
-    u_char newvalue=0;
-    u_char temp = byte;
+	rt_uint8_t newvalue=0;
+	rt_uint8_t temp = byte;
     newvalue = ((temp << 7)&0x80);
     newvalue |= ((temp >> 7)&0x01); 
     newvalue |= ((byte >> 5)&0x02);
@@ -157,7 +157,7 @@ void lcd_wait(int bank)
 
 void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
 {
-	uint16_t pinEnable;
+	rt_uint16_t pinEnable;
 
 	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
@@ -165,7 +165,7 @@ void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 | lcd_RW);
 	lcd_delay(10);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-	u_char value = lcd_bit_reverse(cCmd | oprand);
+	rt_uint8_t value = lcd_bit_reverse(cCmd | oprand);
 	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(value & 0x00FF)));
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
 	lcd_delay(10);
@@ -232,10 +232,10 @@ void lcd_set_column(char nCol)
 	lcd_detect_write_cmd(0,Column_Set,nCol & 0x7F);
 }
 
-void lcd_write_matrix(u_char row,u_char column,FONT_MATRIX *pt)
+void lcd_write_matrix(rt_uint8_t row,rt_uint8_t column,FONT_MATRIX *pt)
 {
-	    u_char i;
-	    u_char  tempCol;
+	rt_uint8_t i;
+	rt_uint8_t  tempCol;
 	    lcd_set_column(column);
 
 		for (i=0;i<24;i++)
