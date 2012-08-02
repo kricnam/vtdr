@@ -36,7 +36,7 @@ void rt_hw_led_init(void)
 
 
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 
     GPIO_InitStructure.GPIO_Pin   = led1_pin;
     GPIO_Init(led1_gpio, &GPIO_InitStructure);

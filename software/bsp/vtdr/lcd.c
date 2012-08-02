@@ -251,6 +251,6 @@ void lcd(rt_uint32_t lcd, rt_uint32_t value)
 {
 
 }
-FINSH_FUNCTION_EXPORT(lcd, set led[0 - 1] on[1] or off[0].)
+FINSH_FUNCTION_EXPORT(lcd, set lcd[0 - 1] on[1] or off[0].)
 #endif
 

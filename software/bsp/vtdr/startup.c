@@ -98,6 +98,7 @@ void rtthread_startup(void)
 
 	/* init dataflash driver */
 	rt_hw_dataflash_init();
+	rt_hw_rtc_init();
 
 	/* init all device */
 	rt_device_init_all();
@@ -110,6 +111,8 @@ void rtthread_startup(void)
 	finsh_system_init();
 	finsh_set_device("uart2");
 #endif
+
+	rt_hw_lcd_on();
 
     /* init timer thread */
     rt_system_timer_thread_init();
