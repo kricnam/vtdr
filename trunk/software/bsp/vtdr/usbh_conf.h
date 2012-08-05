@@ -29,6 +29,7 @@
 #ifndef __USBH_CONF__H__
 #define __USBH_CONF__H__
 
+#include "usb_conf.h"
 /* Includes ------------------------------------------------------------------*/
 
 /** @addtogroup USBH_OTG_DRIVER
