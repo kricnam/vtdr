@@ -28,7 +28,7 @@
   */ 
 
 /* Includes ------------------------------------------------------------------*/
-#include "usbd_mem_if_template.h"
+#include "usbd_mem_if.h"
 #include "usbd_dfu_mal.h"
 
 /* Private typedef -----------------------------------------------------------*/
