@@ -135,8 +135,8 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *pdev)
 
  void rt_hw_usb_init()
  {
-     RCC_OTGFSCLKConfig();
-     GPIO_InitTypeDef GPIO_InitStructure;
+
+	 GPIO_InitTypeDef GPIO_InitStructure;
      RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB , ENABLE);
 
      GPIO_SetBits(GPIOB,USB_PWR_ON);
