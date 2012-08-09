@@ -56,6 +56,7 @@
 							<tool id="org.eclipse.cdt.cross.arm.gnu.sourcery.linux.printsize.base.1145875414" name="ARM Sourcery Linux GNU Print Size" superClass="org.eclipse.cdt.cross.arm.gnu.sourcery.linux.printsize.base"/>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.toolchain.gnu.base.1303656655.327793111" name="readme.txt" rcbsApplicability="disable" resourcePath="software/bsp/vtdr/readme.txt" toolsToInvoke=""/>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

@@ -138,9 +138,7 @@ const uint8_t MSG_UNREC_ERROR[]      = "> UNRECOVERED ERROR STATE\n";
 * @{
 */
 static uint8_t Explore_Disk (char* path , uint8_t recu_level);
-static uint8_t Image_Browser (char* path);
-static void     Show_Image(void);
-static void     Toggle_Leds(void);
+static void    Toggle_Leds(void);
 /**
 * @}
 */ 
@@ -150,7 +148,7 @@ static void     Toggle_Leds(void);
 * @{
 */ 
 
-
+#define rt_kprintf   LOGOUT
 /**
 * @brief  USBH_USR_Init 
 *         Displays the message for host lib initialization
@@ -250,8 +248,8 @@ void USBH_USR_Device_DescAvailable(void *DeviceDesc)
 { 
   USBH_DevDesc_TypeDef *hs;
   hs = DeviceDesc;  
-  LCD_UsrLog("VID : %04Xh\n" , (uint32_t)(*hs).idVendor); 
-  LCD_UsrLog("PID : %04Xh\n" , (uint32_t)(*hs).idProduct); 
+  LOGOUT("VID : %04Xh\n" , (uint32_t)(*hs).idVendor);
+  LOGOUT("PID : %04Xh\n" , (uint32_t)(*hs).idProduct);
 }
 
 /**
@@ -282,11 +280,11 @@ void USBH_USR_Configuration_DescAvailable(USBH_CfgDesc_TypeDef * cfgDesc,
   
   if((*id).bInterfaceClass  == 0x08)
   {
-    LCD_UsrLog((void *)MSG_MSC_CLASS);
+    LOGOUT((void *)MSG_MSC_CLASS);
   }
   else if((*id).bInterfaceClass  == 0x03)
   {
-    LCD_UsrLog((void *)MSG_HID_CLASS);
+    LOGOUT((void *)MSG_HID_CLASS);
   }    
 }
 
@@ -298,7 +296,7 @@ void USBH_USR_Configuration_DescAvailable(USBH_CfgDesc_TypeDef * cfgDesc,
 */
 void USBH_USR_Manufacturer_String(void *ManufacturerString)
 {
-  LCD_UsrLog("Manufacturer : %s\n", (char *)ManufacturerString);
+  LOGOUT("Manufacturer : %s\n", (char *)ManufacturerString);
 }
 
 /**
@@ -309,7 +307,7 @@ void USBH_USR_Manufacturer_String(void *ManufacturerString)
 */
 void USBH_USR_Product_String(void *ProductString)
 {
-  LCD_UsrLog("Product : %s\n", (char *)ProductString);  
+  LOGOUT("Product : %s\n", (char *)ProductString);
 }
 
 /**
@@ -320,7 +318,7 @@ void USBH_USR_Product_String(void *ProductString)
 */
 void USBH_USR_SerialNum_String(void *SerialNumString)
 {
-  LCD_UsrLog( "Serial Number : %s\n", (char *)SerialNumString);    
+  LOGOUT( "Serial Number : %s\n", (char *)SerialNumString);
 } 
 
 
@@ -335,12 +333,10 @@ void USBH_USR_EnumerationDone(void)
 {
   
   /* Enumeration complete */
-  LCD_UsrLog((void *)MSG_DEV_ENUMERATED);
+  LOGOUT((void *)MSG_DEV_ENUMERATED);
   
-  LCD_SetTextColor(Green);
-  LCD_DisplayStringLine( LCD_PIXEL_HEIGHT - 42, "To see the root content of the disk : " );
-  LCD_DisplayStringLine( LCD_PIXEL_HEIGHT - 30, "Press Key...                       ");
-  LCD_SetTextColor(LCD_LOG_DEFAULT_COLOR); 
+  LOGOUT( "To see the root content of the disk : " );
+  LOGOUT("Press Key...");
   
 } 
 
@@ -353,7 +349,7 @@ void USBH_USR_EnumerationDone(void)
 */
 void USBH_USR_DeviceNotSupported(void)
 {
-  LCD_ErrLog ("> Device not supported."); 
+  LOGOUT ("> Device not supported.");
 }  
 
 
@@ -370,7 +366,7 @@ USBH_USR_Status USBH_USR_UserInput(void)
   usbh_usr_status = USBH_USR_NO_RESP;  
   
   /*Key B3 is in polling mode to detect user action */
-  if(STM_EVAL_PBGetState(Button_KEY) == RESET) 
+  //if(STM_EVAL_PBGetState(Button_KEY) == RESET)
   {
     
     usbh_usr_status = USBH_USR_RESP_OK;
@@ -387,7 +383,7 @@ USBH_USR_Status USBH_USR_UserInput(void)
 */
 void USBH_USR_OverCurrentDetected (void)
 {
-  LCD_ErrLog ("Overcurrent detected.");
+  LOGOUT ("Overcurrent detected.");
 }
 
 
@@ -411,16 +407,16 @@ int USBH_USR_MSC_Application(void)
     if ( f_mount( 0, &fatfs ) != FR_OK ) 
     {
       /* efs initialisation fails*/
-      LCD_ErrLog("> Cannot initialize File System.\n");
+      LOGOUT("> Cannot initialize File System.\n");
       return(-1);
     }
-    LCD_UsrLog("> File System initialized.\n");
-    LCD_UsrLog("> Disk capacity : %d Bytes\n", USBH_MSC_Param.MSCapacity * \
+    LOGOUT("> File System initialized.\n");
+    LOGOUT("> Disk capacity : %d Bytes\n", USBH_MSC_Param.MSCapacity * \
       USBH_MSC_Param.MSPageLength); 
     
     if(USBH_MSC_Param.MSWriteProtect == DISK_WRITE_PROTECTED)
     {
-      LCD_ErrLog((void *)MSG_WR_PROTECT);
+      LOGOUT((void *)MSG_WR_PROTECT);
     }
     
     USBH_USR_ApplicationState = USH_USR_FS_READLIST;
@@ -428,7 +424,7 @@ int USBH_USR_MSC_Application(void)
     
   case USH_USR_FS_READLIST:
     
-    LCD_UsrLog((void *)MSG_ROOT_CONT);
+    LOGOUT((void *)MSG_ROOT_CONT);
     Explore_Disk("0:/", 1);
     line_idx = 0;   
     USBH_USR_ApplicationState = USH_USR_FS_WRITEFILE;
@@ -437,24 +433,22 @@ int USBH_USR_MSC_Application(void)
     
   case USH_USR_FS_WRITEFILE:
     
-    LCD_SetTextColor(Green);
-    LCD_DisplayStringLine( LCD_PIXEL_HEIGHT - 42, "                                              ");
-    LCD_DisplayStringLine( LCD_PIXEL_HEIGHT - 30, "Press Key to write file");
-    LCD_SetTextColor(LCD_LOG_DEFAULT_COLOR); 
+	LOGOUT( "Press Key to write file");
+
     USB_OTG_BSP_mDelay(100);
     
     /*Key B3 in polling*/
-    while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
-      (STM_EVAL_PBGetState (BUTTON_KEY) == SET))          
-    {
-      Toggle_Leds();
-    }
+//    while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
+//      (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
+//    {
+//      Toggle_Leds();
+//    }
     /* Writes a text file, STM32.TXT in the disk*/
-    LCD_UsrLog("> Writing File to disk flash ...\n");
+    LOGOUT("> Writing File to disk flash ...\n");
     if(USBH_MSC_Param.MSWriteProtect == DISK_WRITE_PROTECTED)
     {
       
-      LCD_ErrLog ( "> Disk flash is write protected \n");
+      LOGOUT ( "> Disk flash is write protected \n");
       USBH_USR_ApplicationState = USH_USR_FS_DRAW;
       break;
     }
@@ -470,11 +464,11 @@ int USBH_USR_MSC_Application(void)
       
       if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
       {
-        LCD_ErrLog("> STM32.TXT CANNOT be writen.\n");
+        LOGOUT("> STM32.TXT CANNOT be writen.\n");
       }
       else
       {
-        LCD_UsrLog("> 'STM32.TXT' file created\n");
+        LOGOUT("> 'STM32.TXT' file created\n");
       }
       
       /*close file and filesystem*/
@@ -484,26 +478,24 @@ int USBH_USR_MSC_Application(void)
     
     else
     {
-      LCD_UsrLog ("> STM32.TXT created in the disk\n");
+      LOGOUT ("> STM32.TXT created in the disk\n");
     }
 
     USBH_USR_ApplicationState = USH_USR_FS_DRAW; 
-    
-    LCD_SetTextColor(Green);
-    LCD_DisplayStringLine( LCD_PIXEL_HEIGHT - 42, "                                              ");
-    LCD_DisplayStringLine( LCD_PIXEL_HEIGHT - 30, "To start Image slide show Press Key.");
-    LCD_SetTextColor(LCD_LOG_DEFAULT_COLOR); 
+
+    LOGOUT( "To start Image slide show Press Key.");
+
   
     break;
     
   case USH_USR_FS_DRAW:
     
     /*Key B3 in polling*/
-    while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
-      (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
-    {
-      Toggle_Leds();
-    }
+//    while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
+//      (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
+//    {
+//      Toggle_Leds();
+//    }
   
     while(HCD_IsDeviceConnected(&USB_OTG_Core))
     {
@@ -556,14 +548,14 @@ static uint8_t Explore_Disk (char* path , uint8_t recu_level)
       if(line_idx > 9)
       {
         line_idx = 0;
-        LCD_SetTextColor(Green);
-        LCD_DisplayStringLine( LCD_PIXEL_HEIGHT - 42, "                                              ");
-        LCD_DisplayStringLine( LCD_PIXEL_HEIGHT - 30, "Press Key to continue...");
-        LCD_SetTextColor(LCD_LOG_DEFAULT_COLOR); 
         
+
+        LOGOUT("Press Key to continue...");
+
+
         /*Key B3 in polling*/
-        while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
-          (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
+//        while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
+//          (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
         {
           Toggle_Leds();
           
@@ -572,21 +564,21 @@ static uint8_t Explore_Disk (char* path , uint8_t recu_level)
       
       if(recu_level == 1)
       {
-        LCD_DbgLog("   |__");
+    	  LOGOUT("   |__");
       }
       else if(recu_level == 2)
       {
-        LCD_DbgLog("   |   |__");
+    	  LOGOUT("   |   |__");
       }
       if((fno.fattrib & AM_MASK) == AM_DIR)
       {
         strcat(tmp, "\n"); 
-        LCD_UsrLog((void *)tmp);
+        LOGOUT((void *)tmp);
       }
       else
       {
         strcat(tmp, "\n"); 
-        LCD_DbgLog((void *)tmp);
+        LOGOUT((void *)tmp);
       }
 
       if(((fno.fattrib & AM_MASK) == AM_DIR)&&(recu_level == 1))
