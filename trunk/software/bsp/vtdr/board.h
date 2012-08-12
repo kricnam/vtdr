@@ -64,11 +64,19 @@ void rt_hw_board_init(void);
 
 #define BUZZ_PIN			(GPIO_Pin_12)
 
+#define USB_PWR_ON                      (GPIO_Pin_0)
+#define USB_OC                          (GPIO_Pin_1)
+#define USB_VBUS                        (GPIO_Pin_9)
+#define USB_DM                          (GPIO_Pin_11)
+#define USB_DP                          (GPIO_Pin_12)
+#define USB_ID                          (GPIO_Pin_10)
+
 void rt_hw_usart_init(void);
 void rt_hw_buzz_on(void);
 void rt_hw_buzz_off(void);
 /* SD Card init function */
 void rt_hw_dataflash_init(void);
+
 
 
 #endif
