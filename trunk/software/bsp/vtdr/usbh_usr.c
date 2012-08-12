@@ -30,7 +30,6 @@
 #include "usbh_msc_core.h"
 #include "usbh_msc_scsi.h"
 #include "usbh_msc_bot.h"
-
 /** @addtogroup USBH_USER
 * @{
 */
@@ -75,8 +74,8 @@ extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 uint8_t USBH_USR_ApplicationState = USH_USR_FS_INIT;
 uint8_t filenameString[15]  = {0};
 
-FATFS fatfs;
-FIL file;
+//FATFS fatfs;
+//FIL file;
 uint8_t line_idx = 0;   
 
 /*  Points to the DEVICE_PROP structure of current device */
@@ -395,7 +394,7 @@ void USBH_USR_OverCurrentDetected (void)
 */
 int USBH_USR_MSC_Application(void)
 {
-  FRESULT res;
+ // FRESULT res;
   uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
   uint16_t bytesWritten, bytesToWrite;
   
@@ -404,7 +403,7 @@ int USBH_USR_MSC_Application(void)
   case USH_USR_FS_INIT: 
     
     /* Initialises the File System*/
-    if ( f_mount( 0, &fatfs ) != FR_OK ) 
+   // if ( f_mount( 0, &fatfs ) != FR_OK )
     {
       /* efs initialisation fails*/
       LOGOUT("> Cannot initialize File System.\n");
@@ -454,32 +453,32 @@ int USBH_USR_MSC_Application(void)
     }
     
     /* Register work area for logical drives */
-    f_mount(0, &fatfs);
+//    f_mount(0, &fatfs);
     
-    if(f_open(&file, "0:STM32.TXT",FA_CREATE_ALWAYS | FA_WRITE) == FR_OK)
-    { 
-      /* Write buffer to file */
-      bytesToWrite = sizeof(writeTextBuff); 
-      res= f_write (&file, writeTextBuff, bytesToWrite, (void *)&bytesWritten);   
-      
-      if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
-      {
-        LOGOUT("> STM32.TXT CANNOT be writen.\n");
-      }
-      else
-      {
-        LOGOUT("> 'STM32.TXT' file created\n");
-      }
-      
-      /*close file and filesystem*/
-      f_close(&file);
-      f_mount(0, NULL); 
-    }
-    
-    else
-    {
-      LOGOUT ("> STM32.TXT created in the disk\n");
-    }
+//    if(f_open(&file, "0:STM32.TXT",FA_CREATE_ALWAYS | FA_WRITE) == FR_OK)
+//    {
+//      /* Write buffer to file */
+//      bytesToWrite = sizeof(writeTextBuff);
+//      res= f_write (&file, writeTextBuff, bytesToWrite, (void *)&bytesWritten);
+//
+//      if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
+//      {
+//        LOGOUT("> STM32.TXT CANNOT be writen.\n");
+//      }
+//      else
+//      {
+//        LOGOUT("> 'STM32.TXT' file created\n");
+//      }
+//
+//      /*close file and filesystem*/
+//      f_close(&file);
+//      f_mount(0, NULL);
+//    }
+//
+//    else
+//    {
+//      LOGOUT ("> STM32.TXT created in the disk\n");
+//    }
 
     USBH_USR_ApplicationState = USH_USR_FS_DRAW; 
 
@@ -497,15 +496,15 @@ int USBH_USR_MSC_Application(void)
 //      Toggle_Leds();
 //    }
   
-    while(HCD_IsDeviceConnected(&USB_OTG_Core))
-    {
-      if ( f_mount( 0, &fatfs ) != FR_OK ) 
-      {
-        /* fat_fs initialisation fails*/
-        return(-1);
-      }
-      return Image_Browser("0:/");
-    }
+//    while(HCD_IsDeviceConnected(&USB_OTG_Core))
+//    {
+//      if ( f_mount( 0, &fatfs ) != FR_OK )
+//      {
+//        /* fat_fs initialisation fails*/
+//        return(-1);
+//      }
+//      return Image_Browser("0:/");
+//    }
     break;
   default: break;
   }
@@ -521,73 +520,74 @@ int USBH_USR_MSC_Application(void)
 static uint8_t Explore_Disk (char* path , uint8_t recu_level)
 {
 
-  FRESULT res;
-  FILINFO fno;
-  DIR dir;
-  char *fn;
-  char tmp[14];
-  
-  res = f_opendir(&dir, path);
-  if (res == FR_OK) {
-    while(HCD_IsDeviceConnected(&USB_OTG_Core)) 
-    {
-      res = f_readdir(&dir, &fno);
-      if (res != FR_OK || fno.fname[0] == 0) 
-      {
-        break;
-      }
-      if (fno.fname[0] == '.')
-      {
-        continue;
-      }
-
-      fn = fno.fname;
-      strcpy(tmp, fn); 
-
-      line_idx++;
-      if(line_idx > 9)
-      {
-        line_idx = 0;
-        
-
-        LOGOUT("Press Key to continue...");
-
-
-        /*Key B3 in polling*/
-//        while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
-//          (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
-        {
-          Toggle_Leds();
-          
-        }
-      } 
-      
-      if(recu_level == 1)
-      {
-    	  LOGOUT("   |__");
-      }
-      else if(recu_level == 2)
-      {
-    	  LOGOUT("   |   |__");
-      }
-      if((fno.fattrib & AM_MASK) == AM_DIR)
-      {
-        strcat(tmp, "\n"); 
-        LOGOUT((void *)tmp);
-      }
-      else
-      {
-        strcat(tmp, "\n"); 
-        LOGOUT((void *)tmp);
-      }
-
-      if(((fno.fattrib & AM_MASK) == AM_DIR)&&(recu_level == 1))
-      {
-        Explore_Disk(fn, 2);
-      }
-    }
-  }
-  return res;
+//  FRESULT res;
+//  FILINFO fno;
+//  DIR dir;
+//  char *fn;
+//  char tmp[14];
+//
+//  res = f_opendir(&dir, path);
+//  if (res == FR_OK) {
+//    while(HCD_IsDeviceConnected(&USB_OTG_Core))
+//    {
+//      res = f_readdir(&dir, &fno);
+//      if (res != FR_OK || fno.fname[0] == 0)
+//      {
+//        break;
+//      }
+//      if (fno.fname[0] == '.')
+//      {
+//        continue;
+//      }
+//
+//      fn = fno.fname;
+//      strcpy(tmp, fn);
+//
+//      line_idx++;
+//      if(line_idx > 9)
+//      {
+//        line_idx = 0;
+//
+//
+//        LOGOUT("Press Key to continue...");
+//
+//
+//        /*Key B3 in polling*/
+////        while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
+////          (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
+//        {
+//          Toggle_Leds();
+//
+//        }
+//      }
+//
+//      if(recu_level == 1)
+//      {
+//    	  LOGOUT("   |__");
+//      }
+//      else if(recu_level == 2)
+//      {
+//    	  LOGOUT("   |   |__");
+//      }
+//      if((fno.fattrib & AM_MASK) == AM_DIR)
+//      {
+//        strcat(tmp, "\n");
+//        LOGOUT((void *)tmp);
+//      }
+//      else
+//      {
+//        strcat(tmp, "\n");
+//        LOGOUT((void *)tmp);
+//      }
+//
+//      if(((fno.fattrib & AM_MASK) == AM_DIR)&&(recu_level == 1))
+//      {
+//        Explore_Disk(fn, 2);
+//      }
+//    }
+//  }
+//  return res;
+	return 0;
 }
 
 /**
