@@ -31,6 +31,7 @@
 #include <stm32f10x.h>
 #include <stm32f10x_rcc.h>
 #include <stm32f10x_gpio.h>
+#include <stm32f10x_tim.h>
 /** @addtogroup USB_OTG_DRIVER
  * @{
  */
@@ -62,12 +63,6 @@
 #define HOST_SOF_PORT                      GPIOA
 #define HOST_SOF_SIGNAL                    GPIO_Pin_8
 
-#define USB_PWR_ON                      (GPIO_Pin_0)
-#define USB_OC                          (GPIO_Pin_1)
-#define USB_VBUS                        (GPIO_Pin_9)
-#define USB_DM                          (GPIO_Pin_11)
-#define USB_DP                          (GPIO_Pin_12)
-#define USB_ID                          (GPIO_Pin_10)
 
 /**
  * @}
@@ -90,7 +85,9 @@
 /** @defgroup USBH_BSP_Private_Variables
  * @{
  */
-
+#ifdef USE_ACCURATE_TIME
+__IO uint32_t BSP_delay = 0;
+#endif
 /**
  * @}
  */
@@ -98,6 +95,9 @@
 /** @defgroup USBH_BSP_Private_FunctionPrototypes
  * @{
  */
+static void BSP_Delay(uint32_t nTime, uint8_t unit);
+static void BSP_SetTime(uint8_t unit);
+void USB_OTG_BSP_TimeInit(void);
 /**
  * @}
  */
@@ -133,33 +133,7 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *pdev)
 	USB_OTG_BSP_TimeInit();
 }
 
- void rt_hw_usb_init()
- {
 
-	 GPIO_InitTypeDef GPIO_InitStructure;
-     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB , ENABLE);
-
-     GPIO_SetBits(GPIOB,USB_PWR_ON);
-     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
-     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-     GPIO_InitStructure.GPIO_Pin   = USB_PWR_ON ;
-     GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
-     GPIO_InitStructure.GPIO_Pin   = USB_OC ;
-     GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
-     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-     GPIO_InitStructure.GPIO_Pin   =   USB_ID | USB_DM |USB_DP ;
-     GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
-     GPIO_InitStructure.GPIO_Pin = USB_VBUS;
-     GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-     //GPIO_ResetBits(GPIOB,USB_PWR_ON);
- }
 
 /**
  * @brief  USB_OTG_BSP_EnableInterrupt
