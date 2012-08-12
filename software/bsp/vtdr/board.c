@@ -108,6 +108,35 @@ void rt_hw_buzz_init()
     GPIO_InitStructure.GPIO_Pin   = BUZZ_PIN;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
+
+void rt_hw_usb_init()
+{
+
+	 GPIO_InitTypeDef GPIO_InitStructure;
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB , ENABLE);
+
+    GPIO_SetBits(GPIOB,USB_PWR_ON);
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
+    GPIO_InitStructure.GPIO_Pin   = USB_PWR_ON ;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Pin   = USB_OC ;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin   =   USB_ID | USB_DM |USB_DP ;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Pin = USB_VBUS;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    GPIO_ResetBits(GPIOB,USB_PWR_ON);
+}
+
 /**
  * This function will initial STM32 board.
  */
@@ -127,6 +156,7 @@ void rt_hw_board_init()
 	rt_hw_led_init();
 	rt_hw_lcd_init();
 	rt_hw_buzz_init();
+	rt_hw_usb_init();
 	rt_console_set_device(CONSOLE_DEVICE);
 }
 
