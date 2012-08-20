@@ -62,7 +62,7 @@ void rt_hw_board_init(void);
 #define CONSOLE_DEVICE "uart3"
 #endif
 
-#define BUZZ_PIN			(GPIO_Pin_12)
+#define BUZZ_PIN			(GPIO_Pin_2)
 
 //GPIO PB
 #define USB_PWR_ON                      (GPIO_Pin_0)
