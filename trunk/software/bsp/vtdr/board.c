@@ -90,23 +90,23 @@ void rt_hw_timer_handler(void)
 
 void rt_hw_buzz_off(void)
 {
-	GPIO_ResetBits(GPIOB,BUZZ_PIN);
+	GPIO_ResetBits(GPIOD,BUZZ_PIN);
 }
 
 void rt_hw_buzz_on(void)
 {
-	GPIO_SetBits(GPIOB,BUZZ_PIN);
+	GPIO_SetBits(GPIOD,BUZZ_PIN);
 }
 
 void rt_hw_buzz_init()
 {
     GPIO_InitTypeDef GPIO_InitStructure;
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB , ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD , ENABLE);
 
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_InitStructure.GPIO_Pin   = BUZZ_PIN;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    GPIO_Init(GPIOD, &GPIO_InitStructure);
 }
 
 void rt_hw_usb_init()
