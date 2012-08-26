@@ -1,0 +1,33 @@
+#summary GPIO端口分配
+
+= LCD控制 =
+
+||CPU PORT||LCD PORT||COMMENTS||
+||PB5||BK||
+||PB8||D0||
+||PB9||D1||
+||PB10||D2||
+||PB11||D3||
+||PB12||D4||
+||PB13||D5||
+||PB14||D6||
+||PB15||D7||
+||PC6||E2||
+||PC7||E1||
+||PC8||A0||
+||PC9||R/W||
+
+= 输入信号 =
+
+||CPU PORT||SINGAL||COMMENTS||
+||PC0|| KEY SELECT||
+||PC1||KEY ENTER||
+||PC2||LAMP R||
+||PC3||LAMP L||
+||PC4||LAMP Front||
+||PC5||DOOR||
+||PC10||BREAK||
+||PC11||SPEED PLUS||
+||PC12||AIR PRESS||
+||PC13||HORN||
+
