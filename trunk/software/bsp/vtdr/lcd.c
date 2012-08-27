@@ -18,16 +18,18 @@
 #include <stm32f10x_gpio.h>
 
 
-#define lcd_data 					RCC_APB2Periph_GPIOC
-#define lcd_gpio_data				GPIOC
-#define lcd_data_pin                ((uint16_t)0x00FF)
+#define lcd_data 					RCC_APB2Periph_GPIOB
+#define lcd_gpio_data				GPIOB
+#define lcd_data_pin                ((uint16_t)0xFF00)
 
-#define lcd_ctrl					RCC_APB2Periph_GPIOB
-#define lcd_gpio_ctrl               GPIOB
+#define lcd_ctrl					RCC_APB2Periph_GPIOC
+#define lcd_gpio_ctrl              GPIOC
 #define lcd_A0						(GPIO_Pin_8)
-#define lcd_E1						(GPIO_Pin_9)
-#define lcd_E2						(GPIO_Pin_10)
-#define lcd_RW						(GPIO_Pin_11)
+#define lcd_E1						(GPIO_Pin_7)
+#define lcd_E2						(GPIO_Pin_6)
+#define lcd_RW						(GPIO_Pin_9)
+
+#define lcd_bk_ctrl				    GPIOB
 #define lcd_BK						(GPIO_Pin_5)
 
 #define lcd_reset					RCC_APB2Periph_GPIOA
@@ -51,18 +53,19 @@ enum LCD_CMD
 
 rt_uint8_t lcd_bit_reverse(rt_uint8_t byte)
 {
-	rt_uint8_t newvalue=0;
-	rt_uint8_t temp = byte;
-    newvalue = ((temp << 7)&0x80);
-    newvalue |= ((temp >> 7)&0x01); 
-    newvalue |= ((byte >> 5)&0x02);
-    newvalue |= ((byte >> 3)&0x04);
-    newvalue |= ((byte >> 1)&0x08);
-    newvalue |= ((byte << 1)&0x10);
-    newvalue |= ((byte << 3)&0x20);
-    newvalue |= ((byte << 5)&0x40);
-               
-   	return newvalue;
+	return byte;
+//	rt_uint8_t newvalue=0;
+//	rt_uint8_t temp = byte;
+//    newvalue = ((temp << 7)&0x80);
+//    newvalue |= ((temp >> 7)&0x01);
+//    newvalue |= ((byte >> 5)&0x02);
+//    newvalue |= ((byte >> 3)&0x04);
+//    newvalue |= ((byte >> 1)&0x08);
+//    newvalue |= ((byte << 1)&0x10);
+//    newvalue |= ((byte << 3)&0x20);
+//    newvalue |= ((byte << 5)&0x40);
+//
+//   	return newvalue;
 }
 
 void rt_hw_lcd_init(void)
@@ -81,7 +84,7 @@ void rt_hw_lcd_init(void)
     
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Pin   = lcd_BK;
-    GPIO_Init(lcd_gpio_ctrl, &GPIO_InitStructure);
+    GPIO_Init(lcd_bk_ctrl, &GPIO_InitStructure);
     
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
     GPIO_InitStructure.GPIO_Pin   = lcd_RST;
@@ -166,7 +169,7 @@ void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
 	lcd_delay(10);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
 	rt_uint8_t value = lcd_bit_reverse(cCmd | oprand);
-	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0xFF00)|(value & 0x00FF)));
+	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0x00FF)|((value<<8) & 0xFF00)));
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
 	lcd_delay(10);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
@@ -218,7 +221,7 @@ void rt_hw_lcd_on(void)
 	lcd_write_cmd(0,ADC_Select,0);
 	lcd_write_cmd(0,Read_ModiEnd,0);
 
-	GPIO_SetBits(lcd_gpio_ctrl,lcd_BK);
+	GPIO_SetBits(lcd_bk_ctrl,lcd_BK);
 
 }
 
