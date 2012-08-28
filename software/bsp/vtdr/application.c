@@ -44,6 +44,8 @@
 #endif
 
 #include "led.h"
+#include "lcd.h"
+#include "font_lib.h"
 
 ALIGN(RT_ALIGN_SIZE)
 static rt_uint8_t led_stack[ 512 ];
@@ -99,7 +101,7 @@ void rt_init_thread_entry(void* parameter)
 	}
 #endif
 
-
+	lcd_write_matrix(0,0,(unsigned char*)distance_cheng);
 #ifdef RT_USING_RTGUI
 	{
 	    extern void rtgui_startup();
