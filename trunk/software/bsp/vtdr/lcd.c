@@ -79,33 +79,13 @@ void rt_hw_lcd_init(void)
 
 }
 
-void lcd_set_date_port_read(void)
-{
-    return;
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Pin   = lcd_data_pin;
-    GPIO_Init(lcd_gpio_data, &GPIO_InitStructure);
-}
-
-void lcd_set_date_port_write(void)
-{
-    return;
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_Pin   = lcd_data_pin;
-    GPIO_Init(lcd_gpio_data, &GPIO_InitStructure);
-}
-
 // delay ms
 void lcd_delay(int n)
 {
 volatile int m,i,j;
   for( i =0;i<n;i++)
   {
-    for( j=0;j<100;j++)
+    for( j=0;j<3;j++)
     {
     	m++;
     }
@@ -118,13 +98,12 @@ unsigned char lcd_read_status(int bank)
 	uint16_t value = 0xFFFF;
 	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(5);
+	lcd_delay(1);
 	GPIO_SetBits(lcd_gpio_ctrl,lcd_RW);
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 );
 	GPIO_Write(lcd_gpio_data,(GPIO_ReadOutputData(lcd_gpio_data) & 0x00FF)|(0xFF00));
-	lcd_delay(5);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-    lcd_delay(5);
+    lcd_delay(1);
     value = GPIO_ReadInputData(lcd_gpio_data);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
 
@@ -137,12 +116,11 @@ unsigned char lcd_read_data(int bank)
 	uint16_t value = 0xFFFF;
 	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(5);
+	lcd_delay(1);
 	GPIO_SetBits(lcd_gpio_ctrl,lcd_RW|lcd_A0);
 	GPIO_Write(lcd_gpio_data,(GPIO_ReadOutputData(lcd_gpio_data) & 0x00FF)|(0xFF00));
-	lcd_delay(5);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-    lcd_delay(5);
+    lcd_delay(1);
     value = GPIO_ReadInputData(lcd_gpio_data);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
 	return (unsigned char)((value>>8) & 0x00FF);
@@ -153,7 +131,7 @@ void lcd_wait(int bank)
 	unsigned char status = 0xFF;
 	do
 	{
-		lcd_delay(3);
+		lcd_delay(1);
 		status = lcd_read_status(bank);
 	}while(status & 0x80);
 	return;
@@ -165,18 +143,17 @@ void lcd_write_cmd(int bank, unsigned char cCmd, int oprand)
 
 	pinEnable  = (bank == 0)?  lcd_E1 : lcd_E2 ;
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(5);
+	lcd_delay(1);
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_A0 | lcd_RW);
-	lcd_delay(5);
-//	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-//	lcd_delay(5);
+	lcd_delay(1);
+
 	rt_uint8_t value = cCmd | oprand;
 	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0x00FF)|((value<<8) & 0xFF00)));
-	lcd_delay(5);
+	lcd_delay(1);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(5);
+	lcd_delay(1);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(5);
+	lcd_delay(1);
 }
 
 void lcd_detect_write_cmd(int bank, unsigned char cCmd, int oprand)
@@ -192,15 +169,13 @@ void lcd_write_data(int bank, unsigned char data)
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
 	GPIO_ResetBits(lcd_gpio_ctrl,lcd_RW);
 	GPIO_SetBits(lcd_gpio_ctrl,lcd_A0);
-	lcd_delay(5);
-//	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-//	lcd_delay(5);
+	lcd_delay(1);
 	GPIO_Write(lcd_gpio_data,((GPIO_ReadOutputData(lcd_gpio_data) & 0x00FF)|((data<<8) & 0xFF00)));
-    lcd_delay(5);
+    lcd_delay(1);
 	GPIO_SetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(5);
+	lcd_delay(1);
 	GPIO_ResetBits(lcd_gpio_ctrl,pinEnable);
-	lcd_delay(5);
+	lcd_delay(1);
 }
 
 void lcd_detect_write_data(int bank, unsigned char data)
@@ -211,35 +186,35 @@ void lcd_detect_write_data(int bank, unsigned char data)
 
 void lcd_Reset(void)
 {
-	GPIO_SetBits(lcd_gpio_reset,lcd_RST);
-	lcd_delay(10);
 	GPIO_ResetBits(lcd_gpio_reset,lcd_RST);
 	lcd_delay(60);
 	GPIO_SetBits(lcd_gpio_reset,lcd_RST);
 	lcd_delay(30);
 }
-#define RESET1520       0xE2
-#define ON1520		0xAF
-#define OFF1520         0xAE
-#define SLEEP		0xA5
-#define WAKEUP		0xA4
-#define SETDUTY32	0xA9
-#define SETDUTY16	0xA8
-#define ADC1_60		0xA0
-#define ADC60_1		0xA1
-#define SET_PAGE	0xB8
-#define OVERWRITE	0xE0
-#define QUIT_REWRITE    0xEE
-#define START_LINE	0xC0   //0xC0~0xFF
-#define Y_ADDRESS	0x40   //select segment(0~63)-CS1 (0~63)-CS2
 
-//detect_write(RESET1520,0);
-//detect_write(WAKEUP,0);
-//detect_write(SETDUTY32,0);
-//detect_write(ADC1_60,0);
-//detect_write(START_LINE|0,0);
-//detect_write(ON1520,0);
-//    clear1520(0x00);
+void rt_hw_lcd_clear(unsigned char patten)
+{
+	rt_uint8_t x,y;
+	for (x = 0; x < 4; x++)
+	{
+		lcd_detect_write_cmd(0, Page_Set, x);
+		lcd_detect_write_cmd(0, Column_Set, 0);
+		for (y = 0; y < 61; y += 1)
+		{
+			lcd_detect_write_data(0,patten );
+		}
+	}
+	for (x = 0; x < 4; x++)
+	{
+		lcd_detect_write_cmd(1, Page_Set, x);
+		lcd_detect_write_cmd(1, Column_Set, 0);
+		for (y = 0; y < 61; y += 1)
+		{
+			lcd_detect_write_data(1, patten);
+		}
+	}
+}
+
 void rt_hw_lcd_on(void)
 {
 	lcd_Reset();
@@ -247,6 +222,8 @@ void rt_hw_lcd_on(void)
 		lcd_detect_write_cmd(0,Reset,0);
 		lcd_detect_write_cmd(1,Reset,0);
 
+		while(lcd_read_status(0) & 0x10);
+		while(lcd_read_status(1) & 0x10);
 		lcd_detect_write_cmd(0, Static_Drive, 0);
 		lcd_detect_write_cmd(1, Static_Drive, 0);
 
@@ -262,23 +239,16 @@ void rt_hw_lcd_on(void)
 		lcd_detect_write_cmd(0, Display_On, 0);
 		lcd_detect_write_cmd(1, Display_On, 0);
 
-
-		lcd_detect_write_cmd(0, Column_Set, 0);
-		lcd_detect_write_cmd(0, Page_Set, 0);
-		lcd_detect_write_cmd(0, Read_ModiEnd, 0);
-
-		lcd_detect_write_cmd(1, Column_Set, 0);
-		lcd_detect_write_cmd(1, Page_Set, 0);
-		lcd_detect_write_cmd(1, Read_ModiEnd, 0);
-
-	GPIO_SetBits(lcd_bk_ctrl,lcd_BK);
-
+		rt_hw_lcd_clear(0);
 }
 
 void rt_hw_lcd_off(void)
 {
 
 }
+
+
+
 
 void lcd_set_column(char nCol)
 {
@@ -290,47 +260,12 @@ void lcd_write_matrix(rt_uint8_t row,rt_uint8_t column,FONT_MATRIX *pt)
 	rt_uint8_t i,x,y;
 	rt_uint8_t  temp;
 
+	lcd_set_column(0);
 
-     for(x=0;x<4;x++)
-     {
-		lcd_detect_write_cmd(0, Page_Set, x);
-		lcd_detect_write_cmd(0, Column_Set, 0);
-		for (y = 0; y < 61; y += 1)
-		{
-			lcd_detect_write_data(0, 0xff);
-		}
-     }
-
-
-     for (x = 0; x < 4; x++)
+	for (i = 0; i < 24; i++)
 	{
-		lcd_detect_write_cmd(1, Column_Set, y);
-		lcd_detect_write_cmd(1, Page_Set, x);
-
-		for (y = 1; y < 61; y += 1)
-		{
-
-			lcd_detect_write_data(1, 0xff);
-		}
+		lcd_detect_write_data(0, (*(unsigned char*) pt++));
 	}
-    rt_kprintf("\nLCD Write\n");
-//	lcd_set_column(1);
-
-//	for (i = 0; i < 80; i++)
-//	{
-////		lcd_detect_write_data(0, (*(unsigned char*) pt++));
-//		lcd_detect_write_data(0, 0x55);
-//	}
-//
-//	lcd_set_column(0);
-//	for (i = 0; i < 80; i++)
-//	{
-//		temp = lcd_read_data(0);
-//		rt_kprintf("%x ",temp);
-//	}
-	rt_kprintf("\nLCD Write\n");
-
-
 }
 
 #ifdef RT_USING_FINSH
@@ -361,8 +296,14 @@ void lcd_bk(rt_uint32_t value)
 		GPIO_SetBits(lcd_bk_ctrl,lcd_BK);
 	}
 }
+void lcd_clear(rt_uint8_t value)
+{
+	rt_hw_lcd_clear(value);
+}
 
 FINSH_FUNCTION_EXPORT(lcd, set lcd on[1] or off[0].)
 FINSH_FUNCTION_EXPORT(lcd_bk, set lcd backlight on[1] or off[0].)
+FINSH_FUNCTION_EXPORT(lcd_clear, set patten x.)
+
 #endif
 
