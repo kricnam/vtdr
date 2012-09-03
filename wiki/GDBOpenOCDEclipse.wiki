@@ -1,6 +1,71 @@
 #summary Eclipse + GDB + openOCD调试
 
-1、启动openOCD
+= 环境配置 =
+
+以下程序均运行于Linux操作系统。
+
+参考：
+
+http://vtdr.googlecode.com/files/%E7%8E%AF%E5%A2%83%E8%AF%A6%E7%BB%86%E6%90%AD%E5%BB%BA.pdf
+
+== 1 在Windows下可以安装虚拟机VirtualBox ==
+
+虚拟机下载地址：
+
+https://www.virtualbox.org/wiki/Downloads
+
+下载安装后需要安装
+
+VM VirtualBox Extension Pack
+
+支持USB2.0接口
+
+== 2 在虚拟机上安装Ubuntu ==
+
+下载Ubuntu安装光盘镜像
+
+http://www.ubuntu.com/download/desktop/zh-CN
+
+完成后，打开vbox,创建新机器，并挂载光盘镜像，开始安装Ubuntu系统
+
+虚拟硬盘选择20G，应该够用
+
+== 3 安装应用程序 ==
+
+安装完操作系统后，使用Ubuntu的软件工具安装eclipse和openocd, scons
+命令行安装openocd和scons如下
+{{{
+sudo apt-get install openocd
+sudo apt-get install scons
+sudo apt-get install subversion
+sudo apt-get install eclipse
+}}}
+
+=== eclipse插件安装 ===
+
+在Help->Install New Software中安装
+
+== 4 安装arm编译工具链 ==
+
+下载
+http://vtdr.googlecode.com/files/arm-2012.03-56-arm-none-eabi-i686-pc-linux-gnu.tar.bz2
+
+到/opt目录
+然后在/opt目录下解压缩
+
+{{{
+sudo tar -xvf arm-2012.03-56-arm-none-eabi-i686-pc-linux-gnu.tar.bz2
+}}}
+
+
+
+= 调试步骤 =
+
+
+== 1、启动openOCD ==
+
+链接JLink和开发板，在Ubuntu中打开终端，进入工程目录
+
 {{{
 openocd -f interface/jlink.cfg -f target/stm32f1x.cfg
 }}}
