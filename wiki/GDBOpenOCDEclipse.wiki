@@ -8,7 +8,7 @@
 
 http://vtdr.googlecode.com/files/%E7%8E%AF%E5%A2%83%E8%AF%A6%E7%BB%86%E6%90%AD%E5%BB%BA.pdf
 
-== 1 在Windows下可以安装虚拟机VirtualBox ==
+== 1 在Windows下可以安装虚拟机VirtualBox  ==
 
 虚拟机下载地址：
 
