@@ -88,6 +88,9 @@ openocd -f interface/jlink.cfg -f target/stm32f1x.cfg
 
 
 2、（可选）烧写更新程序
+
+打开新的终端窗口，输入
+
 {{{
 telnet localhost 4444
 >reset halt
@@ -101,6 +104,9 @@ wrote 93176 bytes from file rtthread-stm32.axf in 10.639984s (8.552 KiB/s)
 }}}
 
 3、启动gdb
+
+打开新的终端窗口，输入
+
 {{{
 arm-none-eabi-gdb rtthread-stm32.axf
 }}}
