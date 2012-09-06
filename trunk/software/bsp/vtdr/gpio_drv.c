@@ -14,14 +14,34 @@
 #define speed_plus_pin  (GPIO_Pin_11)
 #define speed_plus_port (GPIOC)
 
+void rt_hw_EXTI_cfg()
+{
+       EXTI_InitTypeDef EXTI_InitStructure;
+
+       //清空中断标志
+       EXTI_ClearITPendingBit(EXTI_Line11);
+       //选择中断管脚PC11
+       GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource11);
+
+       EXTI_InitStructure.EXTI_Line = EXTI_Line11;
+
+       EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt; //设置为中断请求，非事件请求
+
+       EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising; //设置中断触发方式为上沿触发
+       EXTI_InitStructure.EXTI_LineCmd = ENABLE;                                          //外部中断使能
+       EXTI_Init(&EXTI_InitStructure);
+}
+
 void rt_hw_gpio_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 
     GPIO_InitStructure.GPIO_Pin   = speed_plus_pin;
     GPIO_Init(speed_plus_port, &GPIO_InitStructure);
+
+    rt_hw_EXTI_cfg();
 }
