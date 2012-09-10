@@ -16,20 +16,31 @@
 
 void rt_hw_EXTI_cfg()
 {
-       EXTI_InitTypeDef EXTI_InitStructure;
+	EXTI_InitTypeDef EXTI_InitStructure;
 
-       //清空中断标志
-       EXTI_ClearITPendingBit(EXTI_Line11);
-       //选择中断管脚PC11
-       GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource11);
+	//清空中断标志
+	EXTI_ClearITPendingBit(EXTI_Line11 );
+	//选择中断管脚PC11
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource11 );
 
-       EXTI_InitStructure.EXTI_Line = EXTI_Line11;
+	EXTI_InitStructure.EXTI_Line = EXTI_Line11;
 
-       EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt; //设置为中断请求，非事件请求
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt; //设置为中断请求，非事件请求
 
-       EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising; //设置中断触发方式为上沿触发
-       EXTI_InitStructure.EXTI_LineCmd = ENABLE;                                          //外部中断使能
-       EXTI_Init(&EXTI_InitStructure);
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising; //设置中断触发方式为上沿触发
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;                           //外部中断使能
+	EXTI_Init(&EXTI_InitStructure);
+
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	NVIC_InitStructure.NVIC_IRQChannel=EXTI15_10_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=0x0f;//强占优先级
+
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority=0;
+
+	NVIC_InitStructure.NVIC_IRQChannelCmd=ENABLE;//通道中断使能
+
+	NVIC_Init(&NVIC_InitStructure);//初始化中断
 }
 
 void rt_hw_gpio_init(void)

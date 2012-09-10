@@ -319,6 +319,9 @@ void EXTI4_IRQHandler(void)
 /**
   * @}
   */
-
+void EXTI15_10_IRQHandler(void)
+{
+	EXTI_ClearITPendingBit(EXTI_Line11);
+}
 
 /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
