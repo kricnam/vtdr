@@ -20,6 +20,7 @@
 #include "stm32f10x_fsmc.h"
 #include "misc.h"
 #include "board.h"
+#include "gpio_drv.h"
 
 /**
  * @addtogroup STM32
@@ -157,6 +158,7 @@ void rt_hw_board_init()
 	rt_hw_lcd_init();
 	rt_hw_buzz_init();
 	rt_hw_usb_init();
+	rt_hw_gpio_init();
 	rt_console_set_device(CONSOLE_DEVICE);
 }
 
