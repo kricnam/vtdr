@@ -10,10 +10,9 @@
 
 #include "current_state.h"
 
-struct speed48hour_record_block
+struct speed48hour_record
 {
-	StateBlockHead  head;
-
+	CurrentState  speedo;
 };
 
 #endif /* 48HOUR_SPEED_LOG_H_ */
