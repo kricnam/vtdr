@@ -12,8 +12,8 @@
 
 struct position_record
 {
-	GISPosition pos;
 	unsigned char speed;
+	GISPosition pos;
 };
 
 typedef struct position_record PositionRecord;
@@ -21,7 +21,7 @@ typedef struct position_record PositionRecord;
 struct position_record_block
 {
 	unsigned int TimeTag;
-
+	unsigned short RecordNumber;
 };
 
 #endif /* 360HOUR_POS_LOH_H_ */

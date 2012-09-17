@@ -34,13 +34,4 @@ struct current_state_record
 
 typedef struct current_state_record StateRecord;
 
-struct state_record_block_head
-{
-	unsigned TimeTage;
-	unsigned char RecorderNumber;
-};
-
-typedef struct state_record_block_head StateBlockHead
-
-
 #endif /* CURRENT_STATE_H_ */
