@@ -105,6 +105,7 @@ if GetDepend('RT_USING_DFS_ELMFAT'):
     if GetDepend('RT_DFS_ELM_USE_LFN'):
         elmfat += ['filesystems/elmfat/option/cc936.c']
     src_local = src_local + elmfat
+    path = path + [RTT_ROOT + '/components/dfs/filesystems/elmfat']
 
 if GetDepend(['RT_USING_DFS_NFS', 'RT_USING_LWIP']):
     src_local = src_local + nfs

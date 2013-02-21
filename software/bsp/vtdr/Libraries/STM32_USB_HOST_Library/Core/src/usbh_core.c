@@ -88,6 +88,9 @@ USBH_HCD_INT_cb_TypeDef  *USBH_HCD_INT_fops = &USBH_HCD_INT_cb;
 /** @defgroup USBH_CORE_Private_Variables
   * @{
   */ 
+USB_OTG_CORE_HANDLE USB_OTG_Core;
+USBH_HOST USB_Host;
+
 /**
   * @}
   */ 
