@@ -351,6 +351,19 @@ void OTG_FS_IRQHandler()
     rt_interrupt_leave();
 
 }
+#if 0
+void WWDG_IRQHandler()
+{
+	extern uint32_t USBH_OTG_ISR_Handler(USB_OTG_CORE_HANDLE *pdev);
+		/* enter interrupt */
+		rt_interrupt_enter();
+
+		USBH_OTG_ISR_Handler(&USB_OTG_Core);
+
+		/* leave interrupt */
+	    rt_interrupt_leave();
+}
+#endif
 
 
 /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
