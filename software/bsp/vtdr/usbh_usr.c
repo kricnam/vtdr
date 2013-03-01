@@ -31,6 +31,9 @@
 #include "usbh_msc_scsi.h"
 #include "usbh_msc_bot.h"
 
+#include <rthw.h>
+#include <rtthread.h>
+
 #include <ff.h>
 /** @addtogroup USBH_USER
 * @{
@@ -66,6 +69,7 @@
 */ 
 extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 #define NULL 0
+
 /**
 * @}
 */ 
@@ -252,7 +256,7 @@ void USBH_USR_Device_DescAvailable(void *DeviceDesc)
 { 
   USBH_DevDesc_TypeDef *hs;
   hs = DeviceDesc;  
- // LOGOUT("VID : %04Xh\n" , (uint32_t)(*hs).idVendor);
+  //LOGOUT("VID : %04Xh\n" , (uint32_t)(*hs).idVendor);
  // LOGOUT("PID : %04Xh\n" , (uint32_t)(*hs).idProduct);
 }
 
@@ -284,11 +288,11 @@ void USBH_USR_Configuration_DescAvailable(USBH_CfgDesc_TypeDef * cfgDesc,
   
   if((*id).bInterfaceClass  == 0x08)
   {
-  //  LOGOUT((void *)MSG_MSC_CLASS);
+    //LOGOUT((void *)MSG_MSC_CLASS);
   }
   else if((*id).bInterfaceClass  == 0x03)
   {
-  //  LOGOUT((void *)MSG_HID_CLASS);
+    //LOGOUT((void *)MSG_HID_CLASS);
   }    
 }
 
@@ -311,7 +315,7 @@ void USBH_USR_Manufacturer_String(void *ManufacturerString)
 */
 void USBH_USR_Product_String(void *ProductString)
 {
-  //LOGOUT("Product : %s\n", (char *)ProductString);
+ // LOGOUT("Product : %s\n", (char *)ProductString);
 }
 
 /**
@@ -339,7 +343,7 @@ void USBH_USR_EnumerationDone(void)
   /* Enumeration complete */
   //LOGOUT((void *)MSG_DEV_ENUMERATED);
   
-  //LOGOUT( "To see the root content of the disk : " );
+ // LOGOUT( "To see the root content of the disk : " );
   //LOGOUT("Press Key...");
   
 } 

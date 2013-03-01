@@ -99,7 +99,7 @@ static void usb_thread_entry(void* parameter)
 	{
 		/* dectect the usb plugin *///second
 		USBH_Process( &USB_OTG_Core, &USB_Host);
-		rt_thread_delay(10);
+		rt_thread_delay(1);
 
 	}
 ////code area //////////////
@@ -175,7 +175,7 @@ int rt_application_init()
 
 	rt_err_t result;
 #if 0
-	rt_hw_interrupt_disable();
+	//rt_hw_interrupt_disable();
 	USBH_Init( &USB_OTG_Core,USB_OTG_FS_CORE_ID,
 				&USB_Host,&USBH_MSC_cb,&USR_cb);
 
