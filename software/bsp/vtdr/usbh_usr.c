@@ -492,7 +492,7 @@ int USBH_USR_MSC_Application(void)
 //    }
         /*write the file to the FATfs*/ //modify by leiyq 20120219
 		f_mount(0, &fatfs);
-		if(f_open(&file, "0:STM32.TXT",FA_CREATE_ALWAYS | FA_WRITE) == FR_OK)
+		if(f_open(&file, "0:上下.txt",FA_CREATE_ALWAYS | FA_WRITE) == FR_OK)
 		{
 			/* Write buffer to file */
 			bytesToWrite = sizeof(writeTextBuff);
