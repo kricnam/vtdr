@@ -47,6 +47,8 @@
 #include "lcd.h"
 #include "i2c_drv.h"
 #include "font_lib.h"
+#include<rtdef.h>
+#include<rtconfig.h>
 
 /**iclude the host usb lib**/ //modify by leiyq 20120318
 #include <usbh_core.h>
