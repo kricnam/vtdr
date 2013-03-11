@@ -74,4 +74,16 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>software/bsp/vtdr/i2c_drv.c</name>
+			<type>1</type>
+			<location>/home/konlese/workspace/vtdr/software/bsp/vtdr/i2c_drv.c</location>
+		</link>
+		<link>
+			<name>software/bsp/vtdr/i2c_drv.h</name>
+			<type>1</type>
+			<location>/home/konlese/workspace/vtdr/software/bsp/vtdr/i2c_drv.h</location>
+		</link>
+	</linkedResources>
 </projectDescription>
