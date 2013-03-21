@@ -92,7 +92,7 @@ static void led_thread_entry(void* parameter)
        // testreadbuff=I2C_Master_BufferWrite(I2C1,OwnAddress1,0,1,&testwritebuff);
         //SPI_FLASH_Sector4kErase(0x00);
 #if 0
-        SPI_FLASH_BulkErase();
+        SPI_FLASH_BulkErase(SPI2);
         for (jonh = 0;jonh<0x100000;jonh=jonh+512)
         {
 			for (i = 0;i<512;i++ )
@@ -106,8 +106,8 @@ static void led_thread_entry(void* parameter)
 					testwritebuff[i] = i-256;
 				}
 			}
-			SPI_FLASH_BufferWrite(&testwritebuff,jonh,512);
-	        SPI_FLASH_BufferRead(&testreadbuff,jonh,512);
+			SPI_FLASH_BufferWrite(SPI2,&testwritebuff,jonh,512);
+	        SPI_FLASH_BufferRead(SPI2,&testreadbuff,jonh,512);
 	        if (strcmp(testwritebuff,testreadbuff)== 0)
 	        {
 	               	rt_hw_led_off(0);
