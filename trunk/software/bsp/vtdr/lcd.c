@@ -40,7 +40,7 @@ enum LCD_CMD
 	Start_Line = 0x40,
 	Static_Drive = 0xA4,
 	Column_Set = 0x10,
-	Page_Set = 0xB8,
+	Page_Set = 0xB0,
 	Duty_Set = 0xA8,
 	ADC_Select = 0xA0,
 	Read_Modi = 0xE0,
@@ -136,6 +136,7 @@ void lcd_set_column(char nCol)
 {
     nCol = nCol&0x83;
 	lcd_write_cmdordata(CMD,Column_Set,(nCol&0xf0)>>4);
+	lcd_delay(3);
 	lcd_write_cmdordata(CMD,0,(nCol&0x0f));
 
 }
@@ -183,9 +184,14 @@ void rt_hw_lcd_on(void)
 
 	    lcd_write_cmdordata(CMD, ADC_Select, 0);
 
+	    //lcd_write_cmdordata(CMD,0xa5,0);
+	    //lcd_write_cmdordata(CMD,0xa7,0);
+
 	    lcd_write_cmdordata(CMD,Power_Set,0);
 	    lcd_delay(100);
+	    //lcd_write_cmdordata(CMD,0xe0,0);
 		rt_hw_lcd_clear(0);
+		//lcd_write_cmdordata(CMD,0xee,0);
 
 
 
