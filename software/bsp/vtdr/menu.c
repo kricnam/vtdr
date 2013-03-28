@@ -1,65 +1,21 @@
-//*----------------------------------------------------------------------------
-//*      LCD²Ëµ¥ÇÐ»»
-//*----------------------------------------------------------------------------
-//* File Name           : menu.c
-//* Object              : ÊµÏÖÒº¾§ÏÔÊ¾Æ÷²Ëµ¥¹¦ÄÜ
-//*
-//* 1.0 24/02/03 PANHUI : Creation
-//*----------------------------------------------------------------------------
-#include    "parts/r40807/reg_r40807.h"
-#include    "parts/r40807/lib_r40807.h"
 #include 	"menu.h"
 #include 	"lcd.h"
-#include 	"ibb3.h"
 #include 	"lcd_word_model.h"
-#include    "sl811mheader.h"
-#include    "includes.h"
 
-extern CLOCK curTime;
-extern u_int PulseNum;
-extern u_int TimerNum;
-extern u_int CurEngine;     
-extern u_short STATUS;			/*16ÖÖ×´Ì¬*/
-extern PartitionTable pTable;
-extern StructPara Parameter;
-extern u_int Distance;         /*±¾´ÎÐÐÊ»Àï³Ì*/
-extern u_int LastPN[];
-extern u_char PowerOn;
-extern u_char LastPowerOn;
 
-extern u_char LargeDataBuffer[];
-extern char CardIn;
-extern u_int CurSpeed;
-extern char ClockVL;
-extern u_char ClockType; 
-//#if OpenDoorDeal
-extern u_char TimeControlREG0;
-extern u_char CurDoorStatus;
-extern 	void JudgeDoorType(void);
-extern void DoorType();
-//#endif
-extern u_char AlarmFlag;
+LCDTCB lcd_tcb;
+LCDTCB last_lcd_tcb;
+ACTION_TCB act_tcb;
 
-extern u_char RoadNb;
-
-extern UsartDesc *RS2320;
-
-//È«¾Ö±äÁ¿
-LCDTCB lcd_tcb;			//lcdÏÔÊ¾µ±Ç°¿ØÖÆ¿é
-LCDTCB last_lcd_tcb;	//lcdÏÔÊ¾ÉÏÒ»×´Ì¬¿ØÖÆ¿é
-ACTION_TCB act_tcb;		//²Ëµ¥¶¯×÷¿ØÖÆ¿é
-OTDR *OTDR_Array = (OTDR *)(&(LargeDataBuffer[24*1024]));//[15];
-
-//Ã¿Ïî²Ëµ¥ÏÔÊ¾µÄÎÄ×Ö
-const LCD_ZM * content00[] = {
+const FONT_MATRIX * content00[] = {
 	display_xian,
 	display_shi,
 	can,
 	data_shu,
 	NULL
-};//ÏÔÊ¾²ÎÊý
+};
 
-const LCD_ZM * content01[] = {
+const FONT_MATRIX * content01[] = {
 	display_xian,
 	display_shi,
 	record_ji,
@@ -67,15 +23,15 @@ const LCD_ZM * content01[] = {
 	data_shu,
 	data_ju,
 	NULL	
-};//ÏÔÊ¾¼ÇÂ¼Êý¾Ý
+};//ï¿½ï¿½Ê¾ï¿½ï¿½Â¼ï¿½ï¿½ï¿½
 
-const LCD_ZM * content02[] = {
+const FONT_MATRIX * content02[] = {
 	print_da,
 	print_yin,
 	NULL
-};//´òÓ¡
+};//ï¿½ï¿½Ó¡
 
-const LCD_ZM * content04[] = {
+const FONT_MATRIX * content04[] = {
 	data_shu,
 	data_ju,
 	save_bao,
@@ -84,25 +40,25 @@ const LCD_ZM * content04[] = {
 	udisk_u,
 	udisk_pan,
 	NULL
-};//Êý¾Ý±£´æµ½ÓÅÅÌ
+};//ï¿½ï¿½Ý±ï¿½ï¿½æµ½ï¿½ï¿½ï¿½ï¿½
 
-const LCD_ZM * content03[] = {
+const FONT_MATRIX * content03[] = {
 	other_qi,
 	other_ta,
 	operate_cao,
 	operate_zuo,
 	NULL
-};//ÆäËû²Ù×÷
+};//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-const LCD_ZM * content30[] = {
+const FONT_MATRIX * content30[] = {
 	door_jian,
 	door_ce,
 	door_kai,
 	door_guan,
 	door_men,
 	NULL
-};//¼ì²â¿ª¹ØÃÅ
-const LCD_ZM * content31[] = {
+};//ï¿½ï¿½â¿ªï¿½ï¿½ï¿½ï¿½
+const FONT_MATRIX * content31[] = {
 
 	door_kai,
 	door_guan,
@@ -110,33 +66,33 @@ const LCD_ZM * content31[] = {
 	can,
 	data_shu,
 	NULL
-};//¿ª¹ØÃÅ²ÎÊý
+};//ï¿½ï¿½ï¿½ï¿½ï¿½Å²ï¿½ï¿½ï¿½
 
-const LCD_ZM * back[] = {
+const FONT_MATRIX * back[] = {
 	back_fan,
 	back_hui,
 	NULL
-};//·µ»Ø
+};//ï¿½ï¿½ï¿½ï¿½
 
-const LCD_ZM * content10[] = {
+const FONT_MATRIX * content10[] = {
 	auto_che,
 	auto_pai,
 	number_hao,
 	code_ma,
 	NULL
-};//³µÅÆºÅÂë
+};//ï¿½ï¿½ï¿½Æºï¿½ï¿½ï¿½
 
-const LCD_ZM * content11[] = {
+const FONT_MATRIX * content11[] = {
 	driver_jia,
 	driver_shi,
 	driver_yuan,
 	code_dai,
 	code_ma,
 	NULL
-};//¼ÝÊ»Ô±´úÂë
+};//ï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ï¿½
 
-const LCD_ZM * content12[] = {
-	//driver_jia,//myw 2003.7.14¼ÝÊ»Ô±
+const FONT_MATRIX * content12[] = {
+	//driver_jia,//myw 2003.7.14ï¿½ï¿½Ê»Ô±
 	//driver_shi,
 	//driver_yuan,
 	driver_jia,
@@ -145,9 +101,9 @@ const LCD_ZM * content12[] = {
 	number_hao,
 	code_ma,
 	NULL
-};//¼ÝÊ»Ö¤ºÅÂë
+};//ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½
 
-const LCD_ZM * content13[] = {
+const FONT_MATRIX * content13[] = {
 	auto_che,
 	auto_liang,
 	character_te,
@@ -155,37 +111,37 @@ const LCD_ZM * content13[] = {
 	xi,
 	data_shu,
 	NULL
-};//³µÁ¾ÌØÕ÷ÏµÊý
+};//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½
 
-const LCD_ZM * content14[] = {
+const FONT_MATRIX * content14[] = {
 	status_zhuang,
 	status_tai,
 	ji,
 	xing,
 	NULL
-};//×´Ì¬¼«ÐÔ
+};//×´Ì¬ï¿½ï¿½ï¿½ï¿½
 
-const LCD_ZM * content15[] = {
+const FONT_MATRIX * content15[] = {
 	product_chan,
 	product_pin,
 	version_ban,
 	version_ben,
 	number_hao,
 	NULL
-};//²úÆ·°æ±¾ºÅ
+};//ï¿½ï¿½Æ·ï¿½æ±¾ï¿½ï¿½
 
-const LCD_ZM * content20[] = {
+const FONT_MATRIX * content20[] = {
 	every_mei,
 	minute_fen,
 	minute_zhong,
-	//average_ping,//myw 2003.7.14Æ½¾ù
+	//average_ping,//myw 2003.7.14Æ½ï¿½ï¿½
 	//average_jun,
 	auto_che,
 	speed_su,
 	NULL
-};//Ã¿·ÖÖÓ³µËÙ
+};//Ã¿ï¿½ï¿½ï¿½Ó³ï¿½ï¿½ï¿½
 
-const LCD_ZM * content21[] = {
+const FONT_MATRIX * content21[] = {
 	lian,
 	xu,
 	driver_jia,
@@ -193,79 +149,79 @@ const LCD_ZM * content21[] = {
 	record_ji,
 	record_lu,
 	NULL
-};//Á¬Ðø¼ÝÊ»¼ÇÂ¼
+};//ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Â¼
 
-const LCD_ZM * content22[] = {
+const FONT_MATRIX * content22[] = {
 	addup_lei,
 	addup_ji,
 	all_zong,
 	distance_li,
 	distance_cheng,
 	NULL
-};//ÀÛ¼Æ×ÜÀï³Ì
+};//ï¿½Û¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-const LCD_ZM * none[] = {
+const FONT_MATRIX * none[] = {
 	none_wu,
 	record_ji,
 	record_lu,
 	NULL
-};//ÎÞ¼ÇÂ¼
+};//ï¿½Þ¼ï¿½Â¼
 
-const LCD_ZM * being_stat[] = {
+const FONT_MATRIX * being_stat[] = {
 	being_zheng,
 	being_zai,
 	stat_tong,
 	stat_ji,
 	NULL
-};//ÕýÔÚÍ³¼Æ
+};//ï¿½ï¿½ï¿½ï¿½Í³ï¿½ï¿½
 
-const LCD_ZM * working_ok[] = {
+const FONT_MATRIX * working_ok[] = {
 	work_gong,
 	work_zuo,
 	being_zheng,
 	normal_chang,
 	NULL
-};//¹¤×÷Õý³£
+};
 
-//²Ëµ¥½áµãÁÐ±í
+
 const MENU_NODE list0[6]={
 	{
-		(LCD_ZM **)content00,
+		(FONT_MATRIX **)content00,
 		1,
 		-1,
 		-1,
 		NULL
 	},
 	{
-		(LCD_ZM **)content01,
+		(FONT_MATRIX **)content01,
 		2,
 		-1,
 		-1,
 		NULL
 	},
 	{
-		(LCD_ZM **)content02,
+		(FONT_MATRIX **)content02,
 		-1,
 		-1,
 		-1,
 		PrintAllData
 	},
 	{
-		(LCD_ZM **)content04,
+		(FONT_MATRIX **)content04,
 		-1,
 		-1,
 		-1,
 		SaveDatatoUdisk
 	},
 	{
-		(LCD_ZM **)content03,
+		(FONT_MATRIX **)content03,
 		3,
 		-1,
 		-1,
 		NULL
 	},
 	{
-		(LCD_ZM **)back,
+		(FONT_MATRIX **)back,
 		-1,
 		-1,
 		-1,
@@ -274,49 +230,49 @@ const MENU_NODE list0[6]={
 };
 const MENU_NODE list1[7]={
 	{
-		(LCD_ZM **)content10,
+		(FONT_MATRIX **)content10,
 		-1,
 		0,
 		0,
 		DisplayAutoCode
 	},
 	{
-		(LCD_ZM **)content11,
+		(FONT_MATRIX **)content11,
 		-1,
 		0,
 		0,
 		DisplayDriverNumber
 	},
 	{
-		(LCD_ZM **)content12,
+		(FONT_MATRIX **)content12,
 		-1,
 		0,
 		0,
 		DisplayDriverCode
 	},
 	{
-		(LCD_ZM **)content13,
+		(FONT_MATRIX **)content13,
 		-1,
 		0,
 		0,
 		Displaywheel
 	},
 	{
-		(LCD_ZM **)content14,
+		(FONT_MATRIX **)content14,
 		-1,
 		0,
 		0,
 		DisplayStatusPolarity
 	},
 	{
-		(LCD_ZM **)content15,
+		(FONT_MATRIX **)content15,
 		-1,
 		0,
 		0,
 		DisplayProductVersion
 	},
 	{
-		(LCD_ZM **)back,
+		(FONT_MATRIX **)back,
 		-1,
 		0,
 		0,
@@ -326,28 +282,28 @@ const MENU_NODE list1[7]={
 };
 const MENU_NODE list2[4]={
 	{
-		(LCD_ZM **)content20,
+		(FONT_MATRIX **)content20,
 		-1,
 		0,
 		1,
 		Display15MinAverageSpeed
 	},
 	{
-		(LCD_ZM **)content21,
+		(FONT_MATRIX **)content21,
 		-1,
 		0,
 		1,
 		Display2DayOTDR
 	},
 	{
-		(LCD_ZM **)content22,
+		(FONT_MATRIX **)content22,
 		-1,
 		0,
 		1,
 		DisplayTotalDistance
 	},
 	{
-		(LCD_ZM **)back,
+		(FONT_MATRIX **)back,
 		-1,
 		0,
 		1,
@@ -357,21 +313,21 @@ const MENU_NODE list2[4]={
 #if OpenDoorDeal
 const MENU_NODE list3[3]={
 	{
-		(LCD_ZM **)content30,
+		(FONT_MATRIX **)content30,
 		-1,
 		0,
 		3,
 		JudgeDoorType
 	},
 	{
-		(LCD_ZM **)content31,
+		(FONT_MATRIX **)content31,
 		-1,
 		0,
 		3,
 		DoorType
 	},
 	{
-		(LCD_ZM **)back,
+		(FONT_MATRIX **)back,
 		-1,
 		0,
 		3,
@@ -381,21 +337,21 @@ const MENU_NODE list3[3]={
 #else
 const MENU_NODE list3[3]={
 	{
-		(LCD_ZM **)content30,
+		(FONT_MATRIX **)content30,
 		-1,
 		0,
 		3,
 		NULL
 	},
 	{
-		(LCD_ZM **)content31,
+		(FONT_MATRIX **)content31,
 		-1,
 		0,
 		3,
 		NULL
 	},
 	{
-		(LCD_ZM **)back,
+		(FONT_MATRIX **)back,
 		-1,
 		0,
 		3,
@@ -423,11 +379,11 @@ NODE_LIST NodeListTable[4] = {
 };
 //*----------------------------------------------------------------------------
 //* Function Name       : SaveDatatoUdisk
-//* Object              : ±£´æÊý¾Ýµ½ÓÅÅÌ£¬¶¯×÷Íê³Éºó·µ»Øµ½Í¨³£½çÃæ
+//* Object              : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½ï¿½ï¿½ï¿½Ì£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºó·µ»Øµï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 void SaveDatatoUdisk()
 {
@@ -437,28 +393,28 @@ void SaveDatatoUdisk()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : PrintAllData
-//* Object              : ´òÓ¡ËùÓÐÊý¾Ý£¬¶¯×÷Íê³Éºó·µ»Øµ½Í¨³£½çÃæ
+//* Object              : ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºó·µ»Øµï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 void PrintAllData()
 {
-	lcm_clear_ram(LINE2);
-	lcm_write_hz1(1,1,(LCD_ZM *)being_zheng);
-	lcm_write_hz1(1,2,(LCD_ZM *)being_zai);
-	lcm_write_hz1(1,3,(LCD_ZM *)print_da);
-	lcm_write_hz1(1,4,(LCD_ZM *)print_yin);
+	lcd_clear(line2);
+	lcm_write_hz1(1,1,(FONT_MATRIX *)being_zheng);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)being_zai);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)print_da);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)print_yin);
 
 	#if GetSpeedStatusBy232
-	PIO_SODR = SPEED;//Ê¹ÄÜ´òÓ¡»úµÄÍ¨Ñ¶Ïß
+	PIO_SODR = SPEED;//Ê¹ï¿½Ü´ï¿½Ó¡ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½
 	#endif
 	
-	Printer();//´òÓ¡
+	Printer();//ï¿½ï¿½Ó¡
 	
 	#if GetSpeedStatusBy232
-	PIO_CODR = SPEED;//½ûÖ¹´òÓ¡»úµÄÍ¨Ñ¶Ïß
+	PIO_CODR = SPEED;//ï¿½ï¿½Ö¹ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½
 	at91_usart_open(RS2320,US_ASYNC_MODE,BAUDS4800,0);
 	#endif
 	
@@ -466,51 +422,51 @@ void PrintAllData()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteDataToUDiskMenu
-//* Object              : ±£´æÊý¾Ýµ½UÅÌ£¬¶¯×÷Íê³Éºó·µ»Øµ½Í¨³£½çÃæ
+//* Object              : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½Uï¿½Ì£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºó·µ»Øµï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 void WriteDataToUDiskMenu()
 {
 	//at91_pio_write ( &PIO_DESC, (1<<8), PIO_CLEAR_OUT );
 	//delayms(10);
-	//at91_pio_write ( &PIO_DESC, (1<<8), PIO_SET_OUT );//¸´Î»SL811
+	//at91_pio_write ( &PIO_DESC, (1<<8), PIO_SET_OUT );//ï¿½ï¿½Î»SL811
 	//delayms(10);
 
 //	sl811write(0x0f,0x80);
 	int i;
-	//µÈ´ý
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,1,(LCD_ZM *)scan_sao);
-	lcm_write_hz1(1,2,(LCD_ZM *)scan_miao);
-	lcm_write_hz1(1,3,(LCD_ZM *)udisk_u);
-	lcm_write_hz1(1,4,(LCD_ZM *)udisk_pan);
+	//ï¿½È´ï¿½
+	lcd_clear(0);
+	lcm_write_hz1(1,1,(FONT_MATRIX *)scan_sao);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)scan_miao);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)udisk_u);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)udisk_pan);
 
 	if(Scan_UDisk())		
 	{	
-		lcm_clear_ram(LINE2);
-		lcm_write_hz1(1,1,(LCD_ZM *)being_zheng);
-		lcm_write_hz1(1,2,(LCD_ZM *)being_zai);
-		lcm_write_hz1(1,3,(LCD_ZM *)save_bao);
-		lcm_write_hz1(1,4,(LCD_ZM *)save_cun);
+		lcd_clear(line2);
+		lcm_write_hz1(1,1,(FONT_MATRIX *)being_zheng);
+		lcm_write_hz1(1,2,(FONT_MATRIX *)being_zai);
+		lcm_write_hz1(1,3,(FONT_MATRIX *)save_bao);
+		lcm_write_hz1(1,4,(FONT_MATRIX *)save_cun);
 		/////////////
-		//¹ØÖÐ¶Ï
+		//ï¿½ï¿½ï¿½Ð¶ï¿½
 //		OS_ENTER_CRITICAL();
 	
 		if(!WriteDataToUDisk())
 		{
-			//Ê§°Ü
-			lcm_clear_ram(LINE2);
-			lcm_write_hz1(1,1,(LCD_ZM *)operate_cao);
-			lcm_write_hz1(1,2,(LCD_ZM *)operate_zuo);
-			lcm_write_hz1(1,3,(LCD_ZM *)fail_shi);
-			lcm_write_hz1(1,4,(LCD_ZM *)fail_bai);
+			//Ê§ï¿½ï¿½
+			lcd_clear(line2);
+			lcm_write_hz1(1,1,(FONT_MATRIX *)operate_cao);
+			lcm_write_hz1(1,2,(FONT_MATRIX *)operate_zuo);
+			lcm_write_hz1(1,3,(FONT_MATRIX *)fail_shi);
+			lcm_write_hz1(1,4,(FONT_MATRIX *)fail_bai);
 			for(i=0;i<100000;i++);
 		}
 				
-		//¿ªÖÐ¶Ï
+		//ï¿½ï¿½ï¿½Ð¶ï¿½
 //		OS_EXIT_CRITICAL();	  
 	}
 	
@@ -524,11 +480,11 @@ void WriteDataToUDiskMenu()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayAutoCode
-//* Object              : ÏÔÊ¾³µÅÆºÅÂë
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Æºï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : act_tcb
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : act_tcb
 //*----------------------------------------------------------------------------
 void DisplayAutoCode()
 {
@@ -537,29 +493,29 @@ void DisplayAutoCode()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcm_clear_ram(LINE2);
+	lcd_clear(line2);
 
 	StructPara *para = PARAMETER_BASE;
-	unsigned char j=0,col=0,type=0;//type£½0ºº×Ö£»£½1Êý×Ö£½2×ÖÄ¸
+	unsigned char j=0,col=0,type=0;//typeï¿½ï¿½0ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½1ï¿½ï¿½ï¿½Ö£ï¿½2ï¿½ï¿½Ä¸
 	unsigned char buf=para->AutoCode[0];
 	unsigned short hz;
 	while((buf!='\0')&&(col<20)&&(j<12))
 	{
 		if(buf>127)
-		{//ºº×Ö´¦Àí
+		{//ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½
 			hz = buf;
 			hz = hz<<8;
 			j++;
 			buf=para->AutoCode[j];
 			hz = hz+buf;
-			if((col&1)==1)//Èç¹ûÊÇÆæÊý
+			if((col&1)==1)//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				col++;
 			lcm_write_hz1(1,col/2,AutoCodeHZ2LCM(hz));
 			col+=2;
 			type = 0;
 		}
 		else
-		{//×ÖÄ¸»òÊý×Ö
+		{//ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			if(buf<60){
 				lcm_write_ez(1,col,ASCII2LCM(buf));
 				type = 1;
@@ -582,11 +538,11 @@ void DisplayAutoCode()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayDriverNumber
-//* Object              : ÏÔÊ¾Ë¾»ú´úºÅ
+//* Object              : ï¿½ï¿½Ê¾Ë¾ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : act_tcb
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : act_tcb
 //*----------------------------------------------------------------------------
 void DisplayDriverNumber()
 {
@@ -595,7 +551,7 @@ void DisplayDriverNumber()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcm_clear_ram(LINE2);
+	lcd_clear(line2);
 
 //	StructPara *para = PARAMETER_BASE;
 	unsigned int y=pTable.DriverCode;
@@ -622,11 +578,11 @@ void DisplayDriverNumber()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayDriverCode
-//* Object              : ÏÔÊ¾Ë¾»ú¼ÝÊ»Ö¤ºÅÂë
+//* Object              : ï¿½ï¿½Ê¾Ë¾ï¿½ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : act_tcb
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : act_tcb
 //*----------------------------------------------------------------------------
 void DisplayDriverCode()
 {
@@ -635,7 +591,7 @@ void DisplayDriverCode()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcm_clear_ram(LINE2);
+	lcd_clear(line2);
 
 //	StructPara *para = PARAMETER_BASE;
 	int i;
@@ -653,11 +609,11 @@ void DisplayDriverCode()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Displaywheel
-//* Object              : ÏÔÊ¾³µÂÖÏµÊý
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : act_tcb
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : act_tcb
 //*----------------------------------------------------------------------------
 void Displaywheel()
 {
@@ -666,7 +622,7 @@ void Displaywheel()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcm_clear_ram(LINE2);
+	lcd_clear(line2);
 	
 	StructPara *para ;
 	para = PARAMETER_BASE;
@@ -693,11 +649,11 @@ void Displaywheel()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayStatusPolarity
-//* Object              : ÏÔÊ¾×´Ì¬¼«ÐÔ
+//* Object              : ï¿½ï¿½Ê¾×´Ì¬ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : act_tcb
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : act_tcb
 //*----------------------------------------------------------------------------
 void DisplayStatusPolarity()
 {
@@ -706,7 +662,7 @@ void DisplayStatusPolarity()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcm_clear_ram(LINE2);
+	lcd_clear(line2);
 	
 	StructPara *para = PARAMETER_BASE;
 	unsigned short s=para->status_polarity;
@@ -716,9 +672,9 @@ void DisplayStatusPolarity()
 	{
 		z=1<<j;
 		if((s & z)==0)
-			lcm_write_ez(1,19-j,(LCD_ZM *)digital_0);
+			lcm_write_ez(1,19-j,(FONT_MATRIX *)digital_0);
 		else
-			lcm_write_ez(1,19-j,(LCD_ZM *)digital_1);
+			lcm_write_ez(1,19-j,(FONT_MATRIX *)digital_1);
 	}
 	
 	act_tcb.IfActionEnd = 1;
@@ -727,11 +683,11 @@ void DisplayStatusPolarity()
 
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayProductVersion
-//* Object              : ÏÔÊ¾²úÆ·°æ±¾ºÅ
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½Æ·ï¿½æ±¾ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : act_tcb
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : act_tcb
 //*----------------------------------------------------------------------------
 void DisplayProductVersion()
 {
@@ -740,70 +696,70 @@ void DisplayProductVersion()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcm_clear_ram(LINE2);
+	lcd_clear(line2);
 	
 	u_char col=0;
-	lcm_write_ez(1,col,(LCD_ZM *)digital_0);
-	lcm_write_ez(1,col+1,(LCD_ZM *)digital_6);
-	lcm_write_ez(1,col+2,(LCD_ZM *)charater_point);
-	lcm_write_ez(1,col+3,(LCD_ZM *)digital_0);
-	lcm_write_ez(1,col+4,(LCD_ZM *)digital_8);
-	lcm_write_ez(1,col+5,(LCD_ZM *)charater_point);
-	lcm_write_ez(1,col+6,(LCD_ZM *)digital_2);
-	lcm_write_ez(1,col+7,(LCD_ZM *)digital_8);
-	lcm_write_ez(1,col+8,(LCD_ZM *)charater_point);
-	lcm_write_ez(1,col+9,(LCD_ZM *)digital_1);
+	lcm_write_ez(1,col,(FONT_MATRIX *)digital_0);
+	lcm_write_ez(1,col+1,(FONT_MATRIX *)digital_6);
+	lcm_write_ez(1,col+2,(FONT_MATRIX *)charater_point);
+	lcm_write_ez(1,col+3,(FONT_MATRIX *)digital_0);
+	lcm_write_ez(1,col+4,(FONT_MATRIX *)digital_8);
+	lcm_write_ez(1,col+5,(FONT_MATRIX *)charater_point);
+	lcm_write_ez(1,col+6,(FONT_MATRIX *)digital_2);
+	lcm_write_ez(1,col+7,(FONT_MATRIX *)digital_8);
+	lcm_write_ez(1,col+8,(FONT_MATRIX *)charater_point);
+	lcm_write_ez(1,col+9,(FONT_MATRIX *)digital_1);
 #if	guizhou
-	lcm_write_ez(1,col+10,(LCD_ZM *)charater_xing);
+	lcm_write_ez(1,col+10,(FONT_MATRIX *)charater_xing);
 #else
-	lcm_write_ez(1,col+10,(LCD_ZM *)charater_point);
+	lcm_write_ez(1,col+10,(FONT_MATRIX *)charater_point);
 #endif
 	
-#if OpenDoorDeal//°üº¬Èí¼þ¿ª¹ØÃÅ´¦Àí
-	lcm_write_ez(1,col+11,(LCD_ZM *)digital_1);
+#if OpenDoorDeal//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å´ï¿½ï¿½ï¿½
+	lcm_write_ez(1,col+11,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+11,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+11,(FONT_MATRIX *)digital_0);
 #endif
-#if RTC8025//Ê±ÖÓÐ¾Æ¬Ñ¡Ôñ¿ª¹Ø
-	lcm_write_ez(1,col+12,(LCD_ZM *)digital_1);
+#if RTC8025//Ê±ï¿½ï¿½Ð¾Æ¬Ñ¡ï¿½ñ¿ª¹ï¿½
+	lcm_write_ez(1,col+12,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+12,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+12,(FONT_MATRIX *)digital_0);
 #endif
-#if GetSpeedStatusBy232     //Í¨¹ý´®¿ÚºÍÊÊÅäÆ÷Í¨Ñ¶»ñÈ¡ËÙ¶ÈºÍÈ«²¿×´Ì¬¿ª¹Ø
-	lcm_write_ez(1,col+13,(LCD_ZM *)digital_1);
+#if GetSpeedStatusBy232     //Í¨ï¿½ï¿½Úºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½È¡ï¿½Ù¶Èºï¿½È«ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½
+	lcm_write_ez(1,col+13,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+13,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+13,(FONT_MATRIX *)digital_0);
 #endif
 
-#if WATCH_DOG_EN          // ¿´ÃÅ¹·¿ª¹Ø
-	lcm_write_ez(1,col+14,(LCD_ZM *)digital_1);
+#if WATCH_DOG_EN          // ï¿½ï¿½ï¿½Å¹ï¿½ï¿½ï¿½ï¿½ï¿½
+	lcm_write_ez(1,col+14,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+14,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+14,(FONT_MATRIX *)digital_0);
 #endif
-#if RPM_EN			     //·¢¶¯»ú×ªËÙ¿ª¹Ø
-	lcm_write_ez(1,col+15,(LCD_ZM *)digital_1);
+#if RPM_EN			     //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½Ù¿ï¿½ï¿½ï¿½
+	lcm_write_ez(1,col+15,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+15,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+15,(FONT_MATRIX *)digital_0);
 #endif
-#if SectionAlarm_EN        //·ÖÂ·¶Î±¨¾¯¿ª¹Ø
-	lcm_write_ez(1,col+16,(LCD_ZM *)digital_1);
+#if SectionAlarm_EN        //ï¿½ï¿½Â·ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	lcm_write_ez(1,col+16,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+16,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+16,(FONT_MATRIX *)digital_0);
 #endif
-#if OpenDoorAlarm	     //¿ªÃÅÐÐÊ»±¨¾¯¿ª¹Ø
-	lcm_write_ez(1,col+17,(LCD_ZM *)digital_1);
+#if OpenDoorAlarm	     //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	lcm_write_ez(1,col+17,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+17,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+17,(FONT_MATRIX *)digital_0);
 #endif
-#if Test        	  //²âÊÔ¹¤×°
-	lcm_write_ez(1,col+18,(LCD_ZM *)digital_1);
+#if Test        	  //ï¿½ï¿½ï¿½Ô¹ï¿½×°
+	lcm_write_ez(1,col+18,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+18,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+18,(FONT_MATRIX *)digital_0);
 #endif
-#if Status14    //³¬¹ý8ÖÖ×´Ì¬
-	lcm_write_ez(1,col+19,(LCD_ZM *)digital_1);
+#if Status14    //ï¿½ï¿½ï¿½ï¿½8ï¿½ï¿½×´Ì¬
+	lcm_write_ez(1,col+19,(FONT_MATRIX *)digital_1);
 #else
-	lcm_write_ez(1,col+19,(LCD_ZM *)digital_0);
+	lcm_write_ez(1,col+19,(FONT_MATRIX *)digital_0);
 #endif
 	act_tcb.IfActionEnd = 1;
 	act_tcb.CurLine = 1;
@@ -811,11 +767,11 @@ void DisplayProductVersion()
 
 //*----------------------------------------------------------------------------
 //* Function Name       : Get15MinuteSpeed
-//* Object              : 15·ÖÖÓÄÚµÄÊ±¼äºÍËÙ¶È
+//* Object              : 15ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½
 //* Input Parameters    : 
-//* Output Parameters   : Í£³µÊ±¼ä Ê±,·Ö,ËÙ¶È(3*15)
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Output Parameters   : Í£ï¿½ï¿½Ê±ï¿½ï¿½ Ê±,ï¿½ï¿½,ï¿½Ù¶ï¿½(3*15)
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int Get15MinAverageSpeed(PrintSpeed *speed)
 {
@@ -837,7 +793,7 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 	int offset,addup_offset=0;
 	int j;
 	
-	//ÖÃ³õÖµ
+	//ï¿½Ã³ï¿½Öµ
 	TimeIntervalSum = 0;
 	spt = pTable.RunRecord360h;
 	curPointer = pTable.RunRecord360h.CurPoint;
@@ -854,7 +810,7 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 	last_start.dt.type = 0;
 	do
 	{
-		//È¡³öµ±Ç°¼ÇÂ¼ÊÇ²»ÕýÈ·µÄ
+		//È¡ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½Ç²ï¿½ï¿½ï¿½È·ï¿½ï¿½
 		if(!GetOTDR(curPointer,&(record.start), &(record.end)))
 		{
 			addup_offset++;
@@ -881,7 +837,7 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 			}
 		}
 			
-		//¼ÆËãµ±Ç°¼ÇÂ¼ÓëÉÏÒ»Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î	
+		//ï¿½ï¿½ï¿½ãµ±Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½	
 		PrepareTime((u_char *)(&(record.end.dt.year)),&SmallTime);
 		TimeInterval = HaveTime(BigTime,SmallTime);
 		if(TimeInterval < 0)
@@ -919,7 +875,7 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 			
 		if(TimeIntervalSum >=TimeLimit)
 			break;
-		//ÐÞ¸ÄÖ¸Õë
+		//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 		offset = (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 		addup_offset += offset;
 		offset = 0 - offset;
@@ -934,14 +890,14 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Display15MinAverageSpeed
-//* Object              : ÏÔÊ¾Í£³µÊ±¿ÌÆðÇ°ÍÆ15·ÖÖÓÆ½¾ùËÙ¶È
+//* Object              : ï¿½ï¿½Ê¾Í£ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½15ï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½ï¿½Ù¶ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void Display15MinAverageSpeed()
-{//¼ÇÂ¼Ñ­»·ÏÔÊ¾
+{//ï¿½ï¿½Â¼Ñ­ï¿½ï¿½ï¿½ï¿½Ê¾
 	u_char i;
 	LCD_ZM ** p;
 	PrintSpeed *pt;
@@ -949,18 +905,18 @@ void Display15MinAverageSpeed()
 	act_tcb.type = SHOW;
 //	act_tcb.LineNumber = 15;
 //myw 2003.7.14
-		lcm_write_zimu(0,9,(LCD_ZM *)Letter_k);
-		lcm_write_zimu(0,10,(LCD_ZM *)Letter_m);
-		lcm_write_ez(0,13,(LCD_ZM *)charater_slash);
-		lcm_write_zimu(0,12,(LCD_ZM *)Letter_h);
+		lcm_write_zimu(0,9,(FONT_MATRIX *)Letter_k);
+		lcm_write_zimu(0,10,(FONT_MATRIX *)Letter_m);
+		lcm_write_ez(0,13,(FONT_MATRIX *)charater_slash);
+		lcm_write_zimu(0,12,(FONT_MATRIX *)Letter_h);
 		
 //
-	if(act_tcb.CurLine == 0)//È¡¼ÇÂ¼
+	if(act_tcb.CurLine == 0)//È¡ï¿½ï¿½Â¼
 	{
-		//ÏÔÊ¾¡°ÕýÔÚÍ³¼Æ¡±
-		lcm_clear_ram(LINE2);
+		//ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¡ï¿½
+		lcd_clear(line2);
 		int i=0;
-		p = (LCD_ZM **)being_stat;
+		p = (FONT_MATRIX **)being_stat;
 		do{
 			lcm_write_hz1(1,i,p[i]);
 			i++;
@@ -969,10 +925,10 @@ void Display15MinAverageSpeed()
 	}
 	
 	if(act_tcb.LineNumber == 0)
-	{//ÏÔÊ¾¡°ÎÞ¼ÇÂ¼¡±
-		lcm_clear_ram(LINE2);
+	{//ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Þ¼ï¿½Â¼ï¿½ï¿½
+		lcd_clear(line2);
 		int i=0;
-		p = (LCD_ZM **)none;
+		p = (FONT_MATRIX **)none;
 		do{
 			lcm_write_hz1(1,i,p[i]);
 			i++;
@@ -984,17 +940,17 @@ void Display15MinAverageSpeed()
 		if(act_tcb.CurLine>15)
 			act_tcb.CurLine = 1;
 			
-		lcm_clear_ram(LINE2);
+		lcd_clear(line2);
 		u_char col=0;
 		u_char row=1;
-		//Ê±¼ä£ºÊ±
+		//Ê±ï¿½ä£ºÊ±
 		lcm_write_ez(row,col,BCD2LCM(pt[act_tcb.CurLine-1].hour,1));
 		lcm_write_ez(row,col+1,BCD2LCM(pt[act_tcb.CurLine-1].hour,0));
 		lcm_write_ez(row,col+2,(LCD_ZM *)digital_);
-		//·Ö
+		//ï¿½ï¿½
 		lcm_write_ez(row,col+3,BCD2LCM(pt[act_tcb.CurLine-1].minute,1));
 		lcm_write_ez(row,col+4,BCD2LCM(pt[act_tcb.CurLine-1].minute,0));
-		//ËÙ¶È
+		//ï¿½Ù¶ï¿½
 		DisplayInteger(pt[act_tcb.CurLine-1].speed,row,col+8,3);
 		
 		/*lcm_write_zimu(row,8,(LCD_ZM *)Letter_k);//myw 2003.7.14
@@ -1002,7 +958,7 @@ void Display15MinAverageSpeed()
 		lcm_write_ez(row,12,(LCD_ZM *)charater_slash);
 		lcm_write_zimu(row,11,(LCD_ZM *)Letter_h);
 		*/
-//Ë¾»ú´úºÅ 
+//Ë¾ï¿½ï¿½ï¿½ï¿½ 
 		DisplayInteger(pt[act_tcb.CurLine-1].DriverCode,row,19,0);
 	}
 	
@@ -1010,22 +966,22 @@ void Display15MinAverageSpeed()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Display2DayOTDR
-//* Object              : ÏÔÊ¾2¸öÈÕÀúÌì³¬¹ý3Ð¡Ê±Á¬ÐøÐÐÊ»¼ÇÂ¼
+//* Object              : ï¿½ï¿½Ê¾2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ì³¬ï¿½ï¿½3Ð¡Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Â¼
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void Display2DayOTDR()
-{//¼ÇÂ¼Ñ­»·ÏÔÊ¾
-	LCD_ZM ** p;
+{//ï¿½ï¿½Â¼Ñ­ï¿½ï¿½ï¿½ï¿½Ê¾
+	FONT_MATRIX ** p;
 	act_tcb.type = SHOW;
-	if(act_tcb.CurLine == 0)//È¡¼ÇÂ¼
+	if(act_tcb.CurLine == 0)//È¡ï¿½ï¿½Â¼
 	{
-		//ÏÔÊ¾¡°ÕýÔÚÍ³¼Æ¡±
+		//ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¡ï¿½
 		lcm_clear_ram(LINE2);
 		int i=0;
-		p = (LCD_ZM **)being_stat;
+		p = (FONT_MATRIX **)being_stat;
 		do{
 			lcm_write_hz1(1,i,p[i]);
 			i++;
@@ -1034,10 +990,10 @@ void Display2DayOTDR()
 	}
 
 	if(act_tcb.LineNumber == 0)
-	{//ÏÔÊ¾¡°ÎÞ¼ÇÂ¼¡±
+	{//ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Þ¼ï¿½Â¼ï¿½ï¿½
 		lcm_clear_ram(LINE2);
 		int i=0;
-		p = (LCD_ZM **)none;
+		p = (FONT_MATRIX **)none;
 		do{
 			lcm_write_hz1(1,i,p[i]);
 			i++;
@@ -1048,44 +1004,44 @@ void Display2DayOTDR()
 		if(act_tcb.CurLine>act_tcb.LineNumber)
 			act_tcb.CurLine = 1;
 		
-		lcm_clear_ram(ALL);
+		lcd_clear(lineall);
 		lcm_write_ez(0,0,BCD2LCM(Char2BCD(act_tcb.CurLine),1));
 		lcm_write_ez(0,1,BCD2LCM(Char2BCD(act_tcb.CurLine),0));
 		lcm_write_ez(0,2,(LCD_ZM *)digital_);
 		u_char col=4;
 		u_char row=0;
-		//ÆðÊ¼Ê±¼ä£ºÄê
+		//ï¿½ï¿½Ê¼Ê±ï¿½ä£ºï¿½ï¿½
 		lcm_write_ez(row,col,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.year,1));
 		lcm_write_ez(row,col+1,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.year,0));
-		//ÔÂ
+		//ï¿½ï¿½
 		lcm_write_ez(row,col+3,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.month,1));
 		lcm_write_ez(row,col+4,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.month,0));
-		//ÈÕ
+		//ï¿½ï¿½
 		lcm_write_ez(row,col+6,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.day,1));
 		lcm_write_ez(row,col+7,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.day,0));
 		//Ê±
 		lcm_write_ez(row,col+9,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.hour,1));
 		lcm_write_ez(row,col+10,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.hour,0));
 		lcm_write_ez(row,col+11,(LCD_ZM *)digital_);
-		//·Ö
+		//ï¿½ï¿½
 		lcm_write_ez(row,col+12,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.minute,1));
 		lcm_write_ez(row,col+13,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.minute,0));
 
 		row = 1;
-		//½áÊøÊ±¼ä£ºÄê
+		//ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£ºï¿½ï¿½
 		lcm_write_ez(row,col,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.year,1));
 		lcm_write_ez(row,col+1,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.year,0));
-		//ÔÂ
+		//ï¿½ï¿½
 		lcm_write_ez(row,col+3,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.month,1));
 		lcm_write_ez(row,col+4,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.month,0));
-		//ÈÕ
+		//ï¿½ï¿½
 		lcm_write_ez(row,col+6,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.day,1));
 		lcm_write_ez(row,col+7,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.day,0));
 		//Ê±
 		lcm_write_ez(row,col+9,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.hour,1));
 		lcm_write_ez(row,col+10,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.hour,0));
 		lcm_write_ez(row,col+11,(LCD_ZM *)digital_);
-		//·Ö
+		//ï¿½ï¿½
 		lcm_write_ez(row,col+12,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.minute,1));
 		lcm_write_ez(row,col+13,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.minute,0));
 			
@@ -1094,11 +1050,11 @@ void Display2DayOTDR()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayTotalDistance
-//* Object              : ÏÔÊ¾×ÜÀï³Ì
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void DisplayTotalDistance()
 {
@@ -1107,9 +1063,9 @@ void DisplayTotalDistance()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcm_clear_ram(LINE2);
+	lcd_clear(line2);
 	
-	//ÀÛ¼Æ×ÜÀï³Ì
+	//ï¿½Û¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	u_int Dis=ComputeDistance100m(pTable.TotalDistance);
 
 	u_int x=Dis/10;
@@ -1128,7 +1084,7 @@ void DisplayTotalDistance()
 	u_char m=15;
 	lcm_write_ez(1,m,BCD2LCM(buf[0],0));
 	m--;
-	lcm_write_ez(1,m,(LCD_ZM *)charater_point);
+	lcm_write_ez(1,m,(FONT_MATRIX *)charater_point);
 	m--;
 	u_char k;
 	for(k=1;k<=i;k++){
@@ -1136,24 +1092,24 @@ void DisplayTotalDistance()
 		m--;
 	}
 	
-	lcm_write_hz1(1,8,(LCD_ZM *)km_gong);	
-	lcm_write_hz1(1,9,(LCD_ZM *)distance_li);	
+	lcm_write_hz1(1,8,(FONT_MATRIX *)km_gong);
+	lcm_write_hz1(1,9,(FONT_MATRIX *)distance_li);
 
 	act_tcb.IfActionEnd = 1;
 	act_tcb.CurLine = 1;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : SelectKeyHandler
-//* Object              : ÏÔÊ¾µ±Ç°²Ëµ¥½áµã
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½Ç°ï¿½Ëµï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void DisplayCurrentNode()
 {
-	LCD_ZM ** p1;
-	LCD_ZM ** p2;
+	FONT_MATRIX ** p1;
+	FONT_MATRIX ** p2;
 
 	lcm_clear_ram(ALL);
 
@@ -1170,7 +1126,7 @@ void DisplayCurrentNode()
 		i++;
 	}while(p1[i]!=NULL);
 	
-	//ÏÔÊ¾Ö¸Ê¾±êÖ¾
+	//ï¿½ï¿½Ê¾Ö¸Ê¾ï¿½ï¿½Ö¾
 	lcm_write_ez(0,18,(LCD_ZM *)charater_arrow1);
 	lcm_write_ez(0,19,(LCD_ZM *)charater_arrow2);
 	
@@ -1186,11 +1142,11 @@ void DisplayCurrentNode()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : SelectKeyHandler
-//* Object              : ¡°Ñ¡Ôñ¡±¼ü´¦Àí³ÌÐò
+//* Object              : ï¿½ï¿½Ñ¡ï¿½ñ¡±¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void SelectKeyHandler()
 {
@@ -1208,7 +1164,7 @@ void SelectKeyHandler()
 			lcd_tcb.ListNb = 0;
 			lcd_tcb.NodeNb = 0;
 			break;
-		case Node://µ±Ç°½áµãÐÞ¸ÄÎªÍ¬²ãÏÂÒ»¸ö½áµã
+		case Node://ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ÎªÍ¬ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½
 		case BackLeaf:
 		case ActLeaf:
 			last_lcd_tcb.mode = lcd_tcb.mode;
@@ -1246,11 +1202,11 @@ void SelectKeyHandler()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : OKKeyHandler
-//* Object              : ¡°È·ÈÏ¡±¼ü´¦Àí³ÌÐò
+//* Object              : ï¿½ï¿½È·ï¿½Ï¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void OKKeyHandler()
 {
@@ -1259,7 +1215,7 @@ void OKKeyHandler()
 	lcd_tcb.KeepTime = 0;
 	switch(lcd_tcb.mode)
 	{
-		case Node://ÇÐ»»µ½µÚÒ»¸öº¢×Ó½áµã
+		case Node://ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ó½ï¿½ï¿½
 			last_lcd_tcb = lcd_tcb;
 			lcd_tcb.ListNb = NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList;	
 			lcd_tcb.NodeNb = 0;
@@ -1271,7 +1227,7 @@ void OKKeyHandler()
 				lcd_tcb.mode = BackLeaf;
 			DisplayCurrentNode();
 			break;
-		case BackLeaf://ÇÐ»»µ½¸¸½áµã»òÍ¨³£Ä£Ê½
+		case BackLeaf://ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½Ä£Ê½
 			last_lcd_tcb = lcd_tcb;
 
 			if(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].FatherList==-1)
@@ -1286,7 +1242,7 @@ void OKKeyHandler()
 				DisplayCurrentNode();
 			}
 			break;
-		case ActLeaf://ÇÐ»»µ½¶¯×÷Ä£Ê½
+		case ActLeaf://ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½
 			last_lcd_tcb = lcd_tcb;
 			
 			lcd_tcb.mode = Action;
@@ -1312,367 +1268,368 @@ void OKKeyHandler()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : ASCII2LCM
-//* Object              : ASCIIÂë×ª»»Îª×ÖÄ£Ö¸Õë
-//* Input Parameters    : data¡ª¡ª´ý×ª»»µÄ×ÖÄ¸
-//* Output Parameters   : ×ÖÄ£Ö¸Õë
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ASCIIï¿½ï¿½×ªï¿½ï¿½Îªï¿½ï¿½Ä£Ö¸ï¿½ï¿½
+//* Input Parameters    : dataï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸
+//* Output Parameters   : ï¿½ï¿½Ä£Ö¸ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-LCD_ZM *ASCII2LCM(unsigned char data)
+FONT_MATRIX *ASCII2LCM(unsigned char data)
 {
-	LCD_ZM *ret;
+	FONT_MATRIX *ret;
 	
 	switch(data)
 	{
 		case 48:
-			ret=(LCD_ZM *)digital_0;break;
+			ret=(FONT_MATRIX *)digital_0;break;
 		case 49:
-			ret=(LCD_ZM *)digital_1;break;
+			ret=(FONT_MATRIX *)digital_1;break;
 		case 50:
-			ret=(LCD_ZM *)digital_2;break;
+			ret=(FONT_MATRIX *)digital_2;break;
 		case 51:
-			ret=(LCD_ZM *)digital_3;break;
+			ret=(FONT_MATRIX *)digital_3;break;
 		case 52:
-			ret=(LCD_ZM *)digital_4;break;
+			ret=(FONT_MATRIX *)digital_4;break;
 		case 53:
-			ret=(LCD_ZM *)digital_5;break;
+			ret=(FONT_MATRIX *)digital_5;break;
 		case 54:
-			ret=(LCD_ZM *)digital_6;break;
+			ret=(FONT_MATRIX *)digital_6;break;
 		case 55:
-			ret=(LCD_ZM *)digital_7;break;
+			ret=(FONT_MATRIX *)digital_7;break;
 		case 56:
-			ret=(LCD_ZM *)digital_8;break;
+			ret=(FONT_MATRIX *)digital_8;break;
 		case 57:
-			ret=(LCD_ZM *)digital_9;break;
+			ret=(FONT_MATRIX *)digital_9;break;
 		
 		case 65:
-			ret=(LCD_ZM *)Letter_A;break;
+			ret=(FONT_MATRIX *)Letter_A;break;
 		case 66:
-			ret=(LCD_ZM *)Letter_B;break;
+			ret=(FONT_MATRIX *)Letter_B;break;
 		case 67:
-			ret=(LCD_ZM *)Letter_C;break;
+			ret=(FONT_MATRIX *)Letter_C;break;
 		case 68:
-			ret=(LCD_ZM *)Letter_D;break;
+			ret=(FONT_MATRIX *)Letter_D;break;
 		case 69:
-			ret=(LCD_ZM *)Letter_E;break;
+			ret=(FONT_MATRIX *)Letter_E;break;
 		case 70:
-			ret=(LCD_ZM *)Letter_F;break;
+			ret=(FONT_MATRIX *)Letter_F;break;
 		case 71:
-			ret=(LCD_ZM *)Letter_G;break;
+			ret=(FONT_MATRIX *)Letter_G;break;
 		case 72:
-			ret=(LCD_ZM *)Letter_H;break;
+			ret=(FONT_MATRIX *)Letter_H;break;
 		case 73:
-			ret=(LCD_ZM *)Letter_I;break;
+			ret=(FONT_MATRIX *)Letter_I;break;
 		case 74:
-			ret=(LCD_ZM *)Letter_J;break;
+			ret=(FONT_MATRIX *)Letter_J;break;
 		case 75:
-			ret=(LCD_ZM *)Letter_K;break;
+			ret=(FONT_MATRIX *)Letter_K;break;
 		case 76:
-			ret=(LCD_ZM *)Letter_L;break;
+			ret=(FONT_MATRIX *)Letter_L;break;
 		case 77:
-			ret=(LCD_ZM *)Letter_M;break;
+			ret=(FONT_MATRIX *)Letter_M;break;
 		case 78:
-			ret=(LCD_ZM *)Letter_N;break;
+			ret=(FONT_MATRIX *)Letter_N;break;
 		case 79:
-			ret=(LCD_ZM *)Letter_O;break;
+			ret=(FONT_MATRIX *)Letter_O;break;
 		case 80:
-			ret=(LCD_ZM *)Letter_P;break;
+			ret=(FONT_MATRIX *)Letter_P;break;
 		case 81:
-			ret=(LCD_ZM *)Letter_Q;break;
+			ret=(FONT_MATRIX *)Letter_Q;break;
 		case 82:
-			ret=(LCD_ZM *)Letter_R;break;
+			ret=(FONT_MATRIX *)Letter_R;break;
 		case 83:
-			ret=(LCD_ZM *)Letter_S;break;
+			ret=(FONT_MATRIX *)Letter_S;break;
 		case 84:
-			ret=(LCD_ZM *)Letter_T;break;
+			ret=(FONT_MATRIX *)Letter_T;break;
 		case 85:
-			ret=(LCD_ZM *)Letter_U;break;
+			ret=(FONT_MATRIX *)Letter_U;break;
 		case 86:
-			ret=(LCD_ZM *)Letter_V;break;
+			ret=(FONT_MATRIX *)Letter_V;break;
 		case 87:
-			ret=(LCD_ZM *)Letter_W;break;
+			ret=(FONT_MATRIX *)Letter_W;break;
 		case 88:
-			ret=(LCD_ZM *)Letter_X;break;
+			ret=(FONT_MATRIX *)Letter_X;break;
 		case 89:
-			ret=(LCD_ZM *)Letter_Y;break;
+			ret=(FONT_MATRIX *)Letter_Y;break;
 		case 90:
-			ret=(LCD_ZM *)Letter_Z;break;
+			ret=(FONT_MATRIX *)Letter_Z;break;
 			
 		case 97:
-			ret=(LCD_ZM *)Letter_a;break;
+			ret=(FONT_MATRIX *)Letter_a;break;
 		case 98:
-			ret=(LCD_ZM *)Letter_b;break;
+			ret=(FONT_MATRIX *)Letter_b;break;
 		case 99:
-			ret=(LCD_ZM *)Letter_c;break;
+			ret=(FONT_MATRIX *)Letter_c;break;
 		case 100:
-			ret=(LCD_ZM *)Letter_d;break;
+			ret=(FONT_MATRIX *)Letter_d;break;
 		case 101:
-			ret=(LCD_ZM *)Letter_e;break;
+			ret=(FONT_MATRIX *)Letter_e;break;
 		case 102:
-			ret=(LCD_ZM *)Letter_f;break;
+			ret=(FONT_MATRIX *)Letter_f;break;
 		case 103:
-			ret=(LCD_ZM *)Letter_g;break;
+			ret=(FONT_MATRIX *)Letter_g;break;
 		case 104:
-			ret=(LCD_ZM *)Letter_h;break;
+			ret=(FONT_MATRIX *)Letter_h;break;
 		case 105:
-			ret=(LCD_ZM *)Letter_i;break;
+			ret=(FONT_MATRIX *)Letter_i;break;
 		case 106:
-			ret=(LCD_ZM *)Letter_j;break;
+			ret=(FONT_MATRIX *)Letter_j;break;
 		case 107:
-			ret=(LCD_ZM *)Letter_k;break;
+			ret=(FONT_MATRIX *)Letter_k;break;
 		case 108:
-			ret=(LCD_ZM *)Letter_l;break;
+			ret=(FONT_MATRIX *)Letter_l;break;
 		case 109:
-			ret=(LCD_ZM *)Letter_m;break;
+			ret=(FONT_MATRIX *)Letter_m;break;
 		case 110:
-			ret=(LCD_ZM *)Letter_n;break;
+			ret=(FONT_MATRIX *)Letter_n;break;
 		case 111:
-			ret=(LCD_ZM *)Letter_o;break;
+			ret=(FONT_MATRIX *)Letter_o;break;
 		case 112:
-			ret=(LCD_ZM *)Letter_p;break;
+			ret=(FONT_MATRIX *)Letter_p;break;
 		case 113:
-			ret=(LCD_ZM *)Letter_q;break;
+			ret=(FONT_MATRIX *)Letter_q;break;
 		case 114:
-			ret=(LCD_ZM *)Letter_r;break;
+			ret=(FONT_MATRIX *)Letter_r;break;
 		case 115:
-			ret=(LCD_ZM *)Letter_s;break;
+			ret=(FONT_MATRIX *)Letter_s;break;
 		case 116:
-			ret=(LCD_ZM *)Letter_t;break;
+			ret=(FONT_MATRIX *)Letter_t;break;
 		case 117:
-			ret=(LCD_ZM *)Letter_u;break;
+			ret=(FONT_MATRIX *)Letter_u;break;
 		case 118:
-			ret=(LCD_ZM *)Letter_v;break;
+			ret=(FONT_MATRIX *)Letter_v;break;
 		case 119:
-			ret=(LCD_ZM *)Letter_w;break;
+			ret=(FONT_MATRIX *)Letter_w;break;
 		case 120:
-			ret=(LCD_ZM *)Letter_x;break;
+			ret=(FONT_MATRIX *)Letter_x;break;
 		case 121:
-			ret=(LCD_ZM *)Letter_y;break;
+			ret=(FONT_MATRIX *)Letter_y;break;
 		case 122:
-			ret=(LCD_ZM *)Letter_z;break;
+			ret=(FONT_MATRIX *)Letter_z;break;
 		default:
-			ret=(LCD_ZM *)space;
+			ret=(FONT_MATRIX *)space;break;
 	}
 	return ret;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : AutoCodeHZ2LCM
-//* Object              : ³µÅÆºÅÖÐµÄºº×Ö×ª»»Îª×ÖÄ£Ö¸Õë
-//* Input Parameters    : data¡ª¡ª´ý×ª»»µÄºº×Ö
-//* Output Parameters   : ×ÖÄ£Ö¸Õë
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½ï¿½ï¿½Æºï¿½ï¿½ÐµÄºï¿½ï¿½ï¿½×ªï¿½ï¿½Îªï¿½ï¿½Ä£Ö¸ï¿½ï¿½
+//* Input Parameters    : dataï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Äºï¿½ï¿½ï¿½
+//* Output Parameters   : ï¿½ï¿½Ä£Ö¸ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-LCD_ZM *AutoCodeHZ2LCM(unsigned short data)
+FONT_MATRIX *AutoCodeHZ2LCM(unsigned short data)
 {
-	LCD_ZM *ret;
+	FONT_MATRIX *ret;
 
 
 	switch(data)
 	{
 		case 0xbea9:
-			ret = (LCD_ZM *)ch_jing1;//{"¾©"}
+			ret = (FONT_MATRIX *)ch_jing1;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbba6:
-			ret = (LCD_ZM *)ch_hu;//{"»¦"} 
+			ret = (FONT_MATRIX *)ch_hu;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbdf2:
-			ret = (LCD_ZM *)ch_jin1;//{"½ò"} 
+			ret = (FONT_MATRIX *)ch_jin1;//{"ï¿½ï¿½"}
 			break; 
 		case 0xcbd5:
-			ret = (LCD_ZM *)ch_su;//{"ËÕ"} 
+			ret = (FONT_MATRIX *)ch_su;//{"ï¿½ï¿½"}
 			break; 
 		case 0xcdee:
-			ret = (LCD_ZM *)ch_wan;//{"Íî"} 
+			ret = (FONT_MATRIX *)ch_wan;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb8d3:
-			ret = (LCD_ZM *)ch_gan4;//{"¸Ó"} 
+			ret = (FONT_MATRIX *)ch_gan4;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc3f6:
-			ret = (LCD_ZM *)ch_min;//{"Ãö"} 
+			ret = (FONT_MATRIX *)ch_min;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc2b3:
-			ret = (LCD_ZM *)ch_lu;//{"Â³"} 
+			ret = (FONT_MATRIX *)ch_lu;//{"Â³"}
 			break; 
 		case 0xd5e3:
-			ret = (LCD_ZM *)ch_zhe;//{"Õã"}
+			ret = (FONT_MATRIX *)ch_zhe;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbdfa:
-			ret = (LCD_ZM *)ch_jin4;//{"½ú"} 
+			ret = (FONT_MATRIX *)ch_jin4;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbcbd:
-			ret = (LCD_ZM *)ch_ji4;//{"¼½"} 
+			ret = (FONT_MATRIX *)ch_ji4;//{"ï¿½ï¿½"}
 			break; 
 		case 0xd4a5:
-			ret = (LCD_ZM *)ch_yu4;//{"Ô¥"} 
+			ret = (FONT_MATRIX *)ch_yu4;//{"Ô¥"}
 			break; 
 		case 0xc3c9:
-			ret = (LCD_ZM *)ch_meng;//{"ÃÉ"} 
+			ret = (FONT_MATRIX *)ch_meng;//{"ï¿½ï¿½"}
 			break; 
 		case 0xd0c2:
-			ret = (LCD_ZM *)ch_xin;//{"ÐÂ"} 
+			ret = (FONT_MATRIX *)ch_xin;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc4fe:
-			ret = (LCD_ZM *)ch_ning;//{"Äþ"} 
+			ret = (FONT_MATRIX *)ch_ning;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc1c9:
-			ret = (LCD_ZM *)ch_liao;//{"ÁÉ"} 
+			ret = (FONT_MATRIX *)ch_liao;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbada:
-			ret = (LCD_ZM *)ch_hei;//{"ºÚ"} 
+			ret = (FONT_MATRIX *)ch_hei;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbcaa:
-			ret = (LCD_ZM *)ch_ji2;//{"¼ª"}
+			ret = (FONT_MATRIX *)ch_ji2;//{"ï¿½ï¿½"}
 			break; 
 		case 0xcfe6:
-			ret = (LCD_ZM *)ch_xiang;//{"Ïæ"} 
+			ret = (FONT_MATRIX *)ch_xiang;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb6f5:
-			ret = (LCD_ZM *)ch_e;//{"¶õ"} 
+			ret = (FONT_MATRIX *)ch_e;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb9f0:
-			ret = (LCD_ZM *)ch_gui;//{"¹ð"} 
+			ret = (FONT_MATRIX *)ch_gui;//{"ï¿½ï¿½"}
 			break; 
 		case 0xd4c1:
-			ret = (LCD_ZM *)ch_yue;//{"ÔÁ"} 
+			ret = (FONT_MATRIX *)ch_yue;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc7ed:
-			ret = (LCD_ZM *)ch_qiong;//{"Çí"} 
+			ret = (FONT_MATRIX *)ch_qiong;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb2d8:
-			ret = (LCD_ZM *)ch_zang;//{"²Ø"} 
+			ret = (FONT_MATRIX *)ch_zang;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc9c2:
-			ret = (LCD_ZM *)ch_shan;//{"ÉÂ"} 
+			ret = (FONT_MATRIX *)ch_shan;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb8ca:
-			ret = (LCD_ZM *)ch_gan1;//{"¸Ê"} 
+			ret = (FONT_MATRIX *)ch_gan1;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc7e0:
-			ret = (LCD_ZM *)ch_qing;//{"Çà"}
+			ret = (FONT_MATRIX *)ch_qing;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb4a8:
-			ret = (LCD_ZM *)ch_chuan;//{"´¨"} 
+			ret = (FONT_MATRIX *)ch_chuan;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc7ad:
-			ret = (LCD_ZM *)ch_qian;//{"Ç­"} 
+			ret = (FONT_MATRIX *)ch_qian;//{"Ç­"}
 			break; 
 		case 0xd4c6:
-			ret = (LCD_ZM *)ch_yun;//{"ÔÆ"} 
+			ret = (FONT_MATRIX *)ch_yun;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbaa3:
-			ret = (LCD_ZM *)ch_hai3;//{"º£"} 
+			ret = (FONT_MATRIX *)ch_hai3;//{"ï¿½ï¿½"}
 			break; 
 		case 0xcca8:
-			ret = (LCD_ZM *)ch_tai;//{"Ì¨"} 
+			ret = (FONT_MATRIX *)ch_tai;//{"Ì¨"}
 			break; 
 		case 0xd3e5:
-			ret = (LCD_ZM *)ch_yu2;//{"Óå"} 
+			ret = (FONT_MATRIX *)ch_yu2;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb8db:
-			ret = (LCD_ZM *)ch_gang;//{"¸Û"} 
+			ret = (FONT_MATRIX *)ch_gang;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb0c4:
-			ret = (LCD_ZM *)ch_ao;//{"°Ä"} 
+			ret = (FONT_MATRIX *)ch_ao;//{"ï¿½ï¿½"}
 			break; 
 		case 0xcab9:
-			ret = (LCD_ZM *)ch_shi;//{"Ê¹"}
+			ret = (FONT_MATRIX *)ch_shi;//{"Ê¹"}
 			break; 
 		case 0xbcd7:
-			ret = (LCD_ZM *)ch_jia;//{"¼×"} 
+			ret = (FONT_MATRIX *)ch_jia;//{"ï¿½ï¿½"}
 			break; 
 		case 0xd2d2:
-			ret = (LCD_ZM *)ch_yi;//{"ÒÒ"} 
+			ret = (FONT_MATRIX *)ch_yi;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb1fb:
-			ret = (LCD_ZM *)ch_bing;//{"±û"}
+			ret = (FONT_MATRIX *)ch_bing;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb6a1:
-			ret = (LCD_ZM *)ch_ding;//{"¶¡"} 
+			ret = (FONT_MATRIX *)ch_ding;//{"ï¿½ï¿½"}
 			break; 
 		case 0xceec:
-			ret = (LCD_ZM *)ch_wu4;//{"Îì"} 
+			ret = (FONT_MATRIX *)ch_wu4;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbcba:
-			ret = (LCD_ZM *)ch_ji3;//{"¼º"} 
+			ret = (FONT_MATRIX *)ch_ji3;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb8fd:
-			ret = (LCD_ZM *)ch_geng;//{"¸ý"} 
+			ret = (FONT_MATRIX *)ch_geng;//{"ï¿½ï¿½"}
 			break; 
 		case 0xd0c1:
-			ret = (LCD_ZM *)ch_xin1;//{"ÐÁ"} 
+			ret = (FONT_MATRIX *)ch_xin1;//{"ï¿½ï¿½"}
 			break; 
 		case 0xd7d3:
-			ret = (LCD_ZM *)ch_zi;//{"×Ó"}
+			ret = (FONT_MATRIX *)ch_zi;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb3f3:
-			ret = (LCD_ZM *)ch_chou;//{"³ó"} 
+			ret = (FONT_MATRIX *)ch_chou;//{"ï¿½ï¿½"}
 			break; 
 		case 0xd2fa:
-			ret = (LCD_ZM *)ch_yin;//{"Òú"} 
+			ret = (FONT_MATRIX *)ch_yin;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc3ae:
-			ret = (LCD_ZM *)ch_mou;//{"Ã®"} 
+			ret = (FONT_MATRIX *)ch_mou;//{"Ã®"}
 			break; 
 		case 0xb3bd:
-			ret = (LCD_ZM *)ch_chen;//{"³½"} 
+			ret = (FONT_MATRIX *)ch_chen;//{"ï¿½ï¿½"}
 			break; 
 		case 0xcee7:
-			ret = (LCD_ZM *)ch_wu3;//{"Îç"} 
+			ret = (FONT_MATRIX *)ch_wu3;//{"ï¿½ï¿½"}
 			break; 
 		case 0xceb4:
-			ret = (LCD_ZM *)ch_wei;//{"Î´"} 
+			ret = (FONT_MATRIX *)ch_wei;//{"Î´"}
 			break; 
 		case 0xc9ea:
-			ret = (LCD_ZM *)ch_shen;//{"Éê"} 
+			ret = (FONT_MATRIX *)ch_shen;//{"ï¿½ï¿½"}
 			break; 
 		case 0xd3cf:
-			ret = (LCD_ZM *)ch_you;//{"ÓÏ"} 
+			ret = (FONT_MATRIX *)ch_you;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbaa5:
-			ret = (LCD_ZM *)ch_hai4;//{"º¥"}
+			ret = (FONT_MATRIX *)ch_hai4;//{"ï¿½ï¿½"}
 			break; 
 		case 0xc8c9:
-			ret = (LCD_ZM *)ch_ren;//{"ÈÉ"} 
+			ret = (FONT_MATRIX *)ch_ren;//{"ï¿½ï¿½"}
 			break; 
 		case 0xbeaf:
-			ret = (LCD_ZM *)ch_jing3;//{"¾¯"} 
+			ret = (FONT_MATRIX *)ch_jing3;//{"ï¿½ï¿½"}
 			break; 
 		case 0xb9f3:
-			ret = (LCD_ZM *)ch_gui4;//{"¹ó"}
+			ret = (FONT_MATRIX *)ch_gui4;//{"ï¿½ï¿½"}
 			break;
 		case 0xc1ec:
-			ret = (LCD_ZM *)ch_ling;//{"Áì"}
+			ret = (FONT_MATRIX *)ch_ling;//{"ï¿½ï¿½"}
 			break;
 		case 0xd1a7:
-			ret = (LCD_ZM *)ch_xue;//{"Ñ§"}
+			ret = (FONT_MATRIX *)ch_xue;//{"Ñ§"}
 			break;
 		case 0xcad4:
-			ret = (LCD_ZM *)ch_shi_try;//{"ÊÔ"}
+			ret = (FONT_MATRIX *)ch_shi_try;//{"ï¿½ï¿½"}
 			break;
 		case 0xbeb3:
-			ret = (LCD_ZM *)ch_jing;//{"¾³"}
+			ret = (FONT_MATRIX *)ch_jing;//{"ï¿½ï¿½"}
 			break;
 		default:
-			ret = (LCD_ZM *)space;
+			ret = (FONT_MATRIX *)space;
+			break;
 	}
 	return ret;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : BCD2LCM
-//* Object              : BCD¸ñÊ½µÄÊý¾Ý×ª»»Îª×ÖÄ£Ö¸Õë
-//* Input Parameters    : data¡ª¡ª´ý×ª»»µÄBCD¸ñÊ½Êý¾Ý
-//*                       type¡ª¡ª0£ºµÍËÄÎ»£»1£º¸ßËÄÎ»
-//* Output Parameters   : ×ÖÄ£Ö¸Õë
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : BCDï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Îªï¿½ï¿½Ä£Ö¸ï¿½ï¿½
+//* Input Parameters    : dataï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½BCDï¿½ï¿½Ê½ï¿½ï¿½ï¿½
+//*                       typeï¿½ï¿½ï¿½ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»
+//* Output Parameters   : ï¿½ï¿½Ä£Ö¸ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-LCD_ZM *BCD2LCM(u_char data, u_char type)
+FONT_MATRIX *BCD2LCM(u_char data, u_char type)
 {
 	u_char temp;
-	LCD_ZM *ret;
+	FONT_MATRIX *ret;
 	if(type)
-	{//¸ßËÄÎ»
+	{//ï¿½ï¿½ï¿½ï¿½Î»
 		temp = (data & 0xf0) >> 4;
 	}
 	else
@@ -1681,25 +1638,25 @@ LCD_ZM *BCD2LCM(u_char data, u_char type)
 	switch(temp)
 	{
 		case 0:
-			ret = (LCD_ZM *)digital_0;break;
+			ret = (FONT_MATRIX *)digital_0;break;
 		case 1:
-			ret = (LCD_ZM *)digital_1;break;
+			ret = (FONT_MATRIX *)digital_1;break;
 		case 2:
-			ret = (LCD_ZM *)digital_2;break;
+			ret = (FONT_MATRIX *)digital_2;break;
 		case 3:
-			ret = (LCD_ZM *)digital_3;break;
+			ret = (FONT_MATRIX *)digital_3;break;
 		case 4:
-			ret = (LCD_ZM *)digital_4;break;
+			ret = (FONT_MATRIX *)digital_4;break;
 		case 5:
-			ret = (LCD_ZM *)digital_5;break;
+			ret = (FONT_MATRIX *)digital_5;break;
 		case 6:
-			ret = (LCD_ZM *)digital_6;break;
+			ret = (FONT_MATRIX *)digital_6;break;
 		case 7:
-			ret = (LCD_ZM *)digital_7;break;
+			ret = (FONT_MATRIX *)digital_7;break;
 		case 8:
-			ret = (LCD_ZM *)digital_8;break;
+			ret = (FONT_MATRIX *)digital_8;break;
 		case 9:
-			ret = (LCD_ZM *)digital_9;break;
+			ret = (FONT_MATRIX *)digital_9;break;
 		default:
 			ret = 0;break;
 	}
@@ -1707,15 +1664,15 @@ LCD_ZM *BCD2LCM(u_char data, u_char type)
 } 
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayInteger
-//* Object              : ÏÔÊ¾ÕûÊý
-//* Input Parameters    : row¡ª¡ªÐÐÊý
-//*                       end_column¡ª¡ª×îºóÒ»Î»µÄÁÐÊý
-//*                       Integer¡ª¡ª´ýÏÔÊ¾µÄÊý×Ö
-//*                       len¡ª¡ªÏÔÊ¾Êý¾ÝµÄ×î³¤³¤¶È
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters    : rowï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       end_columnï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       Integerï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       lenï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ýµï¿½ï¿½î³¤ï¿½ï¿½ï¿½ï¿½
 //* Output Parameters   : none
 //* Functions called    : 
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 void DisplayInteger(u_int integer,u_char row,u_char end_column,u_char len)
 {
@@ -1736,21 +1693,21 @@ void DisplayInteger(u_int integer,u_char row,u_char end_column,u_char len)
 	
 	int k;
 	for(k=i;k<len;k++){
-		lcm_write_ez(row,m,(LCD_ZM *)space);
+		lcm_write_ez(row,m,(FONT_MATRIX *)space);
 		m--;
 	}
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayFloat
-//* Object              : ÏÔÊ¾Ò»Î»Ð¡ÊýµÄ¸¡µãÊý
-//* Input Parameters    : row¡ª¡ªÐÐÊý
-//*                       end_column¡ª¡ª×îºóÒ»Î»µÄÁÐÊý
-//*                       Float¡ª¡ª´ýÏÔÊ¾µÄÊý×Ö
-//*                       len¡ª¡ªÏÔÊ¾Êý¾ÝµÄ×î³¤³¤¶È
+//* Object              : ï¿½ï¿½Ê¾Ò»Î»Ð¡ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters    : rowï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       end_columnï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       Floatï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       lenï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ýµï¿½ï¿½î³¤ï¿½ï¿½ï¿½ï¿½
 //* Output Parameters   : none
 //* Functions called    : 
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 void DisplayFloat(u_int Float,u_char row,u_char end_column,u_char len)
 {
@@ -1770,54 +1727,54 @@ void DisplayFloat(u_int Float,u_char row,u_char end_column,u_char len)
 	m=end_column;
 	lcm_write_ez(row,m,BCD2LCM(buf[0],0));
 	m--;
-	lcm_write_ez(row,m,(LCD_ZM *)charater_point);
+	lcm_write_ez(row,m,(FONT_MATRIX *)charater_point);
 	m--;
 	for(k=1;k<=i;k++){
 		lcm_write_ez(row,m,BCD2LCM(buf[k],0));
 		m--;
 	}
 	for(k=i+1;k<len;k++){
-		lcm_write_ez(row,m,(LCD_ZM *)space);
+		lcm_write_ez(row,m,(FONT_MATRIX *)space);
 		m--;
 	}
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayDateTime
-//* Object              : ÏÔÊ¾ÈÕÆÚÊ±¼ä
-//* Input Parameters    : row¡ª¡ªÐÐÊý
-//*                       end_column¡ª¡ª×îºóÒ»Î»µÄÁÐÊý
-//*                       flag¡ª¡ªÊý¾ÝÏÔÊ¾±êÖ¾´Ó¸öÎ»¿ªÊ¼
-//*                       ÒÀ´Î£¨Ãë·ÖÊ±ÈÕÔÂÄê£©ÒÔ1±íÊ¾ÏÔÊ¾0±íÊ¾²»ÏÔÊ¾
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+//* Input Parameters    : rowï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       end_columnï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       flagï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ö¾ï¿½Ó¸ï¿½Î»ï¿½ï¿½Ê¼
+//*                       ï¿½ï¿½ï¿½Î£ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ê£©ï¿½ï¿½1ï¿½ï¿½Ê¾ï¿½ï¿½Ê¾0ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½Ê¾
 //* Output Parameters   : none
 //* Functions called    : 
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 void DisplayDateTime(u_char flag,u_char row,u_char column)
 {
 	u_char m=column;
 	if(ClockVL)
-		lcm_write_ez(row,column-1,(LCD_ZM *)charater_xing);
+		lcm_write_ez(row,column-1,(FONT_MATRIX *)charater_xing);
 	else
-		lcm_write_ez(row,column-1,(LCD_ZM *)space);
+		lcm_write_ez(row,column-1,(FONT_MATRIX *)space);
 
 	if((flag & 0x20)!=0)
-	{	//Äê
+	{	//ï¿½ï¿½
 		lcm_write_ez(row,m,BCD2LCM(curTime.year,1));m++;
 		lcm_write_ez(row,m,BCD2LCM(curTime.year,0));m++;
-		lcm_write_ez(row,m,(LCD_ZM *)space);m++;
+		lcm_write_ez(row,m,(FONT_MATRIX *)space);m++;
 	}
 	if((flag & 0x10)!=0)
-	{	//ÔÂ
+	{	//ï¿½ï¿½
 		lcm_write_ez(row,m,BCD2LCM(curTime.month,1));m++;
 		lcm_write_ez(row,m,BCD2LCM(curTime.month,0));m++;
-		lcm_write_ez(row,m,(LCD_ZM *)space);m++;
+		lcm_write_ez(row,m,(FONT_MATRIX *)space);m++;
 	}
 	if((flag & 0x08)!=0)
-	{	//ÈÕ
+	{	//ï¿½ï¿½
 		lcm_write_ez(row,m,BCD2LCM(curTime.day,1));m++;
 		lcm_write_ez(row,m,BCD2LCM(curTime.day,0));m++;
-		lcm_write_ez(row,m,(LCD_ZM *)space);m++;
+		lcm_write_ez(row,m,(FONT_MATRIX *)space);m++;
 	}
 	if((flag & 0x04)!=0)
 	{	//Ê±
@@ -1825,13 +1782,13 @@ void DisplayDateTime(u_char flag,u_char row,u_char column)
 		lcm_write_ez(row,m,BCD2LCM(curTime.hour,0));m++;
 	}
 	if((flag & 0x02)!=0)
-	{	//·Ö
+	{	//ï¿½ï¿½
 		lcm_write_ez(row,m,(LCD_ZM *)digital_);m++;
 		lcm_write_ez(row,m,BCD2LCM(curTime.minute,1));m++;
 		lcm_write_ez(row,m,BCD2LCM(curTime.minute,0));m++;
 	}
 	if((flag & 0x01)!=0)
-	{	//Ãë
+	{	//ï¿½ï¿½
 		lcm_write_ez(row,m,(LCD_ZM *)digital_);m++;
 		lcm_write_ez(row,m,BCD2LCM(curTime.second,1));m++;
 		lcm_write_ez(row,m,BCD2LCM(curTime.second,0));m++;
@@ -1839,33 +1796,33 @@ void DisplayDateTime(u_char flag,u_char row,u_char column)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplaySpeedDimensoin
-//* Object              : ÏÔÊ¾³£ÓÃ½çÃæ£ºÊ±¼äºÍËÙ¶È
-//* Input Parameters    : row¡ª¡ªÐÐ
-//*                       column¡ª¡ªÁÐ
-//*                       hz_pt¡ª¡ª´ýÐ´ºº×Ö×ÖÄ£Êý×éÖ¸Õë
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Ã½ï¿½ï¿½æ£ºÊ±ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½
+//* Input Parameters    : rowï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       columnï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                       hz_ptï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
 //* Output Parameters   : none
-//* Functions called    : lcm_write_command£¬lcm_control£¬lcm_write_data
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Functions called    : lcm_write_commandï¿½ï¿½lcm_controlï¿½ï¿½lcm_write_data
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void DisplaySpeedDimensoin()
 {
-	lcm_write_ez(1,9,(LCD_ZM *)charater_slash);
-	lcm_write_zimu(1,6,(LCD_ZM *)Letter_k);
-	lcm_write_zimu(1,7,(LCD_ZM *)Letter_m);
-//	lcm_write_zimu(1,8,(LCD_ZM *)Letter_h);
+	lcm_write_ez(1,9,(FONT_MATRIX *)charater_slash);
+	lcm_write_zimu(1,6,(FONT_MATRIX *)Letter_k);
+	lcm_write_zimu(1,7,(FONT_MATRIX *)Letter_m);
+//	lcm_write_zimu(1,8,(FONT_MATRIX *)Letter_h);
 	write_h();
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayNormalUI
-//* Object              : ÏÔÊ¾³£ÓÃ½çÃæ£ºÊ±¼äºÍËÙ¶È
-//* Input Parameters    : row¡ª¡ªÐÐ
-//*                       column¡ª¡ªÁÐ
-//*                       hz_pt¡ª¡ª´ýÐ´ºº×Ö×ÖÄ£Êý×éÖ¸Õë
+//* Object              :
+//* Input Parameters    :
+//*
+//*
 //* Output Parameters   : none
-//* Functions called    : lcm_write_command£¬lcm_control£¬lcm_write_data
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Functions called    :
+//*      :
+//*      :
 //*----------------------------------------------------------------------------
 void DisplayNormalUI()
 {
@@ -1887,8 +1844,8 @@ void DisplayNormalUI()
 //			lcm_write_zimu(1,4,(LCD_ZM *)Letter_U);
 //			lcm_write_zimu(1,5,(LCD_ZM *)Letter_S);
 //			lcm_write_zimu(1,6,(LCD_ZM *)Letter_B);
-			lcm_write_hz1(1,4,(LCD_ZM *)comm_tong);	
-			lcm_write_hz1(1,5,(LCD_ZM *)comm_xun);	
+			lcm_write_hz1(1,4,(FONT_MATRIX *)comm_tong);
+			lcm_write_hz1(1,5,(FONT_MATRIX *)comm_xun);
 		 }
 		 return;
 	}
@@ -1913,20 +1870,20 @@ void DisplayNormalUI()
 		DisplayAlarm();
 	if(CardIn)
 	{
-		lcm_write_ez(0,10,(LCD_ZM *)ch_sub);
-		lcm_write_ez(0,9,(LCD_ZM *)ch_bracket);
+		lcm_write_ez(0,10,(FONT_MATRIX *)ch_sub);
+		lcm_write_ez(0,9,(FONT_MATRIX *)ch_bracket);
 	}
 	else
 	{
-		lcm_write_ez(0,10,(LCD_ZM *)space);
-		lcm_write_ez(0, 9,(LCD_ZM *)space);
+		lcm_write_ez(0,10,(FONT_MATRIX *)space);
+		lcm_write_ez(0, 9,(FONT_MATRIX *)space);
 	}
 	if(pTable.InOSAlarmCycle)
 		DisplayInteger(RoadNb,0,8,0);
 	else
-		lcm_write_ez(0,8,(LCD_ZM *)space);
+		lcm_write_ez(0,8,(FONT_MATRIX *)space);
 	
-	//ËÙ¶È
+	//ï¿½Ù¶ï¿½
 //	DisplayInteger(CurSpeed,1,2,3);
 	DisplaySpeed((u_char)CurSpeed);
 	DisplaySpeedDimensoin();
@@ -1948,22 +1905,22 @@ void DisplayNormalUI()
 	DisplayInteger(CurEngine,1,19,5);
 #else
 	if((AlarmFlag & 0x0c)!=0)
-	{//ÏÔÊ¾¡°Á¬Ðø¼ÝÊ»¡±	
-		lcm_write_hz1(1,6,(LCD_ZM *)lian);
-		lcm_write_hz1(1,7,(LCD_ZM *)xu);
-		lcm_write_hz1(1,8,(LCD_ZM *)driver_jia);
-		lcm_write_hz1(1,9,(LCD_ZM *)driver_shi);
+	{//ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½	
+		lcm_write_hz1(1,6,(FONT_MATRIX *)lian);
+		lcm_write_hz1(1,7,(FONT_MATRIX *)xu);
+		lcm_write_hz1(1,8,(FONT_MATRIX *)driver_jia);
+		lcm_write_hz1(1,9,(FONT_MATRIX *)driver_shi);
 	}
 	else
 	{
-		//Àï³Ì
+		//ï¿½ï¿½ï¿½
 /*		DisplayInteger(LastPN[3],1,18,2);
 		DisplayInteger(LastPN[2],1,16,2);
 		DisplayInteger(LastPN[1],1,14,2);
 		DisplayInteger(LastPN[0],1,12,2);*/
 		DisplayFloat(Distance,1,16,5);
-		lcm_write_zimu(1,15,(LCD_ZM *)Letter_k);
-		lcm_write_zimu(1,16,(LCD_ZM *)Letter_m);
+		lcm_write_zimu(1,15,(FONT_MATRIX *)Letter_k);
+		lcm_write_zimu(1,16,(FONT_MATRIX *)Letter_m);
 	}
 #endif
 /*
@@ -1977,28 +1934,28 @@ DisplayInteger(LastPN[0],1,12,2);
 
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayEraseDataFlash
-//* Object              : ÏÔÊ¾"ÕýÔÚ¸üÐÂ"
+//* Object              : ï¿½ï¿½Ê¾"ï¿½ï¿½ï¿½Ú¸ï¿½ï¿½ï¿½"
 //* Input Parameters    : 
 //* Output Parameters   : none
 //* Functions called    : 
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void DisplayEraseDataFlash()
 {
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,1,(LCD_ZM *)being_zheng);	
-	lcm_write_hz1(1,2,(LCD_ZM *)being_zai);	
-	lcm_write_hz1(1,3,(LCD_ZM *)update_geng);	
-	lcm_write_hz1(1,4,(LCD_ZM *)update_xin);
+	lcd_clear(lineall);
+	lcm_write_hz1(1,1,(FONT_MATRIX *)being_zheng);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)being_zai);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)update_geng);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)update_xin);
 	lcd_tcb.mode = Normal;
 }
 void DisplayOK()
 {
-	LCD_ZM **p;
+	FONT_MATRIX **p;
 	int i=0;
-	lcm_clear_ram(ALL);
-		p = (LCD_ZM **)working_ok;
+	lcd_clear(lineall);
+		p = (FONT_MATRIX **)working_ok;
 		do{
 			lcm_write_hz1(1,i,p[i]);
 			i++;
@@ -2007,38 +1964,38 @@ void DisplayOK()
 }
 void DisplayError()
 {
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,1,(LCD_ZM *)error_gu);	
-	lcm_write_hz1(1,2,(LCD_ZM *)error_zhang);	
+	lcd_clear(lineall);
+	lcm_write_hz1(1,1,(FONT_MATRIX *)error_gu);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)error_zhang);
 }
 void DisplayClockError()
 {
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,1,(LCD_ZM *)time_shi);	
-	lcm_write_hz1(1,2,(LCD_ZM *)time_jian);	
-	lcm_write_hz1(1,3,(LCD_ZM *)error_cuo);	
-	lcm_write_hz1(1,4,(LCD_ZM *)error_wu);	
+	lcd_clear(lineall);
+	lcm_write_hz1(1,1,(FONT_MATRIX *)time_shi);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)time_jian);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)error_cuo);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)error_wu);
 }
 void Display_Scan_Udisk()
 {
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,1,(LCD_ZM *)scan_sao);
-	lcm_write_hz1(1,2,(LCD_ZM *)scan_miao);
-	lcm_write_hz1(1,3,(LCD_ZM *)udisk_u);
-	lcm_write_hz1(1,4,(LCD_ZM *)udisk_pan);
+	lcd_clear(lineall);
+	lcm_write_hz1(1,1,(FONT_MATRIX *)scan_sao);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)scan_miao);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)udisk_u);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)udisk_pan);
 }
 
 void Display_Save()
 {
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(0,0,(LCD_ZM *)being_zheng);
-	lcm_write_hz1(0,1,(LCD_ZM *)being_zai);
-	lcm_write_hz1(0,2,(LCD_ZM *)save_bao);
-	lcm_write_hz1(0,3,(LCD_ZM *)save_cun);
+	lcd_clear(lineall);
+	lcm_write_hz1(0,0,(FONT_MATRIX *)being_zheng);
+	lcm_write_hz1(0,1,(FONT_MATRIX *)being_zai);
+	lcm_write_hz1(0,2,(FONT_MATRIX *)save_bao);
+	lcm_write_hz1(0,3,(FONT_MATRIX *)save_cun);
 	////////////
-	lcm_write_ez ( 0, 19, (LCD_ZM *)percent);
-	lcm_write_ez ( 1, 0, (LCD_ZM *)process_bar1);
-	lcm_write_ez ( 0, 18, (LCD_ZM *)digital_1);
+	lcm_write_ez ( 0, 19, (FONT_MATRIX *)percent);
+	lcm_write_ez ( 1, 0, (FONT_MATRIX *)process_bar1);
+	lcm_write_ez ( 0, 18, (FONT_MATRIX *)digital_1);
 	
 	////////////
 	
@@ -2047,47 +2004,47 @@ void Display_Save()
 void Display_Fail()
 {
 	//lcm_clear_ram(LINE2);
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,1,(LCD_ZM *)operate_cao);
-	lcm_write_hz1(1,2,(LCD_ZM *)operate_zuo);
-	lcm_write_hz1(1,3,(LCD_ZM *)fail_shi);
-	lcm_write_hz1(1,4,(LCD_ZM *)fail_bai);
+	lcd_clear(lineall);
+	lcm_write_hz1(1,1,(FONT_MATRIX *)operate_cao);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)operate_zuo);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)fail_shi);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)fail_bai);
 }
 
 void Display_udisk_full()
 {
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,1,(LCD_ZM *)udisk_u);
-	lcm_write_hz1(1,2,(LCD_ZM *)udisk_pan);
-	lcm_write_hz1(1,3,(LCD_ZM *)udisk_kong);
-	lcm_write_hz1(1,4,(LCD_ZM *)udisk_jian);
-	lcm_write_hz1(1,5,(LCD_ZM *)udisk_yi);
-	lcm_write_hz1(1,6,(LCD_ZM *)udisk_man);
+	lcd_clear(lineall);
+	lcm_write_hz1(1,1,(FONT_MATRIX *)udisk_u);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)udisk_pan);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)udisk_kong);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)udisk_jian);
+	lcm_write_hz1(1,5,(FONT_MATRIX *)udisk_yi);
+	lcm_write_hz1(1,6,(FONT_MATRIX *)udisk_man);
 }
 void DisplayTestDoorFail()
 {
-	lcm_clear_ram(ALL);
+	lcd_clear(lineall);
 
-	lcm_write_hz1(1,2,(LCD_ZM *)door_jian);
-	lcm_write_hz1(1,3,(LCD_ZM *)door_ce);
-	lcm_write_hz1(1,4,(LCD_ZM *)fail_shi);
-	lcm_write_hz1(1,5,(LCD_ZM *)fail_bai);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)door_jian);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)door_ce);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)fail_shi);
+	lcm_write_hz1(1,5,(FONT_MATRIX *)fail_bai);
 }
 void DisplayTestDoorSucc()
 {
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,2,(LCD_ZM *)door_jian);
-	lcm_write_hz1(1,3,(LCD_ZM *)door_ce);
-	lcm_write_hz1(1,4,(LCD_ZM *)succ_cheng);
-	lcm_write_hz1(1,5,(LCD_ZM *)succ_gong);
+	lcd_clear(lineall);
+	lcm_write_hz1(1,2,(FONT_MATRIX *)door_jian);
+	lcm_write_hz1(1,3,(FONT_MATRIX *)door_ce);
+	lcm_write_hz1(1,4,(FONT_MATRIX *)succ_cheng);
+	lcm_write_hz1(1,5,(FONT_MATRIX *)succ_gong);
 }
-//add by panhui 2005-02-20, for É½¶«¹«°²ÕÐ±ê¼¼ÊõÒªÇó
+//add by panhui 2005-02-20, for É½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ê¼¼ï¿½ï¿½Òªï¿½ï¿½
 void DisplayAlarm()
 {
 	if((AlarmFlag & 0x03)!=0)
-	{//ÏÔÊ¾¡°³¬ËÙ¡±
-		lcm_write_hz1(0,6,(LCD_ZM *)over_chao);
-		lcm_write_hz1(0,7,(LCD_ZM *)speed_su);
+	{//ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½Ù¡ï¿½
+		lcm_write_hz1(0,6,(FONT_MATRIX *)over_chao);
+		lcm_write_hz1(0,7,(FONT_MATRIX *)speed_su);
 		if(AlarmFlag & 0x01)
 			DisplayInteger(PARAMETER_BASE->LowSpeedLimit,0,19,4);
 		else if(AlarmFlag & 0x02)
@@ -2183,12 +2140,12 @@ void Display_SingleKeyPulse(u_char doorNB)
 
 //*----------------------------------------------------------------------------
 //* Function Name       : DoorType
-//* Object              : ÏÔÊ¾¿ª¹ØÃÅ×´Ì¬
+//* Object              : ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
 //* Input Parameters    : 
 //* Output Parameters   : none
 //* Functions called    : 
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 
 void DoorType()

@@ -1,12 +1,10 @@
 #ifndef menu_h
 #define menu_h
-
-#include "ibb3.h"
+#include"lcd.h"
 ////////////////////////////////////////////////////////
 //                        menu                        //
 ////////////////////////////////////////////////////////
 #define NULL 0
-//Òº¾§ÏÔÊ¾¿ØÖÆ¿éÄ£Ê½ÀàÐÍ¶¨Òå
 #define Normal		0
 #define Node 		1
 #define BackLeaf 	2
@@ -14,33 +12,33 @@
 #define Action		4
 #define USBComm		5
 
-//¶¯×÷ÀàÐÍ¶¨Òå
+
 #define PRINT		0
 #define USB_SLAVE	1
 #define USB_HOST	2
 #define SHOW		3
 
-//¶¨ÒåÊý¾Ý½á¹¹
-typedef struct
-{//¶¨Òå²Ëµ¥Ê÷µÄ½áµã
 
-	LCD_ZM * * content;//²Ëµ¥ÏîÏÔÊ¾µÄÄÚÈÝ
-	short ChildrenList;//º¢×Ó½áµãÁÐ±íÐòºÅ£½£­1±íÊ¾ÎªÒ¶×Ó½áµã
-	short FatherList;//¸¸½áµãÁÐ±íÐòºÅ
-	short FatherNB;//¸¸½áµãÔÚÁÐ±íÖÐµÄÐòºÅ
-	void (* handler)(void);//Ò¶×Ó½áµãµÄ´¦Àí³ÌÐò£½£­1±íÊ¾Ã»ÓÐ´¦Àí³ÌÐò
+typedef struct
+{
+
+	LCD_ZM * * content;
+	short ChildrenList;
+	short FatherList;
+	short FatherNB;
+	void (* handler)(void);
 	
 } MENU_NODE;
 
 typedef struct
 {
-	MENU_NODE * ListPt;//½áµãÁÐ±íÊ×µØÖ·
-	unsigned short NodeNumber;//½áµã¸öÊý
+	MENU_NODE * ListPt;//ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½×µï¿½Ö·
+	unsigned short NodeNumber;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	
 } NODE_LIST;
 
 typedef struct
-{//LCDÏÔÊ¾µ±Ç°¿ØÖÆ¿é
+{//LCDï¿½ï¿½Ê¾ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Æ¿ï¿½
 
 	unsigned char mode;
 	unsigned char ListNb;
@@ -52,7 +50,7 @@ typedef struct
 typedef struct
 {
 	unsigned char type;
-	unsigned char IfActionEnd;//£½0Î´½áÊø£»£½1¶¯×÷½áÊø
+	unsigned char IfActionEnd;//ï¿½ï¿½0Î´ï¿½ï¿½ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	unsigned char LineNumber;
 	unsigned char CurLine;
 } ACTION_TCB;
@@ -64,12 +62,12 @@ extern void DisplayDriverNumber();
 extern void DisplayDriverCode();
 extern void Displaywheel();
 extern void DisplayStatusPolarity();
-extern LCD_ZM *AutoCodeHZ2LCM(unsigned short data);
-extern LCD_ZM *ASCII2LCM(unsigned char data);
+extern FONT_MATRIX *AutoCodeHZ2LCM(unsigned short data);
+extern FONT_MATRIX *ASCII2LCM(unsigned char data);
 extern void OKKeyHandler();
 extern void SelectKeyHandler();
 extern void DisplayNormalUI();
-extern LCD_ZM *BCD2LCM(unsigned char data, unsigned char type);
+extern FONT_MATRIX *BCD2LCM(unsigned char data, unsigned char type);
 extern void DisplayErrorCard();
 extern void Display2DayOTDR();
 extern void Display15MinAverageSpeed();
