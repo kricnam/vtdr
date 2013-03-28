@@ -34,6 +34,14 @@
 #define lcd_A0                      (GPIO_Pin_3)
 #define Delay_us           1
 
+typedef enum
+{
+	line1 = 3,
+	line2 = 1,
+	line3 = 7,
+	line4 = 5,
+	lineall = 8
+}LINE_CMD;
 enum LCD_CMD
 {
 	Display_Off = 0xAE,
@@ -261,14 +269,30 @@ void lcd_Reset(void)
 void rt_hw_lcd_clear(unsigned char patten)
 {
 	rt_uint8_t x,y;
-	for (x = 0; x < 8; x++)
+	if (patten != lineall)
 	{
-		lcd_set_column(0);
-		lcd_write_cmdordata(CMD, Page_Set, x);
-		for (y = 0; y < 132; y += 1)
+		for (x = 0; x < 2; x++)
 		{
-			lcd_write_cmdordata(DATA,patten,0x00);
+			lcd_set_column(0);
+			lcd_write_cmdordata(CMD, Page_Set, patten-x);
+			for (y = 0; y < 132; y += 1)
+			{
+				lcd_write_cmdordata(DATA,0x00,0x00);
+			}
 		}
+	}
+	else
+	{
+		for (x = 0; x < 8; x++)
+		{
+			lcd_set_column(0);
+			lcd_write_cmdordata(CMD, Page_Set, x);
+			for (y = 0; y < 132; y += 1)
+			{
+				lcd_write_cmdordata(DATA,0x00,0x00);
+			}
+		}
+
 	}
 
 }
@@ -314,18 +338,23 @@ void rt_hw_lcd_off(void)
     lcd_write_cmdordata(CMD, Display_Off, 0);
 }
 
-void lcd_write_matrix(rt_uint8_t row,rt_uint8_t column,FONT_MATRIX *pt,rt_uint8_t num)
+void lcd_write_matrix(LINE_CMD row,rt_uint8_t column,FONT_MATRIX *pt,rt_uint8_t num)
 {
-	rt_uint8_t i,x,y;
+	rt_uint8_t i;
 	rt_uint8_t  temp;
-	lcd_write_cmdordata(CMD, Page_Set, row);
-	lcd_set_column(column);
-
-	for (i = 0; i < num; i++)
+	for(i = 0;i<2;i++)
 	{
-		lcd_write_cmdordata(DATA, (*(unsigned char*) pt++),0);
+		lcd_write_cmdordata(CMD, Page_Set, row-i);
+		lcd_set_column(column);
+
+		for (i = 0; i < num; i++)
+		{
+			lcd_write_cmdordata(DATA, (*(unsigned char*) pt++),0);
+		}
 	}
 }
+
+
 #if 0
 void lcd_display( void )
 {
@@ -367,7 +396,7 @@ void lcd_bk(rt_uint32_t value)
 		GPIO_SetBits(lcd_bk_ctrl,lcd_BK);
 	}
 }
-void lcd_clear(rt_uint8_t value)
+void lcd_clear(LINE_CMD value)
 {
 	rt_hw_lcd_clear(value);
 }
