@@ -22,7 +22,7 @@
 typedef struct
 {
 
-	LCD_ZM * * content;
+	FONT_MATRIX * * content;
 	short ChildrenList;
 	short FatherList;
 	short FatherNB;
@@ -74,6 +74,6 @@ extern void Display15MinAverageSpeed();
 extern void WriteDataToUDiskMenu();
 extern void DisplayProductVersion();
 extern void DisplayTotalDistance();
-extern void DisplayInteger(u_int integer,u_char row,u_char end_column,u_char len);
+extern void DisplayInteger(unsigned long integer,unsigned char row,unsigned char end_column,unsigned char len);
 extern void DisplayAlarm();
 #endif /* menu_h */

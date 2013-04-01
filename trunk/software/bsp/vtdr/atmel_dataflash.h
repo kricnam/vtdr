@@ -28,7 +28,7 @@
 
 /* Dummy byte */
 #define DUMMY   0xFF
-
+#define DATAFLASH_BASE 0x00000000
 /* Start Data tokens  */
 /* Tokens (necessary because at nop/idle (and CS active) only 0xff is on the data/command line) */
 #define DATAFLASH_START_DATA_SINGLE_BLOCK_READ 0xFE  /* Data token start byte, Start Single Block Read */

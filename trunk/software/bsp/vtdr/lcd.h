@@ -20,8 +20,17 @@
 #ifndef FONT_MATRIX
 #define  FONT_MATRIX unsigned char
 #endif
-
-
+#define HAN_ZI 16
+#define NUM  8
+#define ZIMU 8
+typedef enum
+{
+	line1 = 3,
+	line2 = 1,
+	line3 = 7,
+	line4 = 5,
+	lineall = 8
+}LINE_CMD;
 void rt_hw_lcd_init(void);
 void rt_hw_lcd_on(void);
 void rt_hw_lcd_off(void);

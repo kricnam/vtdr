@@ -46,7 +46,7 @@
 #include "led.h"
 #include "lcd.h"
 #include "i2c_drv.h"
-#include "font_lib.h"
+//#include "font_lib.h"
 #include "atmel_dataflash.h"
 #include<rtdef.h>
 #include<rtconfig.h>

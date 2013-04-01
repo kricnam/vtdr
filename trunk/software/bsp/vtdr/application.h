@@ -1,51 +1,41 @@
-#ifndef ibb3_h
-#define ibb3_h
+#ifndef application_h
+#define application_h
 
 
-#include    "periph/stdc/std_c.h"
 
-typedef unsigned char LCD_ZM; 
 
-////////////////////////ÅäÖÃ²ÎÊý////////////////////////////////////////
-#define GetSpeedSelf    	0       //Ö÷»ú×Ô¼º²É¼¯ËÙ¶ÈÂö³å
-#define POWER_MODEL_EN    	1    	/* Ê¹ÓÃµçÔ´Ä£¿é£¬Ã»ÓÐ¹â¸ô */
-#define POWERON_LINE_EN     0		//µçÔ´°åÉÏµçÏß
-#define StatusPol           0       //Ö÷»ú¸øÊÊÅäÆ÷ËÍ×´Ì¬¼«ÐÔ
-#define StationStamp_EN     0       //Õ¾µã±ê×¢±êÖ¾
+#define GetSpeedSelf    	0
+#define POWERON_LINE_EN     0
+#define StatusPol           0
+#define StationStamp_EN     0
+#define guizhoufile    	    0
+#define guizhou             1
+#define GPS                 0
 
-#define guizhoufile    	    0       //Îª¹óÖÝ³¤ÎÄ¼þÃû"*"
-#define guizhou             1       //Õë¶Ô¹óÖÝÌØÊâÒªÇó£¨¸Ä³µÅÆºÅ²»ÄÜË¢ÐÂÊý¾Ý£©
-#define GPS                 0       //ÊÇ·ñ´ò¿ªGPS·À»ðÇ½
 
-//***ÒÔÏÂ²ÎÊýÔÚ²úÆ·°æ±¾ºÅÖÐÏÔÊ¾Îªºó×º***//
-#define OpenDoorDeal    	1       //°üº¬Èí¼þ¿ª¹ØÃÅ´¦Àí
-#define RTC8025             1     //Ê±ÖÓÐ¾Æ¬Ñ¡Ôñ¿ª¹Ø
-#define GetSpeedStatusBy232 0     //Í¨¹ý´®¿ÚºÍÊÊÅäÆ÷Í¨Ñ¶»ñÈ¡ËÙ¶ÈºÍÈ«²¿×´Ì¬¿ª¹Ø
-#define WATCH_DOG_EN    	1     // ¿´ÃÅ¹·¿ª¹Ø
-#define RPM_EN				0     //·¢¶¯»ú×ªËÙ¿ª¹Ø
-#define SectionAlarm_EN     0     //·ÖÂ·¶Î±¨¾¯¿ª¹Ø
-#define OpenDoorAlarm		0     //¿ªÃÅÐÐÊ»±¨¾¯¿ª¹Ø
-#define Test                0	  //²âÊÔ¹¤×°
-#define Status14			0     //³¬¹ý8ÖÖ×´Ì¬
+#define OpenDoorDeal    	1
+#define RTC8025             1     //Ê±ï¿½ï¿½Ð¾Æ¬Ñ¡ï¿½ñ¿ª¹ï¿½
+#define GetSpeedStatusBy232 0     //Í¨ï¿½ï¿½Úºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½È¡ï¿½Ù¶Èºï¿½È«ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½
+#define WATCH_DOG_EN    	1     // ï¿½ï¿½ï¿½Å¹ï¿½ï¿½ï¿½ï¿½ï¿½
+#define RPM_EN				0     //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½Ù¿ï¿½ï¿½ï¿½
+#define SectionAlarm_EN     0     //ï¿½ï¿½Â·ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+#define OpenDoorAlarm		0     //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+#define Test                0	  //ï¿½ï¿½ï¿½Ô¹ï¿½×°
+#define Status14			0     //ï¿½ï¿½ï¿½ï¿½8ï¿½ï¿½×´Ì¬
 //**************************************//
-#define AlarmRecord         0     //³¬ËÙºÍÆ£ÀÍ¼ÝÊ»±¨¾¯¼ÇÂ¼
+#define AlarmRecord         0     //ï¿½ï¿½ï¿½Ùºï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼
 ////////////////////////////////////////////////////////////////////////
-#if RTC8025
-#include	"ibb3board_rtc8025.h"
-#else
-#include	"ibb3board.h"
-#endif
 
-//2004.03.02 panhui Îäºº¹«½»ÐÝÃß¸ÄÎª2Ð¡Ê±£¨ÓÐ¿ªÃÅÐÐÊ»±¨¾¯£©
+//2004.03.02 panhui ï¿½äººï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¸ï¿½Îª2Ð¡Ê±ï¿½ï¿½ï¿½Ð¿ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 #if OpenDoorAlarm
-#define GotoSleepTime 36000     //ÐÝÃßÊ±¼ä£½120·ÖÖÓ
+#define GotoSleepTime 36000     //ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£½120ï¿½ï¿½ï¿½ï¿½
 #else
-#define GotoSleepTime 1500     //ÐÝÃßÊ±¼ä£½300Ãë£½5·ÖÖÓ
+#define GotoSleepTime 1500     //ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£½300ï¿½ë£½5ï¿½ï¿½ï¿½ï¿½
 #endif
 
-#define DoorNBLimit   6       //200msÖÐ¿ªÃÅÐÅºÅÓÐÐ§µÄ¸öÊýÃÅÏÞ
+#define DoorNBLimit   6       //200msï¿½Ð¿ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½Ð§ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-//¶¨ÒåÖÐ¶ÏÓÅÏÈ¼¶
+//ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½È¼ï¿½
 #define USART1_INT_PRI	4
 #define IRQ0_INT_PRI	7       //USB
 #define IRQ1_INT_PRI    3       //ENGINE SPEED
@@ -53,121 +43,121 @@ typedef unsigned char LCD_ZM;
 #define TC0_INT_PRI     0       //TICK
 #define Clock_PRI     	5       //CLOCK 
 #define DriverCard_PRI 	5		//DRIVERCARD
-#define TC2_INT_PRI     6       //¼ÆÊ±Æ÷
-#define TC1_INT_PRI     5       //door¼ÆÊ±Æ÷
+#define TC2_INT_PRI     6       //ï¿½ï¿½Ê±ï¿½ï¿½
+#define TC1_INT_PRI     5       //doorï¿½ï¿½Ê±ï¿½ï¿½
 
 
 typedef struct
-{//¶¨ÒåÊ±ÖÓ
+{
 
-	u_char year;
-	u_char month;
-	u_char day;
-	u_char hour;
-	u_char minute;
-	u_char second;
+	unsigned char year;
+	unsigned char month;
+	unsigned char day;
+	unsigned char hour;
+	unsigned char minute;
+	unsigned char second;
 	
 } CLOCK;
 typedef struct
-{//¶¨ÒåÊ±ÖÓ
+{
 
 	int year;
 	int month;
 	int day;
-	int time;//ÒÔ·ÖÖÓÎªµ¥Î»
+	int time;
 	
 } DateTime;
 
 typedef struct
-{//¶¨ÒåÉÏ´«ºÍÏÂ´«Ê±¼ä
-	u_char year;
-	u_char month;
-	u_char day;
-	u_char hour;
-	u_char minute;
-	u_char second;
-	u_char type;
-	u_char reserved;
+{
+	unsigned char year;
+	unsigned char month;
+	unsigned char day;
+	unsigned char hour;
+	unsigned char minute;
+	unsigned char second;
+	unsigned char type;
+	unsigned char reserved;
 } UpDownCLOCK;
 
 typedef struct
-{//¶¨ÒåÊ±ÖÓ
+{
 
-	u_short type;
-	u_char year;
-	u_char month;
-	u_char day;
-	u_char hour;
-	u_char minute;
-	u_char second;
+	unsigned short type;
+	unsigned char year;
+	unsigned char month;
+	unsigned char day;
+	unsigned char hour;
+	unsigned char minute;
+	unsigned char second;
 	
 } Record_CLOCK;
 
 typedef struct
 {
-	u_char speed;
-	u_int bound;
+	unsigned char speed;
+	unsigned long bound;
 } RoadSection;
 typedef struct
 {
 
-	u_short mark;//*ÌØÕ÷×Ö¡ª¡ª2
-	u_char  sn[22];//²úÆ·ÐòÁÐºÅ¡ª¡ª22(24)
-	u_int CHCO;//³µÁ¾ÌØÕ÷ÏµÊý¡ª¡ª4(28)
-	u_char  AutoType[12];//³µÁ¾ÀàÐÍ¡ª¡ª12(40)
-	u_char  AutoVIN[18];//³µÁ¾VINºÅ¡ª¡ª18(58)
-	u_char  AutoCode[12];//³µÅÆºÅ¡ª¡ª12(70)
-	u_char  AutoSort[12];//³µÅÆ·ÖÀà¡ª¡ª12(82)
-	u_short  CodeColor;//³µÅÆÑÕÉ«¡ª¡ª2(84)
-	u_int  DriverCode;//¼ÝÊ»Ô±´úÂë¡ª¡ª4(88)
-	u_char  DriverLisenseCode[20];//¼ÝÊ»Ö¤ºÅÂë¡ª¡ª20(108)
-	u_short status_polarity;//×´Ì¬¼«ÐÔ¡ª¡ª2(110)
-	u_short status_mask;//ÔÚÓÃ×´Ì¬¡ª¡ª2(112)
-	u_char  OverSpeedTimeLimit;//³¬ËÙÊ±¼äÃÅÏÞ£¨0£­255Ãë£©¡ª¡ª1(113)
-	u_char  AlarmSound;//ÉùÒô±¨¾¯Ñ¡Ôñ£¨0x00-ÎÞÉù£»0xFF-ÓÐÉù£©¡ª¡ª1(114)
-	u_char  LowSpeedLimit;//µÍËÙÂ·ËÙ¶ÈÃÅÏÞ¡ª¡ª1(115)
-	u_char  HighSpeedLimit;//¸ßËÙÂ·ËÙ¶ÈÃÅÏÞ¡ª¡ª1(116)
-	CLOCK   time;//ÊµÊ±Ê±ÖÓBCDÂë±íÊ¾¡ª¡ª8(124)
-	CLOCK   InstallTime;//³õ×°ÈÕÆÚBCDÂë±íÊ¾¡ª¡ª8(132)
-	u_char  PulseNumber;//³µËÙ´«¸ÐÆ÷Ã¿×ª²úÉúµÄÂö³åÊý
-	u_char  RPM_Pulse;
-	u_char  Door1Type;
-	u_char  Door2Type;
-	u_char  reserved[112];//¡Á¡Á£¨Ô¤Áô£¬ÔÝÊ±²»ÓÃ£©(254)
-	u_char  DriveHour24;//Æ£ÀÍ¼ÝÊ»Ê±¼ä
-	u_char  RestHour24;
-	u_char  DriveHour;	//Æ£ÀÍ¼ÝÊ»Ê±¼äÃÅÏÞ
-	u_char  RestMinute;	//Æ£ÀÍ¼ÝÊ»×îÉÙÐÝÏ¢Ê±¼äÃÅÏÞ
-	u_char  wakeGPStime;
-	u_short  IBBType;//¼ÇÂ¼ÒÇ´úÂë¡ª¡ª2(256)
-					//£¨0x0A£½IBB-100A£» 0x0C£½IBB-2C£»0x30=IBB-3£©
-	u_char SectionNumber;
+	unsigned short mark;//*ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½2
+	unsigned char  sn[22];//ï¿½ï¿½Æ·ï¿½ï¿½ï¿½ÐºÅ¡ï¿½ï¿½ï¿½22(24)
+	unsigned long CHCO;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½4(28)
+	unsigned char  AutoType[12];//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¡ï¿½ï¿½ï¿½12(40)
+	unsigned char  AutoVIN[18];//ï¿½ï¿½ï¿½ï¿½VINï¿½Å¡ï¿½ï¿½ï¿½18(58)
+	unsigned char  AutoCode[12];//ï¿½ï¿½ï¿½ÆºÅ¡ï¿½ï¿½ï¿½12(70)
+	unsigned char  AutoSort[12];//ï¿½ï¿½ï¿½Æ·ï¿½ï¿½à¡ªï¿½ï¿½12(82)
+	unsigned short  CodeColor;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½2(84)
+	unsigned long  DriverCode;//ï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ë¡ªï¿½ï¿½4(88)
+	unsigned char  DriverLisenseCode[20];//ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ë¡ªï¿½ï¿½20(108)
+	unsigned short status_polarity;//×´Ì¬ï¿½ï¿½ï¿½Ô¡ï¿½ï¿½ï¿½2(110)
+	unsigned short status_mask;//ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½2(112)
+	unsigned char  OverSpeedTimeLimit;//ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Þ£ï¿½0ï¿½ï¿½255ï¿½ë£©ï¿½ï¿½ï¿½ï¿½1(113)
+	unsigned char  AlarmSound;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½0x00-ï¿½ï¿½ï¿½ï¿½0xFF-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½1(114)
+	unsigned char  LowSpeedLimit;//ï¿½ï¿½ï¿½ï¿½Â·ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½Þ¡ï¿½ï¿½ï¿½1(115)
+	unsigned char  HighSpeedLimit;//ï¿½ï¿½ï¿½ï¿½Â·ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½Þ¡ï¿½ï¿½ï¿½1(116)
+	CLOCK   time;//ÊµÊ±Ê±ï¿½ï¿½BCDï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½8(124)
+	CLOCK   InstallTime;//ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½BCDï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½8(132)
+	unsigned char  PulseNumber;//ï¿½ï¿½ï¿½Ù´ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned char  RPM_Pulse;
+	unsigned char  Door1Type;
+	unsigned char  Door2Type;
+	unsigned char  reserved[112];//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ã£ï¿½(254)
+	unsigned char  DriveHour24;//Æ£ï¿½Í¼ï¿½Ê»Ê±ï¿½ï¿½
+	unsigned char  RestHour24;
+	unsigned char  DriveHour;	//Æ£ï¿½Í¼ï¿½Ê»Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned char  RestMinute;	//Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned char  wakeGPStime;
+	unsigned short  IBBType;//ï¿½ï¿½Â¼ï¿½Ç´ï¿½ï¿½ë¡ªï¿½ï¿½2(256)
+
+	unsigned char SectionNumber;
 	RoadSection section[20];
 	//2004.03.23
-	u_char  reserved1[92];//ÎªÁË±£Ö¤¸±Õ¾·¢³µµÄÂ·Ïß·Ö¶ÎÉèÖÃ´ÓµØÖ·0x200¿ªÊ¼Ð´
-	u_char SectionNumber1;//¸±Õ¾·¢³µÂ·Ïß·Ö¶ÎµÄ¶ÎÊý
-	RoadSection section1[20];//Â·¶Î¼°ÆäËÙ¶ÈÏÞÖÆ
+	unsigned char  reserved1[92];//Îªï¿½Ë±ï¿½Ö¤ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ß·Ö¶ï¿½ï¿½ï¿½ï¿½Ã´Óµï¿½Ö·0x200ï¿½ï¿½Ê¼Ð´
+	unsigned char SectionNumber1;//ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½ï¿½Â·ï¿½ß·Ö¶ÎµÄ¶ï¿½ï¿½ï¿½
+	RoadSection section1[20];//Â·ï¿½Î¼ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½ï¿½
 } StructPara;
 
 typedef struct
 {
-	u_int  DriverCode;//¼ÝÊ»Ô±´úÂë¡ª¡ª4(88)
-	u_char  DriverLisenseCode[20];//¼ÝÊ»Ö¤ºÅÂë¡ª¡ª20(108)
+	unsigned long  DriverCode;//ï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ë¡ªï¿½ï¿½4(88)
+	unsigned char  DriverLisenseCode[20];//ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ë¡ªï¿½ï¿½20(108)
 } DRIVER;
 
 typedef struct
-{//·ÖÇø±í½á¹¹
+{//ï¿½ï¿½ï¿½ï¿½ï¿½á¹¹
 
-	u_int  BaseAddr;//ÆðÊ¼µØÖ·
-	u_int  EndAddr;//½áÊøµØÖ·
-	u_int  CurPoint;//µ±Ç°Ö¸ÕëµØÖ·,Ö¸ÏòÏÂÒ»¸öÊý¾Ý¿É´æ·ÅµÄÎ»ÖÃ
+	unsigned long  BaseAddr;//ï¿½ï¿½Ê¼ï¿½ï¿½Ö·
+	unsigned long  EndAddr;//ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+	unsigned long  CurPoint;//ï¿½ï¿½Ç°Ö¸ï¿½ï¿½ï¿½Ö·,Ö¸ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ý¿É´ï¿½Åµï¿½Î»ï¿½ï¿½
 	
 } StructPT;
 
 typedef struct
 {
 
-	u_short  Available;//=0±íÊ¾Ã»ÓÐÊ¹ÓÃ´ËÊý¾ÝÇø£»>0±íÊ¾Êý¾ÝÇøÓÐÐ§
+	unsigned short  Available;//=0ï¿½ï¿½Ê¾Ã»ï¿½ï¿½Ê¹ï¿½Ã´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½>0ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
 	StructPT DoubtPointData;
 	StructPT OverSpeedRecord;
 	StructPT PowerOffRunRecord;
@@ -177,16 +167,16 @@ typedef struct
 	StructPT RPMData;
 	StructPT TemperatureData;
 	StructPT OilPressData;
-	u_int	 TotalDistance;
+	unsigned long	 TotalDistance;
 	CLOCK	 LastUploadTime;
-	u_int	 DriverCode;//¼ÝÊ»Ô±´úÂë
-	u_char   DriverLisenseCode[20];//¼ÝÊ»Ö¤ºÅÂë
-	u_char 	 InOSAlarmCycle;//¡°ÔÚ·ÖÂ·¶Î±¨¾¯ÖÜÆÚÖÐ¡±±êÖ¾£¨0xaaÖ÷Õ¾·¢³µ£¬0x55¸±Õ¾·¢³µ£©
-	u_int	 OSAlarmAddupDistance;//·ÖÂ·¶Î±¨¾¯Â·³ÌÀÛ¼Æ
+	unsigned long	 DriverCode;//ï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ï¿½
+	unsigned char   DriverLisenseCode[20];//ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½
+	unsigned char 	 InOSAlarmCycle;//ï¿½ï¿½ï¿½Ú·ï¿½Â·ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½0xaaï¿½ï¿½Õ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½0x55ï¿½ï¿½Õ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long	 OSAlarmAddupDistance;//ï¿½ï¿½Â·ï¿½Î±ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½Û¼ï¿½
 
 } PartitionTable;
 
-/* ¶¨Òå·ÖÇøÓÐÐ§×Ö¸÷Î»º¬Òå */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Ö¸ï¿½Î»ï¿½ï¿½ï¿½ï¿½ */
 #define DOUBTPOINTDATA  	0
 #define OVERSPEEDRECORD    	1
 #define POWEROFFRUNRECORD   2
@@ -200,7 +190,7 @@ typedef struct
 /*  */
 #define DoubtDataBlockSize 210
 
-/* ¶¨ÒåÊý¾Ý·ÖÇø±í */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý·ï¿½ï¿½ï¿½ï¿½ */
 #define DOUBTPOINTDATA_EN  		1
 
 #if AlarmRecord
@@ -231,8 +221,8 @@ typedef struct
 
 #define PartitionTableFlag  (DOUBTPOINTDATA_EN << DOUBTPOINTDATA)|(OVERSPEEDRECORD_EN << OVERSPEEDRECORD)|(RUNRECORD360h_EN << RUNRECORD360h)|(BASEDATA_EN << BASEDATA)|(RPMDATA_EN << RPMDATA)|(Status14DATA_EN << STATUS14DATA)
 
-#define PARAMETER_BASE ((StructPara *)(DATAFLASH_BASE+0x00000000))
-#define PartitionTable_BASE ((PartitionTable *)(DATAFLASH_BASE+0x00001000))
+#define PARAMETER_BASE    ((StructPara *)0x00000000)   //((StructPara *)(DATAFLASH_BASE+0x00000000))
+#define PartitionTable_BASE  ((PartitionTable *)0x00001000)//((PartitionTable *)(DATAFLASH_BASE+0x00001000))
 #define DPD_BASE      DATAFLASH_BASE+0x02000
 #define DPD_END       DATAFLASH_BASE+0x06fff
 #define RR360H_BASE   DATAFLASH_BASE+0x07000
@@ -260,19 +250,19 @@ typedef struct
 
 #define DoubtDataSpace 110 
 
-/*¶¨ÒåÒÉµãÊý¾Ý¸ñÊ½*/
+/*ï¿½ï¿½ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½Ý¸ï¿½Ê½*/
 typedef struct{
-	u_char speed;//Ã¿0.2ÃëËÙ¶È
-	u_char status;//Ã¿0.2Ãë8Î»×´Ì¬
+	unsigned char speed;//Ã¿0.2ï¿½ï¿½ï¿½Ù¶ï¿½
+	unsigned char status;//Ã¿0.2ï¿½ï¿½8Î»×´Ì¬
 }DoubtData;
 typedef struct{
-	u_int 	DriverCode;
-	CLOCK   StopTime;//ÊµÊ±Ê±ÖÓBCDÂë±íÊ¾¡ª¡ª6
-	DoubtData data[100];//20ÃëÊý¾Ý20¡Á5£½100
-	u_char 	pt;
+	unsigned long 	DriverCode;
+	CLOCK   StopTime;//ÊµÊ±Ê±ï¿½ï¿½BCDï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½6
+	DoubtData data[100];//20ï¿½ï¿½ï¿½ï¿½ï¿½20ï¿½ï¿½5ï¿½ï¿½100
+	unsigned char 	pt;
 }DoubtDataBlock;
 
-/*¶¨ÒåÆ£ÀÍ¼ÝÊ»Êý¾Ý¸ñÊ½*/
+/*ï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Ý¸ï¿½Ê½*/
 //#define DriveMinuteLimit 5
 //#define RestMinuteLimit 1
 //#define DriveMinuteLimit 180
@@ -282,8 +272,8 @@ typedef struct{
 }OTDR_start;
 typedef struct{
 	Record_CLOCK  dt;
-	u_int  TotalDistance;
-	u_int MinuteNb;
+	unsigned long  TotalDistance;
+	unsigned long MinuteNb;
 	DRIVER driver;
 }OTDR_end;
 typedef struct{
@@ -296,7 +286,7 @@ typedef struct{
 	DRIVER driver;
 }AnAlarmData;
 
-/*¶¨Òå×´Ì¬×Ö½ÚÖÐÃ¿Î»µÄº¬Òå*/
+/*ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½Ö½ï¿½ï¿½ï¿½Ã¿Î»ï¿½Äºï¿½ï¿½ï¿½*/
 #define DOOR	   8
 #define AIRPRESS   7
 #define STATION    6
@@ -306,7 +296,7 @@ typedef struct{
 #define BREAK      2
 #define LEFTLIGHT  1
 #define POWERON	   0
-/* ¶¨ÒåTIMECHANGEÖÐ */
+/* ï¿½ï¿½ï¿½ï¿½TIMECHANGEï¿½ï¿½ */
 #define YEAR_CHANGE		0
 #define MONTH_CHANGE	1
 #define DAY_CHANGE		2
@@ -314,28 +304,28 @@ typedef struct{
 #define MINUTE_CHANGE	4
 #define SECOND_CHANGE	5
 
-/* ¶¨Òå±êÖ¾Î»ÖÐÃ¿Î»µÄº¬Òå */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾Î»ï¿½ï¿½Ã¿Î»ï¿½Äºï¿½ï¿½ï¿½ */
 #define SpeedPowerOff    0
 
 typedef struct
-{//ÐÐÊ»¼ÇÂ¼
+{//ï¿½ï¿½Ê»ï¿½ï¿½Â¼
 	Record_CLOCK dt;
 }RecordData_start;
 typedef struct
-{//ÐÐÊ»¼ÇÂ¼
+{//ï¿½ï¿½Ê»ï¿½ï¿½Â¼
 	Record_CLOCK dt;
-	u_int DistancePulse;
-	u_int DriverCode;
+	unsigned long DistancePulse;
+	unsigned long DriverCode;
 }RecordData_end;
 
-//¶¨Òå´òÓ¡¼°ÏÔÊ¾µÄÃ¿·ÖÖÓÆ½¾ùËÙ¶È
+//ï¿½ï¿½ï¿½ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½ï¿½Ù¶ï¿½
 typedef struct
-{//¶¨ÒåÊ±ÖÓ
+{//ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 
-	u_char hour;
-	u_char minute;
-	u_char speed;
-	u_int  DriverCode;
+	unsigned char hour;
+	unsigned char minute;
+	unsigned char speed;
+	unsigned long  DriverCode;
 	
 } PrintSpeed;
 
