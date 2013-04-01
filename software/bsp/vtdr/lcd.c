@@ -34,14 +34,6 @@
 #define lcd_A0                      (GPIO_Pin_3)
 #define Delay_us           1
 
-typedef enum
-{
-	line1 = 3,
-	line2 = 1,
-	line3 = 7,
-	line4 = 5,
-	lineall = 8
-}LINE_CMD;
 enum LCD_CMD
 {
 	Display_Off = 0xAE,

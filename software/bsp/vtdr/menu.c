@@ -1,11 +1,33 @@
 #include 	"menu.h"
 #include 	"lcd.h"
 #include 	"lcd_word_model.h"
+#include    "application.h"
 
+unsigned char LargeDataBuffer[28*1024];
+
+extern CLOCK curTime;
+
+extern PartitionTable pTable;
+
+extern unsigned long Distance;
+
+extern unsigned char PowerOn;
+extern unsigned char LastPowerOn;
+
+extern char CardIn;
+extern unsigned long CurSpeed;
+extern char ClockVL;
+//#if OpenDoorDeal
+extern 	void JudgeDoorType(void);
+extern void DoorType();
+//#endif
+extern unsigned char AlarmFlag;
+extern unsigned char RoadNb;
 
 LCDTCB lcd_tcb;
 LCDTCB last_lcd_tcb;
 ACTION_TCB act_tcb;
+OTDR *OTDR_Array = (OTDR *)(&(LargeDataBuffer[24*1024]));
 
 const FONT_MATRIX * content00[] = {
 	display_xian,
@@ -401,11 +423,11 @@ void SaveDatatoUdisk()
 //*----------------------------------------------------------------------------
 void PrintAllData()
 {
-	lcd_clear(line2);
-	lcm_write_hz1(1,1,(FONT_MATRIX *)being_zheng);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)being_zai);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)print_da);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)print_yin);
+	lcd_clear(line3);
+	lcd_write_matrix(line3,0,(FONT_MATRIX *)being_zheng,HAN_ZI);
+	lcd_write_matrix(line3,16,(FONT_MATRIX *)being_zai,HAN_ZI);
+	lcd_write_matrix(line3,32,(FONT_MATRIX *)print_da,HAN_ZI);
+	lcd_write_matrix(line3,48,(FONT_MATRIX *)print_yin,HAN_ZI);
 
 	#if GetSpeedStatusBy232
 	PIO_SODR = SPEED;//ʹ�ܴ�ӡ���ͨѶ��
@@ -439,18 +461,18 @@ void WriteDataToUDiskMenu()
 	int i;
 	//�ȴ�
 	lcd_clear(0);
-	lcm_write_hz1(1,1,(FONT_MATRIX *)scan_sao);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)scan_miao);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)udisk_u);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)udisk_pan);
+	lcd_write_matrix(line3,0,(FONT_MATRIX *)scan_sao,HAN_ZI);
+	lcd_write_matrix(line3,16,(FONT_MATRIX *)scan_miao,HAN_ZI);
+	lcd_write_matrix(line3,32,(FONT_MATRIX *)udisk_u,HAN_ZI);
+	lcd_write_matrix(line3,48,(FONT_MATRIX *)udisk_pan,HAN_ZI);
 
 	if(Scan_UDisk())		
 	{	
-		lcd_clear(line2);
-		lcm_write_hz1(1,1,(FONT_MATRIX *)being_zheng);
-		lcm_write_hz1(1,2,(FONT_MATRIX *)being_zai);
-		lcm_write_hz1(1,3,(FONT_MATRIX *)save_bao);
-		lcm_write_hz1(1,4,(FONT_MATRIX *)save_cun);
+		lcd_clear(line3);
+		lcd_write_matrix(line3,0,(FONT_MATRIX *)being_zheng,HAN_ZI);
+		lcd_write_matrix(line3,16,(FONT_MATRIX *)being_zai,HAN_ZI);
+		lcd_write_matrix(line3,32,(FONT_MATRIX *)save_bao,HAN_ZI);
+		lcd_write_matrix(line3,64,(FONT_MATRIX *)save_cun,HAN_ZI);
 		/////////////
 		//���ж�
 //		OS_ENTER_CRITICAL();
@@ -458,11 +480,11 @@ void WriteDataToUDiskMenu()
 		if(!WriteDataToUDisk())
 		{
 			//ʧ��
-			lcd_clear(line2);
-			lcm_write_hz1(1,1,(FONT_MATRIX *)operate_cao);
-			lcm_write_hz1(1,2,(FONT_MATRIX *)operate_zuo);
-			lcm_write_hz1(1,3,(FONT_MATRIX *)fail_shi);
-			lcm_write_hz1(1,4,(FONT_MATRIX *)fail_bai);
+			lcd_clear(line3);
+			lcd_write_matrix(line3,0,(FONT_MATRIX *)operate_cao,HAN_ZI);
+			lcd_write_matrix(line3,16,(FONT_MATRIX *)operate_zuo,HAN_ZI);
+			lcd_write_matrix(line3,32,(FONT_MATRIX *)fail_shi,HAN_ZI);
+			lcd_write_matrix(line3,48,(FONT_MATRIX *)fail_bai,HAN_ZI);
 			for(i=0;i<100000;i++);
 		}
 				
@@ -493,7 +515,7 @@ void DisplayAutoCode()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcd_clear(line2);
+	lcd_clear(line3);
 
 	StructPara *para = PARAMETER_BASE;
 	unsigned char j=0,col=0,type=0;//type��0���֣���1���֣�2��ĸ
@@ -510,20 +532,20 @@ void DisplayAutoCode()
 			hz = hz+buf;
 			if((col&1)==1)//���������
 				col++;
-			lcm_write_hz1(1,col/2,AutoCodeHZ2LCM(hz));
+			lcd_write_matrix(line3,(col/2)*HAN_ZI,AutoCodeHZ2LCM(hz),HAN_ZI);
 			col+=2;
 			type = 0;
 		}
 		else
 		{//��ĸ������
 			if(buf<60){
-				lcm_write_ez(1,col,ASCII2LCM(buf));
+				lcd_write_matrix(line3,col*HAN_ZI,ASCII2LCM(buf),NUM);
 				type = 1;
 			}
 			else{
 				if(type==2)
 					col--;
-				lcm_write_zimu(1,col,ASCII2LCM(buf));
+				lcd_write_matrix(line3,col*ZIMU,ASCII2LCM(buf),ZIMU);
 				col++;
 				type = 2;
 			}
@@ -568,7 +590,7 @@ void DisplayDriverNumber()
 	i--;
 	int k,m=0;
 	for(k=i;k>=0;k--){
-		lcm_write_ez(1,m,BCD2LCM(buf[k],0));
+		lcd_write_matrix(line3,m*NUM,BCD2LCM(buf[k],0),NUM);
 		m++;
 	}
 
@@ -591,7 +613,7 @@ void DisplayDriverCode()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcd_clear(line2);
+	lcd_clear(line3);
 
 //	StructPara *para = PARAMETER_BASE;
 	int i;
@@ -601,7 +623,7 @@ void DisplayDriverCode()
 		buf=pTable.DriverLisenseCode[i];
 		if(buf==0)
 			break;
-		lcm_write_ez(1,i,ASCII2LCM(buf));
+		lcd_write_matrix(line3,i*NUM,ASCII2LCM(buf),NUM);
 	}
 
 	act_tcb.IfActionEnd = 1;
@@ -640,7 +662,7 @@ void Displaywheel()
 	i--;
 	int k,m=0;
 	for(k=i;k>=0;k--){
-		lcm_write_ez(1,i-k,BCD2LCM(buf[k],0));
+		lcd_write_matrix(line3,(i-k)*NUM,BCD2LCM(buf[k],0),NUM);
 		m++;
 	}
 	
@@ -672,9 +694,9 @@ void DisplayStatusPolarity()
 	{
 		z=1<<j;
 		if((s & z)==0)
-			lcm_write_ez(1,19-j,(FONT_MATRIX *)digital_0);
+			lcd_write_matrix(line3,(19-j)*NUM,(FONT_MATRIX *)digital_0,NUM);
 		else
-			lcm_write_ez(1,19-j,(FONT_MATRIX *)digital_1);
+			lcd_write_matrix(line3,(19-j)*NUM,(FONT_MATRIX *)digital_1,NUM);
 	}
 	
 	act_tcb.IfActionEnd = 1;
@@ -698,68 +720,68 @@ void DisplayProductVersion()
 	
 	lcd_clear(line2);
 	
-	u_char col=0;
-	lcm_write_ez(1,col,(FONT_MATRIX *)digital_0);
-	lcm_write_ez(1,col+1,(FONT_MATRIX *)digital_6);
-	lcm_write_ez(1,col+2,(FONT_MATRIX *)charater_point);
-	lcm_write_ez(1,col+3,(FONT_MATRIX *)digital_0);
-	lcm_write_ez(1,col+4,(FONT_MATRIX *)digital_8);
-	lcm_write_ez(1,col+5,(FONT_MATRIX *)charater_point);
-	lcm_write_ez(1,col+6,(FONT_MATRIX *)digital_2);
-	lcm_write_ez(1,col+7,(FONT_MATRIX *)digital_8);
-	lcm_write_ez(1,col+8,(FONT_MATRIX *)charater_point);
-	lcm_write_ez(1,col+9,(FONT_MATRIX *)digital_1);
+	unsigned char col=0;
+	lcd_write_matrix(line3,col*NUM,(FONT_MATRIX *)digital_0,NUM);
+	lcd_write_matrix(line3,(col+1)*NUM,(FONT_MATRIX *)digital_6,NUM);
+	lcd_write_matrix(line3,(col+2)*NUM,(FONT_MATRIX *)charater_point,NUM);
+	lcd_write_matrix(line3,(col+3)*NUM,(FONT_MATRIX *)digital_0,NUM);
+	lcd_write_matrix(line3,(col+4)*NUM,(FONT_MATRIX *)digital_8,NUM);
+	lcd_write_matrix(line3,(col+5)*NUM,(FONT_MATRIX *)charater_point,NUM);
+	lcd_write_matrix(line3,(col+6)*NUM,(FONT_MATRIX *)digital_2,NUM);
+	lcd_write_matrix(line3,(col+7)*NUM,(FONT_MATRIX *)digital_8,NUM);
+	lcd_write_matrix(line3,(col+8)*NUM,(FONT_MATRIX *)charater_point,NUM);
+	lcd_write_matrix(line3,(col+9)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #if	guizhou
-	lcm_write_ez(1,col+10,(FONT_MATRIX *)charater_xing);
+	lcd_write_matrix(line3,(col+10)*NUM,(FONT_MATRIX *)charater_xing,NUM);
 #else
-	lcm_write_ez(1,col+10,(FONT_MATRIX *)charater_point);
+	lcd_write_matrix(line3,(col+10)*NUM,(FONT_MATRIX *)charater_point,NUM);
 #endif
 	
 #if OpenDoorDeal//����������Ŵ���
-	lcm_write_ez(1,col+11,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+11)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+11,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+11)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 #if RTC8025//ʱ��оƬѡ�񿪹�
-	lcm_write_ez(1,col+12,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+12)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+12,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+12)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 #if GetSpeedStatusBy232     //ͨ��ں�������ͨѶ��ȡ�ٶȺ�ȫ��״̬����
-	lcm_write_ez(1,col+13,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+13)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+13,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+13)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 
 #if WATCH_DOG_EN          // ���Ź�����
-	lcm_write_ez(1,col+14,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+14)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+14,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+14)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 #if RPM_EN			     //������ת�ٿ���
-	lcm_write_ez(1,col+15,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+15)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+15,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+15)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 #if SectionAlarm_EN        //��·�α�������
-	lcm_write_ez(1,col+16,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+16)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+16,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+16)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 #if OpenDoorAlarm	     //������ʻ��������
-	lcm_write_ez(1,col+17,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+17)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+17,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+17)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 #if Test        	  //���Թ�װ
-	lcm_write_ez(1,col+18,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+18)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+18,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+18)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 #if Status14    //����8��״̬
-	lcm_write_ez(1,col+19,(FONT_MATRIX *)digital_1);
+	lcd_write_matrix(line3,(col+19)*NUM,(FONT_MATRIX *)digital_1,NUM);
 #else
-	lcm_write_ez(1,col+19,(FONT_MATRIX *)digital_0);
+	lcd_write_matrix(line3,(col+19)*NUM,(FONT_MATRIX *)digital_0,NUM);
 #endif
 	act_tcb.IfActionEnd = 1;
 	act_tcb.CurLine = 1;
@@ -780,16 +802,16 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 	OTDR_end last_end,last_end_temp;
 	CLOCK *cl;
 	char temp;
-	u_int i,Nb,p;
+	unsigned long i,Nb,p;
 	int TimeInterval;
-	u_int TimeIntervalSum;
-	u_int TimeLimit;
-	u_int curPointer;
-	u_char buf[2];
+	unsigned long TimeIntervalSum;
+	unsigned long TimeLimit;
+	unsigned long curPointer;
+	unsigned char buf[2];
 	StructPT spt;
 	DateTime BigTime,SmallTime,ti;	
-	u_char StartTimeBuf[6];
-	u_char StopTimeBuf[6];
+	unsigned char StartTimeBuf[6];
+	unsigned char StopTimeBuf[6];
 	int offset,addup_offset=0;
 	int j;
 	
@@ -824,10 +846,10 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 		last_end = record.end;		
 	
 		if(last_start.dt.type==0xafaf)
-			PrepareTime((u_char *)(&(last_start.dt.year)),&BigTime);
+			PrepareTime((unsigned char *)(&(last_start.dt.year)),&BigTime);
 		else
 		{
-			PrepareTime((u_char *)(&(last_end.dt.year)),&BigTime);
+			PrepareTime((unsigned char *)(&(last_end.dt.year)),&BigTime);
 			ti = BigTime;
 			for(i=0;i<15;i++)
 			{
@@ -838,7 +860,7 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 		}
 			
 		//���㵱ǰ��¼����һ����¼֮���ʱ���	
-		PrepareTime((u_char *)(&(record.end.dt.year)),&SmallTime);
+		PrepareTime((unsigned char *)(&(record.end.dt.year)),&SmallTime);
 		TimeInterval = HaveTime(BigTime,SmallTime);
 		if(TimeInterval < 0)
 			break;
@@ -854,7 +876,7 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 		while((j>=0)&&(Nb>0))
 		{
 			offset = -2;
-			GetOTDRDataFromFlash((u_short *)p, offset,buf);
+			GetOTDRDataFromFlash((unsigned short *)p, offset,buf);
 			speed[15-j].speed = buf[1];
 			speed[15-j].DriverCode = record.end.driver.DriverCode;
 			j--;
@@ -898,27 +920,27 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 //*----------------------------------------------------------------------------
 void Display15MinAverageSpeed()
 {//��¼ѭ����ʾ
-	u_char i;
-	LCD_ZM ** p;
+	unsigned char i;
+	FONT_MATRIX ** p;
 	PrintSpeed *pt;
 	pt=(PrintSpeed *)OTDR_Array;
 	act_tcb.type = SHOW;
 //	act_tcb.LineNumber = 15;
 //myw 2003.7.14
-		lcm_write_zimu(0,9,(FONT_MATRIX *)Letter_k);
-		lcm_write_zimu(0,10,(FONT_MATRIX *)Letter_m);
-		lcm_write_ez(0,13,(FONT_MATRIX *)charater_slash);
-		lcm_write_zimu(0,12,(FONT_MATRIX *)Letter_h);
+		lcd_write_matrix(line2,9*ZIMU,(FONT_MATRIX *)Letter_k,ZIMU);
+		lcd_write_matrix(line2,10*ZIMU,(FONT_MATRIX *)Letter_m,ZIMU);
+		lcd_write_matrix(line2,13*NUM,(FONT_MATRIX *)charater_slash,NUM);
+		lcd_write_matrix(line2,12*ZIMU,(FONT_MATRIX *)Letter_h,ZIMU);
 		
 //
 	if(act_tcb.CurLine == 0)//ȡ��¼
 	{
 		//��ʾ������ͳ�ơ�
-		lcd_clear(line2);
+		lcd_clear(line3);
 		int i=0;
 		p = (FONT_MATRIX **)being_stat;
 		do{
-			lcm_write_hz1(1,i,p[i]);
+			lcd_write_matrix(1,i,p[i],NUM);
 			i++;
 		}while(p[i]!=NULL);
 		act_tcb.LineNumber = Get15MinAverageSpeed(pt);
@@ -930,7 +952,7 @@ void Display15MinAverageSpeed()
 		int i=0;
 		p = (FONT_MATRIX **)none;
 		do{
-			lcm_write_hz1(1,i,p[i]);
+			lcd_write_matrix(line3,i*NUM,p[i],NUM);
 			i++;
 		}while(p[i]!=NULL);
 	}
@@ -941,25 +963,24 @@ void Display15MinAverageSpeed()
 			act_tcb.CurLine = 1;
 			
 		lcd_clear(line2);
-		u_char col=0;
-		u_char row=1;
+		unsigned char col=0;
 		//ʱ�䣺ʱ
-		lcm_write_ez(row,col,BCD2LCM(pt[act_tcb.CurLine-1].hour,1));
-		lcm_write_ez(row,col+1,BCD2LCM(pt[act_tcb.CurLine-1].hour,0));
-		lcm_write_ez(row,col+2,(LCD_ZM *)digital_);
+		lcd_write_matrix(line3,col*NUM,BCD2LCM(pt[act_tcb.CurLine-1].hour,1),NUM);
+		lcd_write_matrix(line3,(col+1)*NUM,BCD2LCM(pt[act_tcb.CurLine-1].hour,0),NUM);
+		lcd_write_matrix(line3,(col+2)*NUM,(FONT_MATRIX *)digital_,NUM);
 		//��
-		lcm_write_ez(row,col+3,BCD2LCM(pt[act_tcb.CurLine-1].minute,1));
-		lcm_write_ez(row,col+4,BCD2LCM(pt[act_tcb.CurLine-1].minute,0));
+		lcd_write_matrix(line3,(col+3)*NUM,BCD2LCM(pt[act_tcb.CurLine-1].minute,1),NUM);
+		lcd_write_matrix(line3,(col+4)*NUM,BCD2LCM(pt[act_tcb.CurLine-1].minute,0),NUM);
 		//�ٶ�
-		DisplayInteger(pt[act_tcb.CurLine-1].speed,row,col+8,3);
+		DisplayInteger(pt[act_tcb.CurLine-1].speed,line3,col+8,3);
 		
-		/*lcm_write_zimu(row,8,(LCD_ZM *)Letter_k);//myw 2003.7.14
-		lcm_write_zimu(row,9,(LCD_ZM *)Letter_m);
-		lcm_write_ez(row,12,(LCD_ZM *)charater_slash);
-		lcm_write_zimu(row,11,(LCD_ZM *)Letter_h);
+		/*lcd_write_matrix(row,8,(LCD_ZM *)Letter_k);//myw 2003.7.14
+		lcd_write_matrix(row,9,(LCD_ZM *)Letter_m);
+		lcd_write_matrix(row,12,(LCD_ZM *)charater_slash);
+		lcd_write_matrix(row,11,(LCD_ZM *)Letter_h);
 		*/
 //˾���� 
-		DisplayInteger(pt[act_tcb.CurLine-1].DriverCode,row,19,0);
+		DisplayInteger(pt[act_tcb.CurLine-1].DriverCode,line3,19,0);
 	}
 	
 
@@ -979,11 +1000,11 @@ void Display2DayOTDR()
 	if(act_tcb.CurLine == 0)//ȡ��¼
 	{
 		//��ʾ������ͳ�ơ�
-		lcm_clear_ram(LINE2);
+		lcd_clear(line2);
 		int i=0;
 		p = (FONT_MATRIX **)being_stat;
 		do{
-			lcm_write_hz1(1,i,p[i]);
+			lcd_write_matrix(line3,i*HAN_ZI,p[i],HAN_ZI);
 			i++;
 		}while(p[i]!=NULL);
 		act_tcb.LineNumber = GetOverTimeRecordIn2Days(OTDR_Array);
@@ -991,11 +1012,11 @@ void Display2DayOTDR()
 
 	if(act_tcb.LineNumber == 0)
 	{//��ʾ���޼�¼��
-		lcm_clear_ram(LINE2);
+		lcd_clear(line2);
 		int i=0;
 		p = (FONT_MATRIX **)none;
 		do{
-			lcm_write_hz1(1,i,p[i]);
+			lcd_write_matrix(line3,i*HAN_ZI,p[i],HAN_ZI);
 			i++;
 		}while(p[i]!=NULL);
 	}
@@ -1005,45 +1026,43 @@ void Display2DayOTDR()
 			act_tcb.CurLine = 1;
 		
 		lcd_clear(lineall);
-		lcm_write_ez(0,0,BCD2LCM(Char2BCD(act_tcb.CurLine),1));
-		lcm_write_ez(0,1,BCD2LCM(Char2BCD(act_tcb.CurLine),0));
-		lcm_write_ez(0,2,(LCD_ZM *)digital_);
-		u_char col=4;
-		u_char row=0;
+		lcd_write_matrix(line2,0,BCD2LCM(Char2BCD(act_tcb.CurLine),1),NUM);
+		lcd_write_matrix(line2,NUM,BCD2LCM(Char2BCD(act_tcb.CurLine),0),NUM);
+		lcd_write_matrix(line2,2*NUM,(FONT_MATRIX *)digital_,NUM);
+		unsigned char col=4;
 		//��ʼʱ�䣺��
-		lcm_write_ez(row,col,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.year,1));
-		lcm_write_ez(row,col+1,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.year,0));
+		lcd_write_matrix(line2,col*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.year,1),NUM);
+		lcd_write_matrix(line2,(col+1)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.year,0),NUM);
 		//��
-		lcm_write_ez(row,col+3,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.month,1));
-		lcm_write_ez(row,col+4,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.month,0));
+		lcd_write_matrix(line2,(col+3)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.month,1),NUM);
+		lcd_write_matrix(line2,(col+4)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.month,0),NUM);
 		//��
-		lcm_write_ez(row,col+6,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.day,1));
-		lcm_write_ez(row,col+7,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.day,0));
+		lcd_write_matrix(line2,(col+6)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.day,1),NUM);
+		lcd_write_matrix(line2,(col+7)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.day,0),NUM);
 		//ʱ
-		lcm_write_ez(row,col+9,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.hour,1));
-		lcm_write_ez(row,col+10,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.hour,0));
-		lcm_write_ez(row,col+11,(LCD_ZM *)digital_);
+		lcd_write_matrix(line2,(col+9)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.hour,1),NUM);
+		lcd_write_matrix(line2,(col+10)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.hour,0),NUM);
+		lcd_write_matrix(line2,(col+11)*NUM,(FONT_MATRIX *)digital_,NUM);
 		//��
-		lcm_write_ez(row,col+12,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.minute,1));
-		lcm_write_ez(row,col+13,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.minute,0));
+		lcd_write_matrix(line2,(col+12)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.minute,1),NUM);
+		lcd_write_matrix(line2,(col+13)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].start.dt.minute,0),NUM);
 
-		row = 1;
 		//����ʱ�䣺��
-		lcm_write_ez(row,col,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.year,1));
-		lcm_write_ez(row,col+1,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.year,0));
+		lcd_write_matrix(line3,col*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.year,1),NUM);
+		lcd_write_matrix(line3,(col+1)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.year,0),NUM);
 		//��
-		lcm_write_ez(row,col+3,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.month,1));
-		lcm_write_ez(row,col+4,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.month,0));
+		lcd_write_matrix(line3,(col+3)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.month,1),NUM);
+		lcd_write_matrix(line3,(col+4)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.month,0),NUM);
 		//��
-		lcm_write_ez(row,col+6,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.day,1));
-		lcm_write_ez(row,col+7,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.day,0));
+		lcd_write_matrix(line3,(col+6)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.day,1),NUM);
+		lcd_write_matrix(line3,(col+7)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.day,0),NUM);
 		//ʱ
-		lcm_write_ez(row,col+9,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.hour,1));
-		lcm_write_ez(row,col+10,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.hour,0));
-		lcm_write_ez(row,col+11,(LCD_ZM *)digital_);
+		lcd_write_matrix(line3,(col+9)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.hour,1),NUM);
+		lcd_write_matrix(line3,(col+10)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.hour,0),NUM);
+		lcd_write_matrix(line3,(col+11)*NUM,(FONT_MATRIX *)digital_,NUM);
 		//��
-		lcm_write_ez(row,col+12,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.minute,1));
-		lcm_write_ez(row,col+13,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.minute,0));
+		lcd_write_matrix(line3,(col+12)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.minute,1),NUM);
+		lcd_write_matrix(line3,(col+13)*NUM,BCD2LCM(OTDR_Array[act_tcb.CurLine-1].end.dt.minute,0),NUM);
 			
 		
 	}
@@ -1066,12 +1085,12 @@ void DisplayTotalDistance()
 	lcd_clear(line2);
 	
 	//�ۼ������
-	u_int Dis=ComputeDistance100m(pTable.TotalDistance);
+	unsigned long Dis=ComputeDistance100m(pTable.TotalDistance);
 
-	u_int x=Dis/10;
-	u_int y=Dis;
-	u_char i=0;
-	u_char buf[10];
+	unsigned long x=Dis/10;
+	unsigned long y=Dis;
+	unsigned char i=0;
+	unsigned char buf[10];
 
 	do{
 		buf[i] = y-x*10;
@@ -1081,19 +1100,19 @@ void DisplayTotalDistance()
 	}while(y!=0);
 	
 	i--;
-	u_char m=15;
-	lcm_write_ez(1,m,BCD2LCM(buf[0],0));
+	unsigned char m=15;
+	lcd_write_matrix(line3,m*NUM,BCD2LCM(buf[0],0),NUM);
 	m--;
-	lcm_write_ez(1,m,(FONT_MATRIX *)charater_point);
+	lcd_write_matrix(line3,m*NUM,(FONT_MATRIX *)charater_point,NUM);
 	m--;
-	u_char k;
+	unsigned char k;
 	for(k=1;k<=i;k++){
-		lcm_write_ez(1,m,BCD2LCM(buf[k],0));
+		lcd_write_matrix(line3,m*NUM,BCD2LCM(buf[k],0),NUM);
 		m--;
 	}
 	
-	lcm_write_hz1(1,8,(FONT_MATRIX *)km_gong);
-	lcm_write_hz1(1,9,(FONT_MATRIX *)distance_li);
+	lcd_write_matrix(line3,8*HAN_ZI,(FONT_MATRIX *)km_gong,HAN_ZI);
+	lcd_write_matrix(line3,9*HAN_ZI,(FONT_MATRIX *)distance_li,HAN_ZI);
 
 	act_tcb.IfActionEnd = 1;
 	act_tcb.CurLine = 1;
@@ -1111,7 +1130,7 @@ void DisplayCurrentNode()
 	FONT_MATRIX ** p1;
 	FONT_MATRIX ** p2;
 
-	lcm_clear_ram(ALL);
+	lcd_clear(lineall);
 
 	p1=NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].content;
 	if(lcd_tcb.NodeNb<NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
@@ -1122,19 +1141,19 @@ void DisplayCurrentNode()
 		p2=NULL;
 	int i=0;
 	do{
-		lcm_write_hz1(0,i,p1[i]);
+		lcd_write_matrix(line2,i*HAN_ZI,p1[i],HAN_ZI);
 		i++;
 	}while(p1[i]!=NULL);
 	
 	//��ʾָʾ��־
-	lcm_write_ez(0,18,(LCD_ZM *)charater_arrow1);
-	lcm_write_ez(0,19,(LCD_ZM *)charater_arrow2);
+	lcd_write_matrix(line2,18*NUM,(FONT_MATRIX *)charater_arrow1,NUM);
+	lcd_write_matrix(line2,19*NUM,(FONT_MATRIX *)charater_arrow2,NUM);
 	
 	i=0;
 	if(p2!=NULL)
 	{
 		do{
-			lcm_write_hz1(1,i,p2[i]);
+			lcd_write_matrix(line2,i*HAN_ZI,p2[i],HAN_ZI);
 			i++;
 		}while(p2[i]!=NULL);
 
@@ -1624,9 +1643,9 @@ FONT_MATRIX *AutoCodeHZ2LCM(unsigned short data)
 //* ���õ�ȫ�ֱ���      :
 //* �޸ĵ�ȫ�ֱ���      :
 //*----------------------------------------------------------------------------
-FONT_MATRIX *BCD2LCM(u_char data, u_char type)
+FONT_MATRIX *BCD2LCM(unsigned char data, unsigned char type)
 {
-	u_char temp;
+	unsigned char temp;
 	FONT_MATRIX *ret;
 	if(type)
 	{//����λ
@@ -1674,17 +1693,17 @@ FONT_MATRIX *BCD2LCM(u_char data, u_char type)
 //* ���õ�ȫ�ֱ���      : none
 //* �޸ĵ�ȫ�ֱ���      : none
 //*----------------------------------------------------------------------------
-void DisplayInteger(u_int integer,u_char row,u_char end_column,u_char len)
+void DisplayInteger(unsigned long integer,LINE_CMD row,unsigned char end_column,unsigned char len)
 {
-	u_int x=integer/10;
-	u_int y=integer;
-	u_char i=0;
-	u_char buf;
-	u_char m=end_column;
+	unsigned long x=integer/10;
+	unsigned long y=integer;
+	unsigned char i=0;
+	unsigned char buf;
+	unsigned char m=end_column;
 
 	do{
 		buf = y-x*10;
-		lcm_write_ez(row,m,BCD2LCM(buf,0));
+		lcd_write_matrix(row,m*NUM,BCD2LCM(buf,0),NUM);
 		y=y/10;
 		x=y/10;
 		i++;
@@ -1693,7 +1712,7 @@ void DisplayInteger(u_int integer,u_char row,u_char end_column,u_char len)
 	
 	int k;
 	for(k=i;k<len;k++){
-		lcm_write_ez(row,m,(FONT_MATRIX *)space);
+		lcd_write_matrix(row,m*NUM,(FONT_MATRIX *)space,NUM);
 		m--;
 	}
 }
@@ -1709,12 +1728,12 @@ void DisplayInteger(u_int integer,u_char row,u_char end_column,u_char len)
 //* ���õ�ȫ�ֱ���      : none
 //* �޸ĵ�ȫ�ֱ���      : none
 //*----------------------------------------------------------------------------
-void DisplayFloat(u_int Float,u_char row,u_char end_column,u_char len)
+void DisplayFloat(unsigned long Float,LINE_CMD row,unsigned char end_column,unsigned char len)
 {
-	u_int x=Float/10;
-	u_int y=Float;
-	u_char i=0,m,k;
-	u_char buf[10];
+	unsigned long x=Float/10;
+	unsigned long y=Float;
+	unsigned char i=0,m,k;
+	unsigned char buf[10];
 
 	do{
 		buf[i] = y-x*10;
@@ -1725,16 +1744,16 @@ void DisplayFloat(u_int Float,u_char row,u_char end_column,u_char len)
 	
 	i--;
 	m=end_column;
-	lcm_write_ez(row,m,BCD2LCM(buf[0],0));
+	lcd_write_matrix(row,m*NUM,BCD2LCM(buf[0],0),NUM);
 	m--;
-	lcm_write_ez(row,m,(FONT_MATRIX *)charater_point);
+	lcd_write_matrix(row,m*NUM,(FONT_MATRIX *)charater_point,NUM);
 	m--;
 	for(k=1;k<=i;k++){
-		lcm_write_ez(row,m,BCD2LCM(buf[k],0));
+		lcd_write_matrix(row,m*NUM,BCD2LCM(buf[k],0),NUM);
 		m--;
 	}
 	for(k=i+1;k<len;k++){
-		lcm_write_ez(row,m,(FONT_MATRIX *)space);
+		lcd_write_matrix(row,m*NUM,(FONT_MATRIX *)space,NUM);
 		m--;
 	}
 }
@@ -1750,48 +1769,48 @@ void DisplayFloat(u_int Float,u_char row,u_char end_column,u_char len)
 //* ���õ�ȫ�ֱ���      : none
 //* �޸ĵ�ȫ�ֱ���      : none
 //*----------------------------------------------------------------------------
-void DisplayDateTime(u_char flag,u_char row,u_char column)
+void DisplayDateTime(unsigned char flag,LINE_CMD row,unsigned char column)
 {
-	u_char m=column;
+	unsigned char m=column;
 	if(ClockVL)
-		lcm_write_ez(row,column-1,(FONT_MATRIX *)charater_xing);
+		lcd_write_matrix(row,(column-1)*NUM,(FONT_MATRIX *)charater_xing,NUM);
 	else
-		lcm_write_ez(row,column-1,(FONT_MATRIX *)space);
+		lcd_write_matrix(row,(column-1)*NUM,(FONT_MATRIX *)space,NUM);
 
 	if((flag & 0x20)!=0)
 	{	//��
-		lcm_write_ez(row,m,BCD2LCM(curTime.year,1));m++;
-		lcm_write_ez(row,m,BCD2LCM(curTime.year,0));m++;
-		lcm_write_ez(row,m,(FONT_MATRIX *)space);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.year,1),NUM);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.year,0),NUM);m++;
+		lcd_write_matrix(row,m*NUM,(FONT_MATRIX *)space,NUM);m++;
 	}
 	if((flag & 0x10)!=0)
 	{	//��
-		lcm_write_ez(row,m,BCD2LCM(curTime.month,1));m++;
-		lcm_write_ez(row,m,BCD2LCM(curTime.month,0));m++;
-		lcm_write_ez(row,m,(FONT_MATRIX *)space);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.month,1),NUM);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.month,0),NUM);m++;
+		lcd_write_matrix(row,m*NUM,(FONT_MATRIX *)space,NUM);m++;
 	}
 	if((flag & 0x08)!=0)
 	{	//��
-		lcm_write_ez(row,m,BCD2LCM(curTime.day,1));m++;
-		lcm_write_ez(row,m,BCD2LCM(curTime.day,0));m++;
-		lcm_write_ez(row,m,(FONT_MATRIX *)space);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.day,1),NUM);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.day,0),NUM);m++;
+		lcd_write_matrix(row,m*NUM,(FONT_MATRIX *)space,NUM);m++;
 	}
 	if((flag & 0x04)!=0)
 	{	//ʱ
-		lcm_write_ez(row,m,BCD2LCM(curTime.hour,1));m++;
-		lcm_write_ez(row,m,BCD2LCM(curTime.hour,0));m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.hour,1),NUM);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.hour,0),NUM);m++;
 	}
 	if((flag & 0x02)!=0)
 	{	//��
-		lcm_write_ez(row,m,(LCD_ZM *)digital_);m++;
-		lcm_write_ez(row,m,BCD2LCM(curTime.minute,1));m++;
-		lcm_write_ez(row,m,BCD2LCM(curTime.minute,0));m++;
+		lcd_write_matrix(row,m*NUM,(FONT_MATRIX *)digital_,NUM);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.minute,1),NUM);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.minute,0),NUM);m++;
 	}
 	if((flag & 0x01)!=0)
 	{	//��
-		lcm_write_ez(row,m,(LCD_ZM *)digital_);m++;
-		lcm_write_ez(row,m,BCD2LCM(curTime.second,1));m++;
-		lcm_write_ez(row,m,BCD2LCM(curTime.second,0));m++;
+		lcd_write_matrix(row,m*NUM,(FONT_MATRIX *)digital_,NUM);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.second,1),NUM);m++;
+		lcd_write_matrix(row,m*NUM,BCD2LCM(curTime.second,0),NUM);m++;
 	}
 }
 //*----------------------------------------------------------------------------
@@ -1807,10 +1826,10 @@ void DisplayDateTime(u_char flag,u_char row,u_char column)
 //*----------------------------------------------------------------------------
 void DisplaySpeedDimensoin()
 {
-	lcm_write_ez(1,9,(FONT_MATRIX *)charater_slash);
-	lcm_write_zimu(1,6,(FONT_MATRIX *)Letter_k);
-	lcm_write_zimu(1,7,(FONT_MATRIX *)Letter_m);
-//	lcm_write_zimu(1,8,(FONT_MATRIX *)Letter_h);
+	lcd_write_matrix(line3,9*NUM,(FONT_MATRIX *)charater_slash,NUM);
+	lcd_write_matrix(line3,6*NUM,(FONT_MATRIX *)Letter_k,NUM);
+	lcd_write_matrix(line3,7*NUM,(FONT_MATRIX *)Letter_m,NUM);
+//	lcd_write_matrix(1,8,(FONT_MATRIX *)Letter_h);
 	write_h();
 }
 //*----------------------------------------------------------------------------
@@ -1831,7 +1850,7 @@ void DisplayNormalUI()
 	last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
 	last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
 	
-	if((PIO_PDSR & USB_S_VCC) == USB_S_VCC)
+	//if((PIO_PDSR & USB_S_VCC) == USB_S_VCC)
 	{
 		 if(last_lcd_tcb.mode != USBComm)
 		 {
@@ -1840,12 +1859,12 @@ void DisplayNormalUI()
 			lcd_tcb.KeepTime = 0;
 			lcd_tcb.ListNb = 0;
 			lcd_tcb.NodeNb = 0;
-			lcm_clear_ram(ALL);
-//			lcm_write_zimu(1,4,(LCD_ZM *)Letter_U);
-//			lcm_write_zimu(1,5,(LCD_ZM *)Letter_S);
-//			lcm_write_zimu(1,6,(LCD_ZM *)Letter_B);
-			lcm_write_hz1(1,4,(FONT_MATRIX *)comm_tong);
-			lcm_write_hz1(1,5,(FONT_MATRIX *)comm_xun);
+			lcd_clear(lineall);
+//			lcd_write_matrix(1,4,(LCD_ZM *)Letter_U);
+//			lcd_write_matrix(1,5,(LCD_ZM *)Letter_S);
+//			lcd_write_matrix(1,6,(LCD_ZM *)Letter_B);
+			lcd_write_matrix(line3,4*NUM,(FONT_MATRIX *)comm_tong,HAN_ZI);
+			lcd_write_matrix(line3,5*NUM,(FONT_MATRIX *)comm_xun,HAN_ZI);
 		 }
 		 return;
 	}
@@ -1856,7 +1875,7 @@ void DisplayNormalUI()
 	
 	if(last_lcd_tcb.mode != Normal)
 	{
-		lcm_clear_ram(ALL);
+		lcd_clear(lineall);
 		lcd_tcb.mode = Normal;
 		lcd_tcb.KeepTime = 0;
 		lcd_tcb.ListNb = 0;
@@ -1864,41 +1883,41 @@ void DisplayNormalUI()
 	}
 	
 	if((CardIn == 2)&&(CurSpeed == 0))
-		DisplayInteger(PartitionTable_BASE->DriverCode,0,19,8);
+		DisplayInteger(PartitionTable_BASE->DriverCode,line2,19,8);
 	else
 //		DisplayDateTime(0x07,0,12);
 		DisplayAlarm();
 	if(CardIn)
 	{
-		lcm_write_ez(0,10,(FONT_MATRIX *)ch_sub);
-		lcm_write_ez(0,9,(FONT_MATRIX *)ch_bracket);
+		lcd_write_matrix(line2,10*NUM,(FONT_MATRIX *)ch_sub,NUM);
+		lcd_write_matrix(line2,9*NUM,(FONT_MATRIX *)ch_bracket,NUM);
 	}
 	else
 	{
-		lcm_write_ez(0,10,(FONT_MATRIX *)space);
-		lcm_write_ez(0, 9,(FONT_MATRIX *)space);
+		lcd_write_matrix(line2,10*NUM,(FONT_MATRIX *)space,NUM);
+		lcd_write_matrix(line2, 9*NUM,(FONT_MATRIX *)space,NUM);
 	}
 	if(pTable.InOSAlarmCycle)
-		DisplayInteger(RoadNb,0,8,0);
+		DisplayInteger(RoadNb,line2,8,0);
 	else
-		lcm_write_ez(0,8,(FONT_MATRIX *)space);
+		lcd_write_matrix(line2,8*NUM,(FONT_MATRIX *)space,NUM);
 	
 	//�ٶ�
 //	DisplayInteger(CurSpeed,1,2,3);
-	DisplaySpeed((u_char)CurSpeed);
+	DisplaySpeed((unsigned char)CurSpeed);
 	DisplaySpeedDimensoin();
 //	DisplayInteger(ClockType,0,8,3);
 
 /*	//״̬
-	u_int z;
+	unsigned long z;
 	int j;
 	for(j=8;j>=0;j--)
 	{
 		z=1<<j;
 		if((STATUS & z)==0)
-			lcm_write_ez(1,19-j,(LCD_ZM *)digital_0);
+			lcd_write_matrix(1,19-j,(LCD_ZM *)digital_0);
 		else
-			lcm_write_ez(1,19-j,(LCD_ZM *)digital_1);
+			lcd_write_matrix(1,19-j,(LCD_ZM *)digital_1);
 	}	
 */
 #if RPM_EN	
@@ -1906,10 +1925,10 @@ void DisplayNormalUI()
 #else
 	if((AlarmFlag & 0x0c)!=0)
 	{//��ʾ�������ʻ��	
-		lcm_write_hz1(1,6,(FONT_MATRIX *)lian);
-		lcm_write_hz1(1,7,(FONT_MATRIX *)xu);
-		lcm_write_hz1(1,8,(FONT_MATRIX *)driver_jia);
-		lcm_write_hz1(1,9,(FONT_MATRIX *)driver_shi);
+		lcd_write_matrix(line3,6*HAN_ZI,(FONT_MATRIX *)lian,HAN_ZI);
+		lcd_write_matrix(line3,7*HAN_ZI,(FONT_MATRIX *)xu,HAN_ZI);
+		lcd_write_matrix(line3,8*HAN_ZI,(FONT_MATRIX *)driver_jia,HAN_ZI);
+		lcd_write_matrix(line3,9*HAN_ZI,(FONT_MATRIX *)driver_shi,HAN_ZI);
 	}
 	else
 	{
@@ -1918,9 +1937,9 @@ void DisplayNormalUI()
 		DisplayInteger(LastPN[2],1,16,2);
 		DisplayInteger(LastPN[1],1,14,2);
 		DisplayInteger(LastPN[0],1,12,2);*/
-		DisplayFloat(Distance,1,16,5);
-		lcm_write_zimu(1,15,(FONT_MATRIX *)Letter_k);
-		lcm_write_zimu(1,16,(FONT_MATRIX *)Letter_m);
+		DisplayFloat(Distance,line3,16,5);
+		lcd_write_matrix(line3,15*ZIMU,(FONT_MATRIX *)Letter_k,ZIMU);
+		lcd_write_matrix(line3,16*ZIMU,(FONT_MATRIX *)Letter_m,ZIMU);
 	}
 #endif
 /*
@@ -1944,10 +1963,10 @@ DisplayInteger(LastPN[0],1,12,2);
 void DisplayEraseDataFlash()
 {
 	lcd_clear(lineall);
-	lcm_write_hz1(1,1,(FONT_MATRIX *)being_zheng);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)being_zai);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)update_geng);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)update_xin);
+	lcd_write_matrix(line2,HAN_ZI,(FONT_MATRIX *)being_zheng,HAN_ZI);
+	lcd_write_matrix(line2,2*HAN_ZI,(FONT_MATRIX *)being_zai,HAN_ZI);
+	lcd_write_matrix(line2,3*HAN_ZI,(FONT_MATRIX *)update_geng,HAN_ZI);
+	lcd_write_matrix(line2,4*HAN_ZI,(FONT_MATRIX *)update_xin,HAN_ZI);
 	lcd_tcb.mode = Normal;
 }
 void DisplayOK()
@@ -1957,7 +1976,7 @@ void DisplayOK()
 	lcd_clear(lineall);
 		p = (FONT_MATRIX **)working_ok;
 		do{
-			lcm_write_hz1(1,i,p[i]);
+			lcd_write_matrix(line3,i,p[i],ZIMU);
 			i++;
 		}while(p[i]!=NULL);
 
@@ -1965,37 +1984,37 @@ void DisplayOK()
 void DisplayError()
 {
 	lcd_clear(lineall);
-	lcm_write_hz1(1,1,(FONT_MATRIX *)error_gu);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)error_zhang);
+	lcd_write_matrix(line3,HAN_ZI,(FONT_MATRIX *)error_gu,HAN_ZI);
+	lcd_write_matrix(line3,2*HAN_ZI,(FONT_MATRIX *)error_zhang,HAN_ZI);
 }
 void DisplayClockError()
 {
 	lcd_clear(lineall);
-	lcm_write_hz1(1,1,(FONT_MATRIX *)time_shi);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)time_jian);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)error_cuo);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)error_wu);
+	lcd_write_matrix(line3,HAN_ZI,(FONT_MATRIX *)time_shi,HAN_ZI);
+	lcd_write_matrix(line3,2*HAN_ZI,(FONT_MATRIX *)time_jian,HAN_ZI);
+	lcd_write_matrix(line3,3*HAN_ZI,(FONT_MATRIX *)error_cuo,HAN_ZI);
+	lcd_write_matrix(line3,4*HAN_ZI,(FONT_MATRIX *)error_wu,HAN_ZI);
 }
 void Display_Scan_Udisk()
 {
 	lcd_clear(lineall);
-	lcm_write_hz1(1,1,(FONT_MATRIX *)scan_sao);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)scan_miao);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)udisk_u);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)udisk_pan);
+	lcd_write_matrix(line3,HAN_ZI,(FONT_MATRIX *)scan_sao,HAN_ZI);
+	lcd_write_matrix(line3,2*HAN_ZI,(FONT_MATRIX *)scan_miao,HAN_ZI);
+	lcd_write_matrix(line3,3*HAN_ZI,(FONT_MATRIX *)udisk_u,HAN_ZI);
+	lcd_write_matrix(line3,4*HAN_ZI,(FONT_MATRIX *)udisk_pan,HAN_ZI);
 }
 
 void Display_Save()
 {
 	lcd_clear(lineall);
-	lcm_write_hz1(0,0,(FONT_MATRIX *)being_zheng);
-	lcm_write_hz1(0,1,(FONT_MATRIX *)being_zai);
-	lcm_write_hz1(0,2,(FONT_MATRIX *)save_bao);
-	lcm_write_hz1(0,3,(FONT_MATRIX *)save_cun);
+	lcd_write_matrix(line2,0,(FONT_MATRIX *)being_zheng,HAN_ZI);
+	lcd_write_matrix(line2,HAN_ZI,(FONT_MATRIX *)being_zai,HAN_ZI);
+	lcd_write_matrix(line2,2*HAN_ZI,(FONT_MATRIX *)save_bao,HAN_ZI);
+	lcd_write_matrix(line2,3*HAN_ZI,(FONT_MATRIX *)save_cun,HAN_ZI);
 	////////////
-	lcm_write_ez ( 0, 19, (FONT_MATRIX *)percent);
-	lcm_write_ez ( 1, 0, (FONT_MATRIX *)process_bar1);
-	lcm_write_ez ( 0, 18, (FONT_MATRIX *)digital_1);
+	lcd_write_matrix ( line2, 19*HAN_ZI, (FONT_MATRIX *)percent,HAN_ZI);
+	lcd_write_matrix ( line3, 0, (FONT_MATRIX *)process_bar1,HAN_ZI);
+	lcd_write_matrix ( line2, 18*HAN_ZI, (FONT_MATRIX *)digital_1,HAN_ZI);
 	
 	////////////
 	
@@ -2005,137 +2024,137 @@ void Display_Fail()
 {
 	//lcm_clear_ram(LINE2);
 	lcd_clear(lineall);
-	lcm_write_hz1(1,1,(FONT_MATRIX *)operate_cao);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)operate_zuo);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)fail_shi);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)fail_bai);
+	lcd_write_matrix(line2,HAN_ZI,(FONT_MATRIX *)operate_cao,HAN_ZI);
+	lcd_write_matrix(line2,2*HAN_ZI,(FONT_MATRIX *)operate_zuo,HAN_ZI);
+	lcd_write_matrix(line2,3*HAN_ZI,(FONT_MATRIX *)fail_shi,HAN_ZI);
+	lcd_write_matrix(line2,4*HAN_ZI,(FONT_MATRIX *)fail_bai,HAN_ZI);
 }
 
 void Display_udisk_full()
 {
 	lcd_clear(lineall);
-	lcm_write_hz1(1,1,(FONT_MATRIX *)udisk_u);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)udisk_pan);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)udisk_kong);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)udisk_jian);
-	lcm_write_hz1(1,5,(FONT_MATRIX *)udisk_yi);
-	lcm_write_hz1(1,6,(FONT_MATRIX *)udisk_man);
+	lcd_write_matrix(line3,HAN_ZI,(FONT_MATRIX *)udisk_u,HAN_ZI);
+	lcd_write_matrix(line3,2*HAN_ZI,(FONT_MATRIX *)udisk_pan,HAN_ZI);
+	lcd_write_matrix(line3,3*HAN_ZI,(FONT_MATRIX *)udisk_kong,HAN_ZI);
+	lcd_write_matrix(line3,4*HAN_ZI,(FONT_MATRIX *)udisk_jian,HAN_ZI);
+	lcd_write_matrix(line3,5*HAN_ZI,(FONT_MATRIX *)udisk_yi,HAN_ZI);
+	lcd_write_matrix(line3,6*HAN_ZI,(FONT_MATRIX *)udisk_man,HAN_ZI);
 }
 void DisplayTestDoorFail()
 {
 	lcd_clear(lineall);
 
-	lcm_write_hz1(1,2,(FONT_MATRIX *)door_jian);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)door_ce);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)fail_shi);
-	lcm_write_hz1(1,5,(FONT_MATRIX *)fail_bai);
+	lcd_write_matrix(line3,2*HAN_ZI,(FONT_MATRIX *)door_jian,HAN_ZI);
+	lcd_write_matrix(line3,3*HAN_ZI,(FONT_MATRIX *)door_ce,HAN_ZI);
+	lcd_write_matrix(line3,4*HAN_ZI,(FONT_MATRIX *)fail_shi,HAN_ZI);
+	lcd_write_matrix(line3,5*HAN_ZI,(FONT_MATRIX *)fail_bai,HAN_ZI);
 }
 void DisplayTestDoorSucc()
 {
 	lcd_clear(lineall);
-	lcm_write_hz1(1,2,(FONT_MATRIX *)door_jian);
-	lcm_write_hz1(1,3,(FONT_MATRIX *)door_ce);
-	lcm_write_hz1(1,4,(FONT_MATRIX *)succ_cheng);
-	lcm_write_hz1(1,5,(FONT_MATRIX *)succ_gong);
+	lcd_write_matrix(line3,2*HAN_ZI,(FONT_MATRIX *)door_jian,HAN_ZI);
+	lcd_write_matrix(line3,3*HAN_ZI,(FONT_MATRIX *)door_ce,HAN_ZI);
+	lcd_write_matrix(line3,4*HAN_ZI,(FONT_MATRIX *)succ_cheng,HAN_ZI);
+	lcd_write_matrix(line3,5*HAN_ZI,(FONT_MATRIX *)succ_gong,HAN_ZI);
 }
 //add by panhui 2005-02-20, for ɽ�������б꼼��Ҫ��
 void DisplayAlarm()
 {
 	if((AlarmFlag & 0x03)!=0)
 	{//��ʾ�����١�
-		lcm_write_hz1(0,6,(FONT_MATRIX *)over_chao);
-		lcm_write_hz1(0,7,(FONT_MATRIX *)speed_su);
+		lcd_write_matrix(line2,6*HAN_ZI,(FONT_MATRIX *)over_chao,HAN_ZI);
+		lcd_write_matrix(line2,7*HAN_ZI,(FONT_MATRIX *)speed_su,HAN_ZI);
 		if(AlarmFlag & 0x01)
-			DisplayInteger(PARAMETER_BASE->LowSpeedLimit,0,19,4);
+			DisplayInteger(PARAMETER_BASE->LowSpeedLimit,line2,19,4);
 		else if(AlarmFlag & 0x02)
-			DisplayInteger(PARAMETER_BASE->HighSpeedLimit,0,19,4);
+			DisplayInteger(PARAMETER_BASE->HighSpeedLimit,line2,19,4);
 	}
 	else
-		DisplayDateTime(0x07,0,12);
+		DisplayDateTime(0x07,line2,12);
 }
 #if OpenDoorDeal
 void Display_TestDoor()
 {
 	//lcm_clear_ram(LINE2);
-	lcm_clear_ram(ALL);
-	lcm_write_hz1(1,1,(LCD_ZM *)door_jin);
-	lcm_write_hz1(1,2,(LCD_ZM *)door_xing);
-	lcm_write_hz1(1,3,(LCD_ZM *)door_zhong);
+	lcd_clear(lineall);
+	lcd_write_matrix(line3,HAN_ZI,(FONT_MATRIX *)door_jin,HAN_ZI);
+	lcd_write_matrix(line3,2*HAN_ZI,(FONT_MATRIX *)door_xing,HAN_ZI);
+	lcd_write_matrix(line3,3*HAN_ZI,(FONT_MATRIX *)door_zhong,HAN_ZI);
 }
 
 void Display_DoorNB()
 {
-	lcm_write_hz1(0,0,(LCD_ZM *)door_men);
-	lcm_write_ez(0,2,(LCD_ZM *)digital_1);
-	lcm_write_ez(0,3,(LCD_ZM *)space);
-	lcm_write_hz1(1,0,(LCD_ZM *)door_men);
-	lcm_write_ez(1,2,(LCD_ZM *)digital_2);
-	lcm_write_ez(1,3,(LCD_ZM *)space);
+	lcd_write_matrix(line2,0,(FONT_MATRIX *)door_men,HAN_ZI);
+	lcd_write_matrix(line2,2*ZIMU,(FONT_MATRIX *)digital_1,ZIMU);
+	lcd_write_matrix(line2,3*ZIMU,(FONT_MATRIX *)space,ZIMU);
+	lcd_write_matrix(line3,0,(FONT_MATRIX *)door_men,HAN_ZI);
+	lcd_write_matrix(line3,2*ZIMU,(FONT_MATRIX *)digital_2,ZIMU);
+	lcd_write_matrix(line3,3*ZIMU,(FONT_MATRIX *)space,ZIMU);
 }
 
-void Display_Test_No_Door(u_char doorNB)
+void Display_Test_No_Door(unsigned char doorNB)
 {
-	u_char raw;
+	LINE_CMD raw;
 	if(doorNB==1)
-		raw = 0;
+		raw =line2;
 	if(doorNB==2)
-		raw = 1;
-	lcm_write_hz1(raw,2,(LCD_ZM *)door_wei);
-	lcm_write_hz1(raw,3,(LCD_ZM *)door_jian);
-	lcm_write_hz1(raw,4,(LCD_ZM *)door_ce);
-	lcm_write_hz1(raw,5,(LCD_ZM *)door_dao);
+		raw = line3;
+	lcd_write_matrix(raw,2*HAN_ZI,(FONT_MATRIX *)door_wei,HAN_ZI);
+	lcd_write_matrix(raw,3*HAN_ZI,(FONT_MATRIX *)door_jian,HAN_ZI);
+	lcd_write_matrix(raw,4*HAN_ZI,(FONT_MATRIX *)door_ce,HAN_ZI);
+	lcd_write_matrix(raw,5*HAN_ZI,(FONT_MATRIX *)door_dao,HAN_ZI);
 }
 
-void Display_DoubleKeyLevel(u_char doorNB)
+void Display_DoubleKeyLevel(unsigned char doorNB)
 {
-	u_char raw;
+	LINE_CMD raw;
 	if(doorNB==1)
-		raw = 0;
+		raw = line2;
 	if(doorNB==2)
-		raw = 1;
-	lcm_write_hz1(raw,2,(LCD_ZM *)door_shuang);
-	lcm_write_hz1(raw,3,(LCD_ZM *)door_jian_key);
-	lcm_write_hz1(raw,4,(LCD_ZM *)door_dian);
-	lcm_write_hz1(raw,5,(LCD_ZM *)door_ping);
+		raw = line3;
+	lcd_write_matrix(raw,2*HAN_ZI,(FONT_MATRIX *)door_shuang,HAN_ZI);
+	lcd_write_matrix(raw,3*HAN_ZI,(FONT_MATRIX *)door_jian_key,HAN_ZI);
+	lcd_write_matrix(raw,4*HAN_ZI,(FONT_MATRIX *)door_dian,HAN_ZI);
+	lcd_write_matrix(raw,5*HAN_ZI,(FONT_MATRIX *)door_ping,HAN_ZI);
 }
 
-void Display_SingleKeyLevel(u_char doorNB)
+void Display_SingleKeyLevel(unsigned char doorNB)
 {
-	u_char raw;
+	LINE_CMD raw;
 	if(doorNB==1)
-		raw = 0;
+		raw = line2;
 	if(doorNB==2)
-		raw = 1;
-	lcm_write_hz1(raw,2,(LCD_ZM *)door_dan);
-	lcm_write_hz1(raw,3,(LCD_ZM *)door_jian_key);
-	lcm_write_hz1(raw,4,(LCD_ZM *)door_dian);
-	lcm_write_hz1(raw,5,(LCD_ZM *)door_ping);
+		raw = line3;
+	lcd_write_matrix(raw,2*HAN_ZI,(FONT_MATRIX *)door_dan,HAN_ZI);
+	lcd_write_matrix(raw,3*HAN_ZI,(FONT_MATRIX *)door_jian_key,HAN_ZI);
+	lcd_write_matrix(raw,4*HAN_ZI,(FONT_MATRIX *)door_dian,HAN_ZI);
+	lcd_write_matrix(raw,5*HAN_ZI,(FONT_MATRIX *)door_ping,HAN_ZI);
 }
 
-void Display_DoubleKeyPulse(u_char doorNB)
+void Display_DoubleKeyPulse(unsigned char doorNB)
 {
-	u_char raw;
+	LINE_CMD raw;
 	if(doorNB==1)
-		raw = 0;
+		raw = line2;
 	if(doorNB==2)
-		raw = 1;
-	lcm_write_hz1(raw,2,(LCD_ZM *)door_shuang);
-	lcm_write_hz1(raw,3,(LCD_ZM *)door_jian_key);
-	lcm_write_hz1(raw,4,(LCD_ZM *)door_mai);
-	lcm_write_hz1(raw,5,(LCD_ZM *)door_chong);
+		raw = line3;
+	lcd_write_matrix(raw,2*HAN_ZI,(FONT_MATRIX *)door_shuang,HAN_ZI);
+	lcd_write_matrix(raw,3*HAN_ZI,(FONT_MATRIX *)door_jian_key,HAN_ZI);
+	lcd_write_matrix(raw,4*HAN_ZI,(FONT_MATRIX *)door_mai,HAN_ZI);
+	lcd_write_matrix(raw,5*HAN_ZI,(FONT_MATRIX *)door_chong,HAN_ZI);
 }
 
-void Display_SingleKeyPulse(u_char doorNB)
+void Display_SingleKeyPulse(unsigned char doorNB)
 {
-	u_char raw;
+	LINE_CMD raw;
 	if(doorNB==1)
-		raw = 0;
+		raw = line2;
 	if(doorNB==2)
-		raw = 1;
-	lcm_write_hz1(raw,2,(LCD_ZM *)door_dan);
-	lcm_write_hz1(raw,3,(LCD_ZM *)door_jian_key);
-	lcm_write_hz1(raw,4,(LCD_ZM *)door_mai);
-	lcm_write_hz1(raw,5,(LCD_ZM *)door_chong);
+		raw = line3;
+	lcd_write_matrix(raw,2*HAN_ZI,(FONT_MATRIX *)door_dan,HAN_ZI);
+	lcd_write_matrix(raw,3*HAN_ZI,(FONT_MATRIX *)door_jian_key,HAN_ZI);
+	lcd_write_matrix(raw,4*HAN_ZI,(FONT_MATRIX *)door_mai,HAN_ZI);
+	lcd_write_matrix(raw,5*HAN_ZI,(FONT_MATRIX *)door_chong,HAN_ZI);
 }
 
 //*----------------------------------------------------------------------------
@@ -2150,15 +2169,15 @@ void Display_SingleKeyPulse(u_char doorNB)
 
 void DoorType()
 {
-	u_char raw;
+	unsigned char raw;
 	act_tcb.type = SHOW;
 	act_tcb.LineNumber = 1;
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcm_clear_ram(LINE2);
+
 	
-	lcm_clear_ram(ALL);
+	lcd_clear(lineall);
 	Display_DoorNB();
 	
 	switch(PARAMETER_BASE->Door1Type)

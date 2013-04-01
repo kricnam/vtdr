@@ -126,7 +126,7 @@ void rtthread_startup(void)
 
 int main(void)
 {
-	rt_uint32_t UNUSED level;
+	rt_uint32_t  level;
 
 	/* disable interrupt first */
 	level = rt_hw_interrupt_disable();
