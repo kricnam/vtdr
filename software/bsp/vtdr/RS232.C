@@ -3,74 +3,49 @@
 //* Object              : C program of RS232 communication
 //*----------------------------------------------------------------------------
 
-#include    "parts/r40807/reg_r40807.h"
-#include    "parts/r40807/lib_r40807.h"
-#include    "ibb3.h"
-#include    "RS232.h"
-#include    "sl811mheader.h"
+#include <stm32f10x_usart.h>
+#include "serial.h"
+#include    "RS232.H"
 #include    "lcd.h"
-//*232Í¨Ñ¶È«¾Ö±äÁ¿
-UsartDesc *RS232;
-u_char RSCmdrxBuf[CmdLength];
-u_char RSCmdtxBuf[CmdLength];
-u_char RSDatarxBuf[DataLength];
-u_char LargeDataBuffer[28*1024];//[360*65];
-u_int DataLengthReceived;
-u_char CheckSum;
-u_char SendCheckSum;
-u_char Schedule_Result = 0;
-u_char CloseUSART1Time = 0xff;
-//u_char SetTimeFlag = 0;
+#include    "application.h"
+#include <rtthread.h>
+#define CMDLENGTH 0x20
 
-extern u_char BCD2Char(u_char bcd);
-extern u_char GetOverTimeRecordIn2Days(OTDR *record);
+unsigned char RSCmdrxBuf[CMDLENGTH];
+unsigned char RSCmdtxBuf[CMDLENGTH];
+unsigned char RSDatarxBuf[DataLength];
+unsigned char LargeDataBuffer[28*1024];//[360*65];
+unsigned long DataLengthReceived;
+unsigned char CheckSum;
+unsigned char SendCheckSum;
+unsigned char Schedule_Result = 0;
+unsigned char CloseUSART1Time = 0xff;
+extern struct rt_device uart2_device;
+//unsigned char SetTimeFlag = 0;
+
+extern unsigned char BCD2Char(unsigned char bcd);
+extern unsigned char GetOverTimeRecordIn2Days(OTDR *record);
 
 extern CLOCK curTime;
 extern PartitionTable pTable;
-extern u_int PulseTotalNumber;
-extern u_char InRecordCycle;		//ÊÇ·ñÔÚ¼ÇÂ¼Êý¾Ý¹ý³ÌÖÐ
-extern u_char InFlashWriting;	//ÔÚFLASHÐ´ÖÜÆÚÖÐ
-extern u_char FinishFlag;
+extern unsigned long PulseTotalNumber;
+extern unsigned char InRecordCycle;		//ï¿½Ç·ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ý¹ï¿½ï¿½ï¿½ï¿½
+extern unsigned char InFlashWriting;	//ï¿½ï¿½FLASHÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+extern unsigned char FinishFlag;
 
-//*----------------------------------------------------------------------------
-//* Function Name            : rs232_status_ready
-//* Object                   : ÅÐ¶Ï232½Ó¿ÚÊÇ·ñ×¼±¸ºÃ
-//* Input Parameters         : status¡ª¡ª´æ·Å232½Ó¿Ú×´Ì¬¼Ä´æÆ÷(US_CSR)µÄÄÚ´æµ¥Ôª£»
-//*                          : mask¡ª¡ªÆÁ±ÎÎ»(0x01£ºRXRDY)
-//* Output Parameters        : ÊÇ·ñ×¼±¸ºÃ,"1"±íÊ¾receiver¾ÍÐ÷£¬
-//*                          : "0"±íÊ¾receiverÎ´¾ÍÐ÷»òµÈ´ý³¬¹ý½çÏÞ,±¾º¯ÊýµÄ½çÏÞÊÇ100´Î
-//* Global  Variable Quoted  : none
-//* Global  Variable Modified: none
-//*----------------------------------------------------------------------------
-int rs232_status_ready(u_int *status, u_int mask)
-{
-	int j;
-	j=0;
-	do
-	{
-		*status = at91_usart_get_status(RS232);
-		j++;
-	}while((((*status) & mask) != mask)&&(j<5000));
-	
-	if((j>=5000)&&(((*status)&mask)==0))
-	{
-		return FALSE;
-	}
-	return TRUE;
-}
 
 //*----------------------------------------------------------------------------
 //* Function Name            : Int2BCD
-//* Object              	 : Ê®½øÖÆÊý×ª»»ÎªBCDÂë
-//* Input Parameters    	 : ch¡ª¡ª´ý×ª»»µÄÊ®½øÖÆÊý
-//* Output Parameters   	 : ×ª»»ºóµÄBCDÂë
+//* Object              	 : Ê®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ÎªBCDï¿½ï¿½
+//* Input Parameters    	 : chï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½Ê®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Output Parameters   	 : ×ªï¿½ï¿½ï¿½ï¿½ï¿½BCDï¿½ï¿½
 //* Global  Variable Quoted  : none
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
-void Int2BCD(u_int ch, u_char *buf)
+void Int2BCD(unsigned long ch, unsigned char *buf)
 {
-	u_char d0,d1;
-	u_int x;
+	unsigned char d0,d1;
+	unsigned long x;
 	int i;
 	x=ch;
 	for(i=2;i>=0;i--)
@@ -86,15 +61,15 @@ void Int2BCD(u_int ch, u_char *buf)
 }
 //*----------------------------------------------------------------------------
 //* Function Name            : Char2BCD
-//* Object              	 : Ê®½øÖÆÊý×ª»»ÎªBCDÂë
-//* Input Parameters    	 : ch¡ª¡ª´ý×ª»»µÄÊ®½øÖÆÊý
-//* Output Parameters   	 : ×ª»»ºóµÄBCDÂë
+//* Object              	 : Ê®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ÎªBCDï¿½ï¿½
+//* Input Parameters    	 : chï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½Ê®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Output Parameters   	 : ×ªï¿½ï¿½ï¿½ï¿½ï¿½BCDï¿½ï¿½
 //* Global  Variable Quoted  : none
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
-u_char Char2BCD(u_char ch)
+unsigned char Char2BCD(unsigned char ch)
 {
-	u_char bcd,d0,d1;
+	unsigned char bcd,d0,d1;
 	d0 = ch%10;
 	d1 = (ch/10)<<4;
 	bcd = d1+d0;
@@ -102,13 +77,13 @@ u_char Char2BCD(u_char ch)
 	return(bcd);
 }
 //*----------------------------------------------------------------------------
-//* º¯ÊýÃû£ºIncreaseTime
-//* ¹¦ÄÜ£ºÈÕÆÚÊ±¼ä±äÁ¿¼ÓÒ»¸ö¸ø¶¨µÄÔöÁ¿£¨¸ÃÔöÁ¿¿ÉÕý¿É¸º£©
-//* ÊäÈë£ºdt¡ª¡ª ÈÕÆÚÊ±¼ä±äÁ¿
-//*     £ºinc¡ª¡ªÔöÁ¿(ÒÔ·ÖÖÓ¼Æ£¬¿ÉÕý¿É¸º)
-//* Êä³ö£ºÒÑ±»ÐÞ¸ÄµÄÈÕÆÚÊ±¼ä±äÁ¿Ö¸ÕëÖ¸ÏòµÄÊý¾Ý£¨dtÖ¸ÏòµÄÊý¾Ý£©
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿: none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿: none
+//* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½IncreaseTime
+//* ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¸ï¿½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½ë£ºdtï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½
+//*     ï¿½ï¿½incï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½Ô·ï¿½ï¿½Ó¼Æ£ï¿½ï¿½ï¿½ï¿½ï¿½É¸ï¿½)
+//* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½Þ¸Äµï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½dtÖ¸ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½: none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½: none
 //*----------------------------------------------------------------------------
 void IncreaseTime(DateTime *dt, int inc)
 {
@@ -211,14 +186,14 @@ void IncreaseTime(DateTime *dt, int inc)
 	dt->year=y;
 }
 //*----------------------------------------------------------------------------
-//* º¯ÊýÃû£ºHaveTime
-//* ¹¦ÄÜ£º¼ÆËãÁ½Ê±¼äÖ®¼äÏà²î¶àÉÙ·ÖÖÓ
-//* ÊäÈë£ºbigtime¡ª¡ªÊäÈëµÄÁ½¸öÊ±¼äÖÐ½Ï´óµÄÒ»¸ö£¬ÊÇº¯ÊýµÄµÚÒ»¸ö²ÎÊý,
-//*     £ºsmalltime¡ª¡ªÊäÈëµÄÁ½¸öÊ±¼äÖÐ½ÏÐ¡µÄÒ»¸ö£¬ÊÇº¯ÊýµÄµÚ¶þ¸ö²ÎÊý
-//* Êä³ö£ºÕý³£Çé¿ö(bigtime>smalltime)Êä³öbigtimeÓësmalltimeÖ®¼äÏà²îµÄ·ÖÖÓÊý
-//*     : Èç¹ûbigtime<smalltime,ÔòÊä³ö"-1"
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿: none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿: none
+//* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½HaveTime
+//* ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù·ï¿½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½ë£ºbigtimeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ð½Ï´ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Çºï¿½ï¿½ï¿½Äµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,
+//*     ï¿½ï¿½smalltimeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ð½ï¿½Ð¡ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Çºï¿½ï¿½ï¿½ÄµÚ¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(bigtime>smalltime)ï¿½ï¿½ï¿½bigtimeï¿½ï¿½smalltimeÖ®ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½
+//*     : ï¿½ï¿½ï¿½bigtime<smalltime,ï¿½ï¿½ï¿½ï¿½ï¿½"-1"
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½: none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½: none
 //*----------------------------------------------------------------------------
 int HaveTime(DateTime bigtime,DateTime smalltime)
 {
@@ -256,15 +231,15 @@ int HaveTime(DateTime bigtime,DateTime smalltime)
 
 //*----------------------------------------------------------------------------
 //* Function Name            : PrepareTime
-//* Object                   : ½«BCDÂëÐÎÊ½µÄÊ±¼äÊý¾Ý£¨ÄêÔÂÈÕÊ±·Ö£©×ª»»³É
-//*                          : Ê®½øÖÆÐÎÊ½µÄÊý¾Ý
-//* Input Parameters         : bcd_time¡ª¡ªÖ¸Ïò´æ·ÅBCDÂëÐÎÊ½µÄÊ±¼äÊý¾ÝµÄÊý×éÊ×µØÖ·µÄÖ¸Õë
-//*                          : dt¡ª¡ªÖ¸Ïò´æ·ÅÊ®½øÖÆÐÎÊ½Ê±¼äÊý¾ÝµÄ½á¹¹µÄÖ¸Õë
+//* Object                   : ï¿½ï¿½BCDï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½Ö£ï¿½×ªï¿½ï¿½ï¿½ï¿½
+//*                          : Ê®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters         : bcd_timeï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½BCDï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ýµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×µï¿½Ö·ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                          : dtï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Ê®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½Ê±ï¿½ï¿½ï¿½ï¿½ÝµÄ½á¹¹ï¿½ï¿½Ö¸ï¿½ï¿½
 //* Output Parameters        : none
 //* Global  Variable Quoted  : none
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
-void PrepareTime(u_char *bcd_time,DateTime *dt)
+void PrepareTime(unsigned char *bcd_time,DateTime *dt)
 {
 
 	dt->year = BCD2Char(bcd_time[0]);
@@ -275,62 +250,60 @@ void PrepareTime(u_char *bcd_time,DateTime *dt)
 
 //*----------------------------------------------------------------------------
 //* Function Name            : WriteDataTxTime
-//* Object                   : Ïò232½Ó¿ÚÐ´ÊµÊ±Ê±¼ä£¨ÓÃÓÚÉÏÔØÊµÊ±Ê±¼ä¡¢360Ð¡Ê±ÀÛ¼ÆÐÐÊ»Àï³ÌºÍ2¸öÈÕÀúÌìÀÛ¼ÆÐÐÊ»Àï³Ì£©
-//* Input Parameters         : cmd¡ª¡ªÃüÁî×Ö£¬ÓÃÓÚÇø·ÖÊÇºÎÃüÁî£¬
-//*                          : ÈôÎª0x02(ÉÏÔØÊµÊ±Ê±¼ä),ÔòÉÏÔØ¡°ÄêÔÂÈÕÊ±·ÖÃë¡±
-//*                          : Èô²»ÊÇ0x02£¬ÔòÉÏÔØ¡°ÄêÔÂÈÕÊ±·Ö¡±£¨¶ÔÓ¦360Ð¡Ê±ÀÛ¼ÆÐÐÊ»Àï³ÌºÍ2¸öÈÕÀúÌìÀÛ¼ÆÐÐÊ»Àï³Ì£©
+//* Object                   : ï¿½ï¿½232ï¿½Ó¿ï¿½Ð´ÊµÊ±Ê±ï¿½ä£¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÊµÊ±Ê±ï¿½ä¡¢360Ð¡Ê±ï¿½Û¼ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Ìºï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Û¼ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Ì£ï¿½
+//* Input Parameters         : cmdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Çºï¿½ï¿½ï¿½ï¿½î£¬
+//*                          : ï¿½ï¿½Îª0x02(ï¿½ï¿½ï¿½ï¿½ÊµÊ±Ê±ï¿½ï¿½),ï¿½ï¿½ï¿½ï¿½ï¿½Ø¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ë¡±
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½0x02ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦360Ð¡Ê±ï¿½Û¼ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Ìºï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Û¼ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Ì£ï¿½
 //* Output Parameters        : none
-//* Global  Variable Quoted  : curTime¡ª¡ªÊµÊ±Ê±¼ä£¬±¾º¯ÊýÖÐ½«ÆäÐ´Èë232½Ó¿Ú
+//* Global  Variable Quoted  : curTimeï¿½ï¿½ï¿½ï¿½ÊµÊ±Ê±ï¿½ä£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½232ï¿½Ó¿ï¿½
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
-void WriteDataTxTime(u_char cmd)
+void WriteDataTxTime(unsigned char cmd)
 {
-	//·¢ËÍÊµÊ±Ê±¼äÊý¾Ý¿é(BCDÂë)
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,(curTime.year));
+	//ï¿½ï¿½ï¿½ï¿½ÊµÊ±Ê±ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½(BCDï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &curTime.year, 1);
 	SendCheckSum = SendCheckSum^(curTime.year);
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,(curTime.month));
+
+	rt_device_write(&uart2_device, 0, &curTime.month, 1);
 	SendCheckSum = SendCheckSum^(curTime.month);
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,(curTime.day));
+
+	rt_device_write(&uart2_device, 0, &curTime.day, 1);
 	SendCheckSum = SendCheckSum^(curTime.day);
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,(curTime.hour));
+
+	rt_device_write(&uart2_device, 0, &curTime.hour, 1);
 	SendCheckSum = SendCheckSum^(curTime.hour);
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,(curTime.minute));
+
+	rt_device_write(&uart2_device, 0, &curTime.minute, 1);
 	SendCheckSum = SendCheckSum^(curTime.minute);
 	if(cmd==0x02)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,(curTime.second));
+		rt_device_write(&uart2_device, 0, &curTime.second, 1);
 		SendCheckSum = SendCheckSum^(curTime.second);
 	}
 }
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_ALL_PARA
-//* Object                   : ÉÏÔØ²ÎÊý±íµÄÇ°256×Ö½Ú
+//* Object                   : ï¿½ï¿½ï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½Ç°256ï¿½Ö½ï¿½
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØ¼ÝÊ»Ô±´úÂë¼°¶ÔÓ¦µÄ»ú¶¯³µ¼ÝÊ»Ö¤ºÅÂëµÄÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½Ø¼ï¿½Ê»Ô±ï¿½ï¿½ï¿½ë¼°ï¿½ï¿½Ó¦ï¿½Ä»ï¿½ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void UpLoad_ALL_PARA()
 {
-	u_short i;
+	unsigned short i;
 	StructPara para;
 	PartitionTable part;
-	u_char *p;
+	unsigned char *p;
 	para = *PARAMETER_BASE;
 	part = *PartitionTable_BASE;
-	p = (u_char *)(&para);   
+	p = (unsigned char *)(&para);
 
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x14;
@@ -338,11 +311,8 @@ void UpLoad_ALL_PARA()
 	RSCmdtxBuf[4] = 0x00;
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0x55^0x7a^0x14^0x01^0x00^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
+
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 
 	para.time.year = curTime.year;
 	para.time.month = curTime.month;
@@ -357,15 +327,13 @@ void UpLoad_ALL_PARA()
 	
 	for(i = 0; i < 256;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,*p);
+		rt_device_write(&uart2_device, 0, p, 1);
 		SendCheckSum = SendCheckSum^(*p);
 		p++;
 	}	
 
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 	
 	Modify_LastUploadTime();
 }
@@ -373,24 +341,23 @@ void UpLoad_ALL_PARA()
 
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_DriverCode
-//* Object                   : ÉÏÔØ¼ÝÊ»Ô±´úÂë¼°¶ÔÓ¦µÄ»ú¶¯³µ¼ÝÊ»Ö¤ºÅÂë£¨³£Á¿£©£¬
-//*                          : ´ýÉÏÔØÊý¾ÝÖ±½Ó´Ó¼ÇÂ¼ÒÇÊý¾Ý´æ´¢Æ÷µÄ²ÎÊý±íÖÐÈ¡µÃ£¬
-//*                          : ÃüÁî×ÖÎª0x01
+//* Object                   : ï¿½ï¿½ï¿½Ø¼ï¿½Ê»Ô±ï¿½ï¿½ï¿½ë¼°ï¿½ï¿½Ó¦ï¿½Ä»ï¿½ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ë£¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ó´Ó¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½Ã£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x01
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØ¼ÝÊ»Ô±´úÂë¼°¶ÔÓ¦µÄ»ú¶¯³µ¼ÝÊ»Ö¤ºÅÂëµÄÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½Ø¼ï¿½Ê»Ô±ï¿½ï¿½ï¿½ë¼°ï¿½ï¿½Ó¦ï¿½Ä»ï¿½ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void UpLoad_DriverCode()
 {
-	u_int i;
+	unsigned long i;
 	PartitionTable *para = PartitionTable_BASE;
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x01;
@@ -398,52 +365,46 @@ void UpLoad_DriverCode()
 	RSCmdtxBuf[4] = 0x15;
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0x55^0x7a^0x01^0x00^0x15^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
+
+		rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 		
-	//·¢ËÍ12×Ö½ÚµÄÉÏÔØÊý¾Ý¿é£¬ÆäÖÐ1¡«3Îª¼ÝÊ»Ô±´úÂë(ÓÉ¸ßÎ»µ½µÍÎ»)£¬
-	//4¡«12Îª»ú¶¯³µ¼ÝÊ»Ö¤ºÅÂë(BCDÂë)
+
+	//ï¿½ï¿½ï¿½ï¿½12ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿é£¬ï¿½ï¿½ï¿½ï¿½1ï¿½ï¿½3Îªï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ï¿½(ï¿½É¸ï¿½Î»ï¿½ï¿½ï¿½ï¿½Î»)ï¿½ï¿½
+	//4ï¿½ï¿½12Îªï¿½ï¿½ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½(BCDï¿½ï¿½)
 	for(i = 0; i < 3;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,(u_char)((para->DriverCode) >> ((2-i)*8)));
-		SendCheckSum = SendCheckSum^((u_char)((para->DriverCode) >> ((2-i)*8)));
+		rt_device_write(&uart2_device, 0, &((para->DriverCode) >> ((2-i)*8)), 1);
+		SendCheckSum = SendCheckSum^((unsigned char)((para->DriverCode) >> ((2-i)*8)));
 	}
 	for(i = 0; i < 18;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,((para->DriverLisenseCode)[i]));
+		rt_device_write(&uart2_device, 0, &((para->DriverLisenseCode)[i]), 1);
 		SendCheckSum = SendCheckSum^((para->DriverLisenseCode)[i]);
 	}
 
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 	
 	Modify_LastUploadTime();
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_RealTime
-//* Object                   : ÉÏÔØÊµÊ±Ê±¼ä£¬Êý¾Ý´æÔÚÓÚÈ«¾Ö±äÁ¿curTimeÖÐ£¬
-//*                          : ÃüÁî×ÖÎª0x02
+//* Object                   : ï¿½ï¿½ï¿½ï¿½ÊµÊ±Ê±ï¿½ä£¬ï¿½ï¿½Ý´ï¿½ï¿½ï¿½ï¿½ï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½curTimeï¿½Ð£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x02
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØÊµÊ±Ê±¼äµÄÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½ÊµÊ±Ê±ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void UpLoad_RealTime()
 {
-	u_int i;
+	unsigned long i;
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x02;
@@ -451,61 +412,56 @@ void UpLoad_RealTime()
 	RSCmdtxBuf[4] = 0x06;
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0x55^0x7a^0x02^0x00^0x06^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 		
 	WriteDataTxTime(RSCmdrxBuf[2]);
 	
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 	
 	Modify_LastUploadTime();
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_TotalDistance360h
-//* Object                   : ÉÏÔØ×î½ü360Ð¡Ê±ÄÚµÄÀÛ¼ÆÐÐÊ»Àï³Ì£¬ÐèÒª½«ÄÚ´æÖÐ
-//*                          : ¼ÇÂ¼µÄÊý¾ÝÌôÑ¡¡¢ÅÐ¶Ï¡¢ÀÛ¼Ó¡¢¼ÆËãºó²ÅÄÜÊä³ö£¬
-//*                          : ×î½ü360Ð¡Ê±µÄÀÛ¼ÆÂö³åÊý´æÓÚÁÙÊ±±äÁ¿BufÖÐ£¬
-//*                          : ¼ÆËãºóµÃ³öµÄÀÛ¼ÆÀï³Ì´æÓÚÁÙÊ±±äÁ¿disbufÖÐ£¬
-//*                          : ¶ÔÀÛ¼ÆÀï³ÌµÄ·¢ËÍÊÇÏÈ¸ß×Ö½ÚºóµÍ×Ö½Ú£¬
-//*                          : ÃüÁî×ÖÎª0x03
+//* Object                   : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½Úµï¿½ï¿½Û¼ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Ì£ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Ð¶Ï¡ï¿½ï¿½Û¼Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½ï¿½ï¿½Û¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Bufï¿½Ð£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½Ã³ï¿½ï¿½ï¿½ï¿½Û¼ï¿½ï¿½ï¿½Ì´ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½disbufï¿½Ð£ï¿½
+//*                          : ï¿½ï¿½ï¿½Û¼ï¿½ï¿½ï¿½ÌµÄ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¸ï¿½ï¿½Ö½Úºï¿½ï¿½ï¿½Ö½Ú£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x03
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØ×î½ü360Ð¡Ê±ÀÛ¼ÆÐÐÊ»Àï³ÌµÄÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½Û¼ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Ìµï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 /*void UpLoad_TotalDistance360h()
 {
 	int TimeIntervalSum,Nb;
 	int i,j,TimeInterval;
-	u_int curPointer;
-	u_int TimeLimit;
+	unsigned long curPointer;
+	unsigned long TimeLimit;
 	OTDR record;
 	OTDR_start last_start;
-	u_int Buf;
+	unsigned long Buf;
 	StructPT spt;
 	DateTime BigTime,SmallTime,BigTime1,SmallTime1;
-	u_char disbuf[3];
+	unsigned char disbuf[3];
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 #if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 #endif	
-	u_char StartTimeBuf[6];
-	u_char StopTimeBuf[6];
+	unsigned char StartTimeBuf[6];
+	unsigned char StopTimeBuf[6];
 	int offset;
 	spt = pTable.RunRecord360h;
 
-	//ÖÃ³õÖµ
+	//ï¿½Ã³ï¿½Öµ
 	Buf = 0;
 	SendCheckSum=0;
 	TimeIntervalSum = 0;
@@ -515,7 +471,7 @@ void UpLoad_RealTime()
 	
 	do
 	{
-		//È¡³öµ±Ç°¼ÇÂ¼ÊÇ²»ÕýÈ·µÄ
+		//È¡ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½Ç²ï¿½ï¿½ï¿½È·ï¿½ï¿½
 		if(!GetOTDR(curPointer,&(record.start), &(record.end)))
 		{
 			offset = -1;
@@ -523,12 +479,12 @@ void UpLoad_RealTime()
 			spt.CurPoint = curPointer;
 			continue;
 		}		
-		PrepareTime((u_char *)(&(record.end.dt.year)),&BigTime1);
-		PrepareTime((u_char *)(&(record.start.dt.year)),&SmallTime1);
+		PrepareTime((unsigned char *)(&(record.end.dt.year)),&BigTime1);
+		PrepareTime((unsigned char *)(&(record.start.dt.year)),&SmallTime1);
 		TimeInterval = HaveTime(BigTime1,SmallTime1);
 		if(TimeInterval<0)
 		{
-			//ÐÞ¸ÄÖ¸Õë
+			//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 			offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 			curPointer = AddPointer(&spt, offset);
 			spt.CurPoint = curPointer;
@@ -537,16 +493,16 @@ void UpLoad_RealTime()
 		}	
 
 		if(last_start.dt.type==0xafaf)
-			PrepareTime((u_char *)(&(last_start.dt.year)),&BigTime);
+			PrepareTime((unsigned char *)(&(last_start.dt.year)),&BigTime);
 		else
-			PrepareTime((u_char *)(&curTime),&BigTime);
+			PrepareTime((unsigned char *)(&curTime),&BigTime);
 		
-		//¼ÆËãµ±Ç°¼ÇÂ¼ÓëÉÏÒ»Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î	
-		PrepareTime((u_char *)(&(record.end.dt.year)),&SmallTime);
+		//ï¿½ï¿½ï¿½ãµ±Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½	
+		PrepareTime((unsigned char *)(&(record.end.dt.year)),&SmallTime);
 		TimeInterval = HaveTime(BigTime,SmallTime);
 		if(TimeInterval < 0)
 		{
-			//ÐÞ¸ÄÖ¸Õë
+			//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 			offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 			curPointer = AddPointer(&spt, offset);
 			spt.CurPoint = curPointer;
@@ -563,7 +519,7 @@ void UpLoad_RealTime()
 		
 		if(TimeIntervalSum >=TimeLimit)
 			break;
-		//ÐÞ¸ÄÖ¸Õë
+		//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 		offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 		curPointer = AddPointer(&spt, offset);
 		spt.CurPoint = curPointer;
@@ -571,13 +527,13 @@ void UpLoad_RealTime()
 		last_start = record.start;		
 	}while((TimeIntervalSum <= 360*60)&&(pTable.RunRecord360h.CurPoint!=curPointer));
 	
-	//ÓÉÂö³åÊýËã³öÀï³Ì
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	Buf = ComputeDistance100m(Buf);
-	disbuf[0]=(u_char)(Buf>>16);
-	disbuf[1]=(u_char)(Buf>>8);
-	disbuf[2]=(u_char)(Buf);
+	disbuf[0]=(unsigned char)(Buf>>16);
+	disbuf[1]=(unsigned char)(Buf>>8);
+	disbuf[2]=(unsigned char)(Buf);
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x03;
@@ -590,23 +546,23 @@ void UpLoad_RealTime()
 		at91_usart_write(RS232,RSCmdtxBuf[i]);
 		SendCheckSum = SendCheckSum^RSCmdtxBuf[i];
 	}
-	//·¢ËÍÉÏÔØÊý¾Ý¿é
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 	for(i = 0;i < 3;i++)
 	{
 		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
 		at91_usart_write(RS232,disbuf[i]);
 		SendCheckSum = SendCheckSum^(disbuf[i]);
 	}
-	//·¢ËÍÊý¾Ý¶Á³öÊ±¿Ì
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 	WriteDataTxTime(RSCmdrxBuf[2]);
 	
-	//·¢ËÍÐ£ÑéºÍ
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
 	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
 	at91_usart_write(RS232,SendCheckSum);
 	
 	Modify_LastUploadTime();
 	
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 #if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -617,24 +573,24 @@ void UpLoad_TotalDistance360h()
 {
 	int offset,i,j,TimeInterval;
 	StructPT spt;
-	u_char NoDataFlag=0;                //Êý¾ÝÇøÎÞ¼ÇÂ¼±êÖ¾
-	u_char ReadOTDRFlag = 0;            //¶Á¼ÇÂ¼±êÖ¾
-	u_char InOTDRFlag = 0;              //ÔÚÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼ÖÐ¼ä±êÖ¾
-	u_char FilledNB = 0;                //60×Ö½ÚÖÐÒÑ¾­Ìî³äµÄ×Ö½ÚÊý
-	u_char FirstRead = 1;               //¶ÁµÚÒ»Ìõ¼ÇÂ¼±êÖ¾
-	u_int curPointer,Old_Pointer,Mid_Pointer;   //DataFlashÖÐµÄÖ¸Õë
+	unsigned char NoDataFlag=0;                //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Þ¼ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned char ReadOTDRFlag = 0;            //ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned char InOTDRFlag = 0;              //ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½Ð¼ï¿½ï¿½Ö¾
+	unsigned char FilledNB = 0;                //60ï¿½Ö½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½
+	unsigned char FirstRead = 1;               //ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned long curPointer,Old_Pointer,Mid_Pointer;   //DataFlashï¿½Ðµï¿½Ö¸ï¿½ï¿½
 	OTDR cur_record,Last_Record;
-	u_short hourNB = 0;                 //360Ð¡Ê±¼ÆÊýÆ÷
-	u_int CurRemainMinuteNB;            //µ±Ç°Ê£Óà·ÖÖÓÊý
-	u_int temp;
+	unsigned short hourNB = 0;                 //360Ð¡Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long CurRemainMinuteNB;            //ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long temp;
 	CLOCK StartTime;
 	CLOCK current_time;
 	DateTime BigTime,SmallTime;
-	u_int rhr;
-	u_int Buf;
-	u_char disbuf[3];
+	unsigned long rhr;
+	unsigned long Buf;
+	unsigned char disbuf[3];
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
@@ -645,7 +601,7 @@ void UpLoad_TotalDistance360h()
 	Buf = 0;
 	SendCheckSum=0;
 
-	//Êý¾ÝÇøÃ»ÓÐºÏ·¨¼ÇÂ¼
+	//ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ÐºÏ·ï¿½ï¿½ï¿½Â¼
 	if(GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(cur_record.start), &(cur_record.end)))
 	{
 		CurRemainMinuteNB = cur_record.end.MinuteNb;
@@ -655,54 +611,54 @@ void UpLoad_TotalDistance360h()
 		
 		do
 		{
-			//ÓÐ¶Á¼ÇÂ¼±êÖ¾
+			//ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 			if(ReadOTDRFlag)
 			{
-				//Ã»ÓÐ³É¹¦¶ÁÈëÆ£ÀÍ¼ÇÂ¼£¬²¹×îºó65×Ö½Ú²¢½áÊø
+				//Ã»ï¿½Ð³É¹ï¿½ï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½65ï¿½Ö½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½
 				if(!GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(Last_Record.start), &(Last_Record.end)))
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-					//»ñÈ¡Ê£Óà·ÖÖÓÊýµÄÊý¾Ý×°ÈëÄÚ´æ
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+					//ï¿½ï¿½È¡Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½Ú´ï¿½
 	//				Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 					hourNB++;
 					break;
 				}
-				//³É¹¦¶ÁÈëÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
+				//ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
 				else
 				{
 					Buf += Last_Record.end.TotalDistance;
 					spt.CurPoint = Old_Pointer;
 					FirstRead = 0;
-					//¼ÆËãÁ½Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î
-					PrepareTime((u_char *)(&(cur_record.start.dt.year)),&BigTime);
-					PrepareTime((u_char *)(&(Last_Record.end.dt.year)),&SmallTime);
+					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½
+					PrepareTime((unsigned char *)(&(cur_record.start.dt.year)),&BigTime);
+					PrepareTime((unsigned char *)(&(Last_Record.end.dt.year)),&SmallTime);
 					TimeInterval = HaveTime(BigTime,SmallTime);
-					//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ô´óÓÚ60·ÖÖÓ
+					//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 					if((TimeInterval+FilledNB)>=60)
 					{
-						ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+						ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 	//					Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 	//					for(i=0;i<60;i++)
 	//						Buf60Bytes[i] = 0;
 						hourNB++;
 						InOTDRFlag = 0;
-						//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+						//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 						CurRemainMinuteNB = Last_Record.end.MinuteNb;
 						RefreshCurTime((CLOCK *)(&(Last_Record.end.dt.year)),&current_time);
 						ReadOTDRFlag = 0;				
 						continue;
 					}
-					//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ôÐ¡ÓÚ60·ÖÖÓ
+					//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 					else if((TimeInterval+FilledNB)<60)
 					{
 						if((TimeInterval+FilledNB+Last_Record.end.MinuteNb)>=60)
 						{
-							ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+							ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 							temp = 60-TimeInterval-FilledNB;
 							Old_Pointer = AddPointer(&spt, -sizeof(OTDR_end));
 							spt.CurPoint = Old_Pointer;
 							offset = 0-temp;
-	//						GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,Buf60Bytes);
+	//						GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,Buf60Bytes);
 	//						Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);			
 	//						for(i=0;i<60;i++)
 	//							Buf60Bytes[i] = 0;
@@ -711,7 +667,7 @@ void UpLoad_TotalDistance360h()
 							spt.CurPoint = Old_Pointer;
 							hourNB++;
 							InOTDRFlag = 1;
-							//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+							//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 							CurRemainMinuteNB = Last_Record.end.MinuteNb-temp;
 							RefreshCurTime(&StartTime,&current_time);	
 							ReadOTDRFlag = 0;
@@ -724,12 +680,12 @@ void UpLoad_TotalDistance360h()
 							spt.CurPoint = Old_Pointer;
 	//						offset = 0-Last_Record.end.MinuteNb;
 	//						j = 60-TimeInterval-FilledNB-Last_Record.end.MinuteNb;
-	//						GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[j]));
+	//						GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[j]));
 							offset = 0-sizeof(OTDR_start)-Last_Record.end.MinuteNb;
 							Old_Pointer = AddPointer(&spt, offset);
 							spt.CurPoint = Old_Pointer;
 							ReadOTDRFlag = 1;
-							//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+							//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 							RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
 							FilledNB = TimeInterval+FilledNB+Last_Record.end.MinuteNb;
 							continue;
@@ -737,20 +693,20 @@ void UpLoad_TotalDistance360h()
 					}
 				}
 			}
-			//Ã»ÓÐ¶Á¼ÇÂ¼±êÖ¾
+			//Ã»ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 			if(!ReadOTDRFlag)
 			{
-				//µ±Ç°Ê£Óà·ÖÖÓÊý´óÓÚ60
+				//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60
 				if(CurRemainMinuteNB > 60)
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-					//»ñÈ¡±¾Ð¡Ê±µÄ60·ÖÖÓÊý¾Ý´æÈëBuf60Bytes
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+					//ï¿½ï¿½È¡ï¿½ï¿½Ð¡Ê±ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½Buf60Bytes
 					if(!InOTDRFlag)
 					{
 						Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
 						spt.CurPoint = Old_Pointer;
 					}
-	//				GetOTDRDataFromFlash((u_short *)Old_Pointer,-60,Buf60Bytes);
+	//				GetOTDRDataFromFlash((unsigned short *)Old_Pointer,-60,Buf60Bytes);
 					Old_Pointer = AddPointer(&spt, -60);
 					Mid_Pointer = Old_Pointer;
 					spt.CurPoint = Old_Pointer;
@@ -759,19 +715,19 @@ void UpLoad_TotalDistance360h()
 	//					Buf60Bytes[i] = 0;
 					hourNB++;
 					InOTDRFlag = 1;
-					//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+					//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 					CurRemainMinuteNB -= 60;
 					RefreshCurTime(&StartTime,&current_time);				
 					continue;
 				}
-				//µ±Ç°Ê£Óà·ÖÖÓÊýÐ¡ÓÚ60
+				//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60
 				else
 				{
-					//ÖÃ¶Á¼ÇÂ¼±êÖ¾
+					//ï¿½Ã¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 					ReadOTDRFlag = 1;
-					if(!FirstRead)//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+					if(!FirstRead)//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
-					//²¹³ä²¿·ÖÊý¾ÝÈë60×Ö½Ú»º³åÇø
+					//ï¿½ï¿½ï¿½ä²¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½Ö½Ú»ï¿½ï¿½ï¿½ï¿½ï¿½
 					if(!InOTDRFlag)
 					{
 						Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
@@ -781,7 +737,7 @@ void UpLoad_TotalDistance360h()
 	//				if(offset!=0)
 	//				{
 	//					temp = 60-CurRemainMinuteNB;
-	//					GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
+	//					GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
 	//				}
 					Old_Pointer = AddPointer(&spt, offset-sizeof(OTDR_start));
 					spt.CurPoint = Old_Pointer;
@@ -792,43 +748,39 @@ void UpLoad_TotalDistance360h()
 		}while((hourNB<=360)&&(pTable.RunRecord360h.CurPoint!=Old_Pointer));
 	}
 	
-	//ÓÉÂö³åÊýËã³öÀï³Ì
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	Buf = ComputeDistance100m(Buf);
 	Int2BCD(Buf, disbuf);
-/*	disbuf[0]=(u_char)(Buf>>16);
-	disbuf[1]=(u_char)(Buf>>8);
-	disbuf[2]=(u_char)(Buf);*/
+/*	disbuf[0]=(unsigned char)(Buf>>16);
+	disbuf[1]=(unsigned char)(Buf>>8);
+	disbuf[2]=(unsigned char)(Buf);*/
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x03;
 	RSCmdtxBuf[3] = 0x00;
 	RSCmdtxBuf[4] = 0x08;
 	RSCmdtxBuf[5] = 0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-		SendCheckSum = SendCheckSum^RSCmdtxBuf[i];
-	}
-	//·¢ËÍÉÏÔØÊý¾Ý¿é
+	SendCheckSum = 0x55^0x7a^0x03^0x00^0x08^0x00;
+
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 	for(i = 0;i < 3;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,disbuf[i]);
+
+		rt_device_write(&uart2_device, 0, &disbuf[i], 1);
 		SendCheckSum = SendCheckSum^(disbuf[i]);
 	}
-	//·¢ËÍÊý¾Ý¶Á³öÊ±¿Ì
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 	WriteDataTxTime(RSCmdrxBuf[2]);
 	
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum[i], 1);
 	
 	Modify_LastUploadTime();
 	
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 #if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -836,24 +788,24 @@ void UpLoad_TotalDistance360h()
 }
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_CHCO
-//* Object                   : ÉÏÔØ³µÁ¾ÌØÕ÷ÏµÊý£¨³£Á¿£©£¬
-//*                          : ´ýÉÏÔØÊý¾ÝÖ±½Ó´Ó¼ÇÂ¼ÒÇÊý¾Ý´æ´¢Æ÷µÄ²ÎÊý±íÖÐÈ¡µÃ£¬
-//*                          : ÃüÁî×ÖÎª0x04
+//* Object                   : ï¿½ï¿½ï¿½Ø³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ó´Ó¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½Ã£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x04
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØ³µÁ¾ÌØÕ÷ÏµÊýµÄÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½Ø³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void UpLoad_CHCO()
 {
-	u_int i;
+	unsigned long i;
 	StructPara *para = PARAMETER_BASE;
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x04;
@@ -861,38 +813,32 @@ void UpLoad_CHCO()
 	RSCmdtxBuf[4] = 0x03;
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0x55^0x7a^0x04^0x00^0x03^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 		
-	//·¢ËÍ3×Ö½ÚµÄÉÏÔØÊý¾Ý¿é
+	//ï¿½ï¿½ï¿½ï¿½3ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 	for(i = 0; i < 3;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,(u_char)((para->CHCO) >> ((2-i)*8)));
-		SendCheckSum = SendCheckSum^((u_char)((para->CHCO) >> ((2-i)*8)));
+		rt_device_write(&uart2_device, 0, &((unsigned char)((para->CHCO) >> ((2-i)*8))), 1);
+		SendCheckSum = SendCheckSum^((unsigned char)((para->CHCO) >> ((2-i)*8)));
 	}
 
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum ,1);
 	Modify_LastUploadTime();
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name            : ComputeTimeBeforeX
-//* Object                   : ¼ÆËãÄ³Ò»Ê±¿ÌÖ®Ç°Ò»¶¨Ê±¼äµÄÊ±¿ÌÖµ
-//* Input Parameters         : ct¡ª¡ªÖ¸Ïò»ù´¡Ê±¼ä£¨ÄêÔÂÈçÊ±·ÖÃëµÄ½á¹¹£©µÄÖ¸Õë
-//*                          : dt¡ª¡ªÖ¸Ïò¼ÆËã³öµÄÊ±¼ä½á¹û£¨ÄêÔÂÈçÊ±·ÖÃëµÄ½á¹¹£©µÄÖ¸Õë
-//*                          : timeinterval¡ª¡ªÊ±¼ä¼ä¸ô£¨ÒÔ·ÖÖÓ¼Æ£©£¬
-//*                          : Ê±¼äÏòÇ°ÍÆÎªÕý,timeinterval²»ÄÜÎª¸º
+//* Object                   : ï¿½ï¿½ï¿½ï¿½Ä³Ò»Ê±ï¿½ï¿½Ö®Ç°Ò»ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Öµ
+//* Input Parameters         : ctï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ê±ï¿½ä£¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ä½á¹¹ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                          : dtï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ä½á¹¹ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                          : timeintervalï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô·ï¿½ï¿½Ó¼Æ£ï¿½ï¿½ï¿½
+//*                          : Ê±ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Îªï¿½ï¿½,timeintervalï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½
 //* Output Parameters        : none
 //* Global  Variable Quoted  : none
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
-void ComputeTimeBeforeX(CLOCK *ct,CLOCK *dt,u_int timeinterval)
+void ComputeTimeBeforeX(CLOCK *ct,CLOCK *dt,unsigned long timeinterval)
 {
 	DateTime TimeBeforeXBuf;
 		
@@ -910,19 +856,19 @@ void ComputeTimeBeforeX(CLOCK *ct,CLOCK *dt,u_int timeinterval)
 	dt->day = Char2BCD(TimeBeforeXBuf.day);
 	
 	hour = (TimeBeforeXBuf.time)/60;
-	dt->hour = Char2BCD((u_char)hour);
+	dt->hour = Char2BCD((unsigned char)hour);
 	dt->minute = Char2BCD(TimeBeforeXBuf.time-hour*60);
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name            : GetOneOTDRandModifyPointer
-//* Object                   : »ñÈ¡Ò»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼²¢ÐÞ¸ÄÖ¸Õë
+//* Object                   : ï¿½ï¿½È¡Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 //* Input Parameters         : 
 //* Output Parameters        : none
 //* Global  Variable Quoted  : none
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
-u_char GetOneOTDRandModifyPointer(u_int *p,u_int *old_p, OTDR_start *s, OTDR_end *e)
+unsigned char GetOneOTDRandModifyPointer(unsigned long *p,unsigned long *old_p, OTDR_start *s, OTDR_end *e)
 {
 	int offset,TimeInterval;
 	StructPT spt;
@@ -932,7 +878,7 @@ u_char GetOneOTDRandModifyPointer(u_int *p,u_int *old_p, OTDR_start *s, OTDR_end
 	
 	do
 	{
-		//È¡³öµ±Ç°¼ÇÂ¼ÊÇ²»ÕýÈ·µÄ
+		//È¡ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½Ç²ï¿½ï¿½ï¿½È·ï¿½ï¿½
 		if(!GetOTDR(*p,s,e))
 		{
 			offset = -1;
@@ -944,9 +890,9 @@ u_char GetOneOTDRandModifyPointer(u_int *p,u_int *old_p, OTDR_start *s, OTDR_end
 		offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+e->MinuteNb);
 		*p = AddPointer(&spt, offset);
 		spt.CurPoint = *p;
-		//ÅÐ¶Ï±¾Ìõ¼ÇÂ¼µÄÆðÊ¼Ê±¼äÊÇ·ñ´óÓÚ½áÊøÊ±¼ä
-		PrepareTime((u_char *)(&(e->dt.year)),&BigTime);
-		PrepareTime((u_char *)(&(s->dt.year)),&SmallTime);
+		//ï¿½Ð¶Ï±ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+		PrepareTime((unsigned char *)(&(e->dt.year)),&BigTime);
+		PrepareTime((unsigned char *)(&(s->dt.year)),&SmallTime);
 		TimeInterval = HaveTime(BigTime,SmallTime);
 		if(TimeInterval==-1)
 			continue;
@@ -959,18 +905,18 @@ u_char GetOneOTDRandModifyPointer(u_int *p,u_int *old_p, OTDR_start *s, OTDR_end
 
 
 
-void Write65ByteToSRAM(u_short hourNB,CLOCK *t,u_char *buf)
+void Write65ByteToSRAM(unsigned short hourNB,CLOCK *t,unsigned char *buf)
 {
-	u_char i;
-	u_int start = 65*hourNB;
-	//Ð´Ã¿Ð¡Ê±ÆðÊ¼Ê±¼äÈë»º³åÇø
+	unsigned char i;
+	unsigned long start = 65*hourNB;
+	//Ð´Ã¿Ð¡Ê±ï¿½ï¿½Ê¼Ê±ï¿½ï¿½ï¿½ë»ºï¿½ï¿½ï¿½ï¿½
 	LargeDataBuffer[start] = t->year;
 	LargeDataBuffer[start+1] = t->month;
 	LargeDataBuffer[start+2] = t->day;
 	LargeDataBuffer[start+3] = t->hour;
 	LargeDataBuffer[start+4] = t->minute;
 	
-	//Ð´60·ÖÖÓÊý¾ÝÈë»º³åÇø
+	//Ð´60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë»ºï¿½ï¿½ï¿½ï¿½
 	for(i=0;i<60;i++)
 		LargeDataBuffer[start+5+i] = buf[i];
 }
@@ -988,51 +934,51 @@ void RefreshCurTime(CLOCK *s,CLOCK *d)
 
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_Speed360h
-//* Object                   : ÉÏÔØ×î½ü360Ð¡Ê±ÄÚµÄÐÐÊ»ËÙ¶È£¬ÐèÒª½«ÄÚ´æÖÐ
-//*                          : ¼ÇÂ¼µÄÊý¾ÝÌôÑ¡¡¢ÅÐ¶Ï¡¢ÀÛ¼Ó¡¢¼ÆËãºó²ÅÄÜÊä³ö£¬
-//*                          : ×î½ü360Ð¡Ê±µÄÐÐÊ»ËÙ¶ÈÊý¾Ý´æÓÚÈ«¾Ö±äÁ¿LargeDataBufferÖÐ£¬
-//*                          : ×îÏÈ·¢ËÍµÄÊý¾Ý¿éÊÇËÙ¶ÈÊý¾Ý¶ÔÓ¦µÄÆðÊ¼Ê±¼ä£¬
-//*                          : ×ÜÊýÎª360*60µÄ360Ð¡Ê±ÐÐÊ»ËÙ¶ÈÊý¾Ý±»·ÖÎª6¿é·¢ËÍ£¬
-//*                          : Ã¿¿éµÄ³¤¶ÈÊÇ3607×Ö½Ú
-//*                          : ¶ÔÐÐÊ»ËÙ¶ÈµÄ·¢ËÍÊÇÏÈÔçÊ±¼äºóÍíÊ±¼ä£¬
-//*                          : ÃüÁî×ÖÎª0x05
+//* Object                   : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½Úµï¿½ï¿½ï¿½Ê»ï¿½Ù¶È£ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Ð¶Ï¡ï¿½ï¿½Û¼Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê»ï¿½Ù¶ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½LargeDataBufferï¿½Ð£ï¿½
+//*                          : ï¿½ï¿½ï¿½È·ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½Ý¶ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ä£¬
+//*                          : ï¿½ï¿½ï¿½ï¿½Îª360*60ï¿½ï¿½360Ð¡Ê±ï¿½ï¿½Ê»ï¿½Ù¶ï¿½ï¿½ï¿½Ý±ï¿½ï¿½ï¿½Îª6ï¿½é·¢ï¿½Í£ï¿½
+//*                          : Ã¿ï¿½ï¿½Ä³ï¿½ï¿½ï¿½ï¿½ï¿½3607ï¿½Ö½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½Ê»ï¿½Ù¶ÈµÄ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£¬
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x05
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú£¬
-//*                          : RSCmdrxBuf[0]£­RSCmdrxBuf[6]¡ª¡ªÃüÁî½ÓÊÕ¼Ä´æÆ÷,
-//*                          : ÓÃÓÚÔÚ´«ËÍ¸÷Ò³Ö®¼ä½ÓÊÕPC»úµÄÍ¬²½ÃüÁî
-//*                          : CheckSum¡ª¡ªÓÉPC»ú½ÓÊÕµ½µÄÃüÁî¼ÆËã³öµÄÐ£ÑéºÍ
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : Ê±¼äÒ³¸³ÖµÎªÉÏÔØ×î½ü360Ð¡Ê±ËÙ¶ÈµÄÓ¦´ðÖ¡£¬
-//*                          : Êý¾ÝÒ³¸³ÖµÎªÉÏÔØ×î½ü360Ð¡Ê±ËÙ¶ÈµÄÓ¦´ðÖ¡ÖÐ¼ÓÈëÒ³ºÅ
-//*                          : RSCmdrxBuf[0]£­RSCmdrxBuf[6]¡ª¡ªÃüÁî½ÓÊÕ¼Ä´æÆ÷,
-//*                          : Ã¿Ò³½ÓÊÕµ½µÄÄÚÈÝ¶¼¸ù¾ÝÒ³ºÅÓÐËù²»Í¬
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
-//*                          : LargeDataBuffer¡ª¡ª´æ·ÅÄÚ´æÖÐÈ¡³öµÄ×î½ü360Ð¡Ê±ËÙ¶ÈÊý¾Ý
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : RSCmdrxBuf[0]ï¿½ï¿½RSCmdrxBuf[6]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Í¸ï¿½Ò³Ö®ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : CheckSumï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : Ê±ï¿½ï¿½Ò³ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½Ù¶Èµï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½Ù¶Èµï¿½Ó¦ï¿½ï¿½Ö¡ï¿½Ð¼ï¿½ï¿½ï¿½Ò³ï¿½ï¿½
+//*                          : RSCmdrxBuf[0]ï¿½ï¿½RSCmdrxBuf[6]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½,
+//*                          : Ã¿Ò³ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : LargeDataBufferï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void UpLoad_Speed360h()
 {
 	int offset,i,j,TimeInterval;
 	StructPT spt;
-	u_char ReadOTDRFlag = 0;            //¶Á¼ÇÂ¼±êÖ¾
-	u_char InOTDRFlag = 0;              //ÔÚÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼ÖÐ¼ä±êÖ¾
-	u_char FilledNB = 0;                //60×Ö½ÚÖÐÒÑ¾­Ìî³äµÄ×Ö½ÚÊý
-	u_char FirstRead = 1;               //¶ÁµÚÒ»Ìõ¼ÇÂ¼±êÖ¾
-	u_int curPointer,Old_Pointer,Mid_Pointer;   //DataFlashÖÐµÄÖ¸Õë
+	unsigned char ReadOTDRFlag = 0;            //ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned char InOTDRFlag = 0;              //ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½Ð¼ï¿½ï¿½Ö¾
+	unsigned char FilledNB = 0;                //60ï¿½Ö½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½
+	unsigned char FirstRead = 1;               //ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned long curPointer,Old_Pointer,Mid_Pointer;   //DataFlashï¿½Ðµï¿½Ö¸ï¿½ï¿½
 	OTDR cur_record,Last_Record;
-	u_short hourNB = 0;                 //360Ð¡Ê±¼ÆÊýÆ÷
-	u_int CurRemainMinuteNB;            //µ±Ç°Ê£Óà·ÖÖÓÊý
-	u_int temp;
+	unsigned short hourNB = 0;                 //360Ð¡Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long CurRemainMinuteNB;            //ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long temp;
 	CLOCK StartTime;
 	CLOCK current_time;
-	u_char Buf60Bytes[60];              //60·ÖÖÓÊý¾Ý»º³åÇø
+	unsigned char Buf60Bytes[60];              //60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý»ï¿½ï¿½ï¿½ï¿½ï¿½
 	DateTime BigTime,SmallTime;
-	u_int status232;
-	u_int rhr;
+	unsigned long status232;
+	unsigned long rhr;
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
@@ -1045,7 +991,7 @@ void UpLoad_Speed360h()
 	for(i=0;i<360*65;i++)
 		LargeDataBuffer[i] = 0;
 
-	//Êý¾ÝÇøÃ»ÓÐºÏ·¨¼ÇÂ¼
+	//ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ÐºÏ·ï¿½ï¿½ï¿½Â¼
 	if(GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(cur_record.start), &(cur_record.end)))
 	{
 		CurRemainMinuteNB = cur_record.end.MinuteNb;
@@ -1054,53 +1000,53 @@ void UpLoad_Speed360h()
 		
 		do
 		{
-			//ÓÐ¶Á¼ÇÂ¼±êÖ¾
+			//ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 			if(ReadOTDRFlag)
 			{
-				//Ã»ÓÐ³É¹¦¶ÁÈëÆ£ÀÍ¼ÇÂ¼£¬²¹×îºó65×Ö½Ú²¢½áÊø
+				//Ã»ï¿½Ð³É¹ï¿½ï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½65ï¿½Ö½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½
 				if(!GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(Last_Record.start), &(Last_Record.end)))
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-					//»ñÈ¡Ê£Óà·ÖÖÓÊýµÄÊý¾Ý×°ÈëÄÚ´æ
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+					//ï¿½ï¿½È¡Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½Ú´ï¿½
 					Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 					hourNB++;
 					break;
 				}
-				//³É¹¦¶ÁÈëÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
+				//ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
 				else
 				{
 					spt.CurPoint = Old_Pointer;
 					FirstRead = 0;
-					//¼ÆËãÁ½Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î
-					PrepareTime((u_char *)(&(cur_record.start.dt.year)),&BigTime);
-					PrepareTime((u_char *)(&(Last_Record.end.dt.year)),&SmallTime);
+					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½
+					PrepareTime((unsigned char *)(&(cur_record.start.dt.year)),&BigTime);
+					PrepareTime((unsigned char *)(&(Last_Record.end.dt.year)),&SmallTime);
 					TimeInterval = HaveTime(BigTime,SmallTime);
-					//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ô´óÓÚ60·ÖÖÓ
+					//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 					if((TimeInterval+FilledNB)>=60)
 					{
-						ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+						ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 						for(i=0;i<60;i++)
 							Buf60Bytes[i] = 0;
 						hourNB++;
 						InOTDRFlag = 0;
-						//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+						//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 						CurRemainMinuteNB = Last_Record.end.MinuteNb;
 						RefreshCurTime((CLOCK *)(&(Last_Record.end.dt.year)),&current_time);
 						ReadOTDRFlag = 0;				
 						continue;
 					}
-					//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ôÐ¡ÓÚ60·ÖÖÓ
+					//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 					else if((TimeInterval+FilledNB)<60)
 					{
 						if((TimeInterval+FilledNB+Last_Record.end.MinuteNb)>=60)
 						{
-							ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+							ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 							temp = 60-TimeInterval-FilledNB;
 							Old_Pointer = AddPointer(&spt, -sizeof(OTDR_end));
 							spt.CurPoint = Old_Pointer;
 							offset = 0-temp;
-							GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,Buf60Bytes);
+							GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,Buf60Bytes);
 							Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);			
 							for(i=0;i<60;i++)
 								Buf60Bytes[i] = 0;
@@ -1109,7 +1055,7 @@ void UpLoad_Speed360h()
 							spt.CurPoint = Old_Pointer;
 							hourNB++;
 							InOTDRFlag = 1;
-							//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+							//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 							CurRemainMinuteNB = Last_Record.end.MinuteNb-temp;
 							RefreshCurTime(&StartTime,&current_time);	
 							ReadOTDRFlag = 0;
@@ -1122,12 +1068,12 @@ void UpLoad_Speed360h()
 							spt.CurPoint = Old_Pointer;
 							offset = 0-Last_Record.end.MinuteNb;
 							j = 60-TimeInterval-FilledNB-Last_Record.end.MinuteNb;
-							GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[j]));
+							GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[j]));
 							offset = 0-sizeof(OTDR_start)-Last_Record.end.MinuteNb;
 							Old_Pointer = AddPointer(&spt, offset);
 							spt.CurPoint = Old_Pointer;
 							ReadOTDRFlag = 1;
-							//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+							//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 							RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
 							FilledNB = TimeInterval+FilledNB+Last_Record.end.MinuteNb;
 							continue;
@@ -1135,20 +1081,20 @@ void UpLoad_Speed360h()
 					}
 				}
 			}
-			//Ã»ÓÐ¶Á¼ÇÂ¼±êÖ¾
+			//Ã»ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 			if(!ReadOTDRFlag)
 			{
-				//µ±Ç°Ê£Óà·ÖÖÓÊý´óÓÚ60
+				//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60
 				if(CurRemainMinuteNB > 60)
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-					//»ñÈ¡±¾Ð¡Ê±µÄ60·ÖÖÓÊý¾Ý´æÈëBuf60Bytes
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+					//ï¿½ï¿½È¡ï¿½ï¿½Ð¡Ê±ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½Buf60Bytes
 					if(!InOTDRFlag)
 					{
 						Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
 						spt.CurPoint = Old_Pointer;
 					}
-					GetOTDRDataFromFlash((u_short *)Old_Pointer,-60,Buf60Bytes);
+					GetOTDRDataFromFlash((unsigned short *)Old_Pointer,-60,Buf60Bytes);
 					Old_Pointer = AddPointer(&spt, -60);
 					Mid_Pointer = Old_Pointer;
 					spt.CurPoint = Old_Pointer;
@@ -1157,19 +1103,19 @@ void UpLoad_Speed360h()
 						Buf60Bytes[i] = 0;
 					hourNB++;
 					InOTDRFlag = 1;
-					//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+					//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 					CurRemainMinuteNB -= 60;
 					RefreshCurTime(&StartTime,&current_time);				
 					continue;
 				}
-				//µ±Ç°Ê£Óà·ÖÖÓÊýÐ¡ÓÚ60
+				//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60
 				else
 				{
-					//ÖÃ¶Á¼ÇÂ¼±êÖ¾
+					//ï¿½Ã¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 					ReadOTDRFlag = 1;
-					if(!FirstRead)//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+					if(!FirstRead)//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
-					//²¹³ä²¿·ÖÊý¾ÝÈë60×Ö½Ú»º³åÇø
+					//ï¿½ï¿½ï¿½ä²¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½Ö½Ú»ï¿½ï¿½ï¿½ï¿½ï¿½
 					if(!InOTDRFlag)
 					{
 						Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
@@ -1179,7 +1125,7 @@ void UpLoad_Speed360h()
 					if(offset!=0)
 					{
 						temp = 60-CurRemainMinuteNB;
-						GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
+						GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
 					}
 					Old_Pointer = AddPointer(&spt, offset-sizeof(OTDR_start));
 					spt.CurPoint = Old_Pointer;
@@ -1190,36 +1136,30 @@ void UpLoad_Speed360h()
 		}while((hourNB<=360)&&(pTable.RunRecord360h.CurPoint!=Old_Pointer));
 	}
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x05;
-	RSCmdtxBuf[3] = (u_char)((hourNB*65)>>8);
-	RSCmdtxBuf[4] = (u_char)(hourNB*65);
+	RSCmdtxBuf[3] = (unsigned char)((hourNB*65)>>8);
+	RSCmdtxBuf[4] = (unsigned char)(hourNB*65);
 	RSCmdtxBuf[5] = 0x00;
-	SendCheckSum = 0x55^0x7a^0x05^((u_char)((hourNB*65)>>8))^((u_char)(hourNB*65))^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
+	SendCheckSum = 0x55^0x7a^0x05^((unsigned char)((hourNB*65)>>8))^((unsigned char)(hourNB*65))^0x00;
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 	
 
 	for(j=0;j<hourNB;j++)
 	{
-		//·¢ËÍÉÏÔØÊý¾Ý¿é£¨360hÖ®Ç°µÄÊ±¼ä£©
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿é£¨360hÖ®Ç°ï¿½ï¿½Ê±ï¿½ä£©
 		for(i = 0;i < 65;i++)
 		{
-			while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-			at91_usart_write(RS232,LargeDataBuffer[j*65+i]);
+			rt_device_write(&uart2_device, 0, &LargeDataBuffer[j*65+i],1);
 			SendCheckSum = SendCheckSum^LargeDataBuffer[j*65+i];
 		}
 	}
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum,1);
 
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -1227,24 +1167,24 @@ void UpLoad_Speed360h()
 }
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_AutoVIN
-//* Object                   : ÉÏÔØ³µÁ¾VINºÅ¡¢³µÅÆºÅÂë¡¢³µÅÆ·ÖÀà£¬
-//*                          : ´ýÉÏÔØÊý¾ÝÖ±½Ó´Ó¼ÇÂ¼ÒÇÊý¾Ý´æ´¢Æ÷µÄ²ÎÊý±íÖÐÈ¡µÃ£¬
-//*                          : ÃüÁî×ÖÎª0x06
+//* Object                   : ï¿½ï¿½ï¿½Ø³ï¿½ï¿½ï¿½VINï¿½Å¡ï¿½ï¿½ï¿½ï¿½Æºï¿½ï¿½ë¡¢ï¿½ï¿½ï¿½Æ·ï¿½ï¿½à£¬
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ó´Ó¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½Ã£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x06
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØ³µÁ¾VINºÅ¡¢³µÅÆºÅÂë¡¢³µÅÆ·ÖÀàµÄÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½Ø³ï¿½ï¿½ï¿½VINï¿½Å¡ï¿½ï¿½ï¿½ï¿½Æºï¿½ï¿½ë¡¢ï¿½ï¿½ï¿½Æ·ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void UpLoad_AutoVIN()
 {
-	u_int i;
+	unsigned long i;
 	StructPara *para = PARAMETER_BASE;
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x06;
@@ -1252,39 +1192,31 @@ void UpLoad_AutoVIN()
 	RSCmdtxBuf[4] = 0x29;
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0x55^0x7a^0x06^0x00^0x29^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 	
-	//·¢ËÍ17×Ö½ÚµÄÉÏÔØÊý¾Ý¿é³µÁ¾VINºÅ
+	//ï¿½ï¿½ï¿½ï¿½17ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿é³µï¿½ï¿½VINï¿½ï¿½
 	for(i = 0; i < 17;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,((para->AutoVIN)[i]));
+		rt_device_write(&uart2_device, 0, &((para->AutoVIN)[i]), 1);
 		SendCheckSum = SendCheckSum^((para->AutoVIN)[i]);
 	}
 
-	//·¢ËÍ12×Ö½ÚµÄÉÏÔØÊý¾Ý¿é³µÅÆºÅÂë
+	//ï¿½ï¿½ï¿½ï¿½12ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿é³µï¿½Æºï¿½ï¿½ï¿½
 	for(i = 0; i < 12;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,((para->AutoCode)[i]));
+		rt_device_write(&uart2_device, 0, &((para->AutoCode)[i]), 1);
 		SendCheckSum = SendCheckSum^((para->AutoCode)[i]);
 	}
 
-	//·¢ËÍ12×Ö½ÚµÄÉÏÔØÊý¾Ý¿é³µÅÆ·ÖÀà
+	//ï¿½ï¿½ï¿½ï¿½12ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿é³µï¿½Æ·ï¿½ï¿½ï¿½
 	for(i = 0; i < 12;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,((para->AutoSort)[i]));
+		rt_device_write(&uart2_device, 0, &((para->AutoSort)[i]), 1);
 		SendCheckSum = SendCheckSum^((para->AutoSort)[i]);
 	}
 	
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 	Modify_LastUploadTime();
 }
 
@@ -1292,37 +1224,37 @@ void UpLoad_AutoVIN()
 
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_DoubtPoint
-//* Object                   : ÉÏÔØÊÂ¹ÊÒÉµãÊý¾Ý£¬10¸öÒÉµãÊý¾Ý´Ó
-//*                          : ¼ÇÂ¼ÒÇÄÚ´æÖÐµÄÒÉµãÊý¾ÝÇøÈ¡³ö
-//*                          : ÃüÁî×ÖÎª0x07
+//* Object                   : ï¿½ï¿½ï¿½ï¿½ï¿½Â¹ï¿½ï¿½Éµï¿½ï¿½ï¿½Ý£ï¿½10ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½Ý´ï¿½
+//*                          : ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ðµï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x07
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµÎªÉÏÔØÊÂ¹ÊÒÉµãµÄÓ¦´ðÖ¡,
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò,
-//*                          : LargeDataBuffer¡ª¡ªÊ¹ÓÃµÚ0µ½2059¸ö×Ö½Ú´æ·Å
-//*                          : 10¸öÒÉµãÊý¾Ý
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½ï¿½Â¹ï¿½ï¿½Éµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡,
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,
+//*                          : LargeDataBufferï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ãµï¿½0ï¿½ï¿½2059ï¿½ï¿½ï¿½Ö½Ú´ï¿½ï¿½
+//*                          : 10ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void UpLoad_DoubtPoint()
 {
-	u_int i,j;
+	unsigned long i,j;
 	flash_word *source,*des;
-	u_int STOPp;
-	u_short temp_data;
+	unsigned long STOPp;
+	unsigned short temp_data;
 	
 	for(i=0;i<2060;i++)
 		LargeDataBuffer[i]=0;
 	
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
-	//¸ù¾Ý10¸öÒÉµãµÄÊý¾Ý³¤¶ÈËã³ö´ý´«Êý¾ÝµÄÆðÊ¼µØÖ·£¨Ã¿¸öÒÉµã³¤¶ÈÎª210×Ö½Ú£©
+	//ï¿½ï¿½ï¿½10ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Ö·ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½Éµã³¤ï¿½ï¿½Îª210ï¿½Ö½Ú£ï¿½
 	STOPp = pTable.DoubtPointData.CurPoint;
-	//ÌôÑ¡³öÒª´«ËÍµÄÊý¾Ý×°ÈëÄÚ´æ»º³åÇø
+	//ï¿½ï¿½Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½Ú´æ»ºï¿½ï¿½ï¿½ï¿½
 	for(i = 0;i < 10;i++)
 	{
 		STOPp -= 206;
@@ -1332,7 +1264,7 @@ void UpLoad_DoubtPoint()
 		{
 			des[j]=source[j];
 		}
-		//ÖÆ¶¯ÐÅºÅ·ÅÔÚ×´Ì¬µÄ×î¸ßÎ»
+		//ï¿½Æ¶ï¿½ï¿½ÅºÅ·ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½Î»
 		for(j = 3;j < 103;j++)
 		{
 			temp_data = (des[j])&0x8200;
@@ -1345,7 +1277,7 @@ void UpLoad_DoubtPoint()
 		if(STOPp==pTable.DoubtPointData.BaseAddr)
 			STOPp = pTable.DoubtPointData.EndAddr - 110 + 1;
 	}
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x07;
@@ -1353,24 +1285,18 @@ void UpLoad_DoubtPoint()
 	RSCmdtxBuf[4] = 0x0c;
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0x55^0x7a^0x07^0x08^0x0c^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 		
-	//·¢ËÍ2060×Ö½ÚµÄÒÉµãÊý¾Ý
+	//ï¿½ï¿½ï¿½ï¿½2060ï¿½Ö½Úµï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½
 	for(i = 0; i < 2060;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,LargeDataBuffer[i]);
+		rt_device_write(&uart2_device, 0, &LargeDataBuffer[i], 6);
 		SendCheckSum = SendCheckSum^(LargeDataBuffer[i]);
 	}
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 6);
 	Modify_LastUploadTime();
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -1379,42 +1305,42 @@ void UpLoad_DoubtPoint()
 
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_DistanceinTwoDays
-//* Object                   : ÉÏÔØ×î½ü×î½ü2¸öÈÕÀúÌìÄÚµÄÀÛ¼ÆÐÐÊ»Àï³Ì£¬ÐèÒª½«ÄÚ´æÖÐ
-//*                          : ¼ÇÂ¼µÄÊý¾ÝÌôÑ¡¡¢ÅÐ¶Ï¡¢ÀÛ¼Ó¡¢¼ÆËãºó²ÅÄÜÊä³ö£¬
-//*                          : ×î½ü2¸öÈÕÀúÌìµÄÀÛ¼ÆÀï³Ì´æÓÚÁÙÊ±±äÁ¿BufÖÐ£¬
-//*                          : ¶ÔÀÛ¼ÆÀï³ÌµÄ·¢ËÍÊÇÏÈ¸ß×Ö½ÚºóµÍ×Ö½Ú£¬
-//*                          : ÃüÁî×ÖÎª0x08
+//* Object                   : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½Û¼ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Ì£ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Ð¶Ï¡ï¿½ï¿½Û¼Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Û¼ï¿½ï¿½ï¿½Ì´ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Bufï¿½Ð£ï¿½
+//*                          : ï¿½ï¿½ï¿½Û¼ï¿½ï¿½ï¿½ÌµÄ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¸ï¿½ï¿½Ö½Úºï¿½ï¿½ï¿½Ö½Ú£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x08
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØ×î½ü360Ð¡Ê±ÀÛ¼ÆÐÐÊ»Àï³ÌµÄÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±ï¿½Û¼ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Ìµï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 /*void UpLoad_DistanceinTwoDays()
 {
 	int offset,i,j,TimeInterval;
 	StructPT spt;
-	u_char ReadOTDRFlag = 0;            //¶Á¼ÇÂ¼±êÖ¾
-	u_char InOTDRFlag = 0;              //ÔÚÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼ÖÐ¼ä±êÖ¾
-	u_char FilledNB = 0;                //60×Ö½ÚÖÐÒÑ¾­Ìî³äµÄ×Ö½ÚÊý
-	u_char FirstRead = 1;               //¶ÁµÚÒ»Ìõ¼ÇÂ¼±êÖ¾
-	u_int curPointer,Old_Pointer,Mid_Pointer;   //DataFlashÖÐµÄÖ¸Õë
+	unsigned char ReadOTDRFlag = 0;            //ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned char InOTDRFlag = 0;              //ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½Ð¼ï¿½ï¿½Ö¾
+	unsigned char FilledNB = 0;                //60ï¿½Ö½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½
+	unsigned char FirstRead = 1;               //ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned long curPointer,Old_Pointer,Mid_Pointer;   //DataFlashï¿½Ðµï¿½Ö¸ï¿½ï¿½
 	OTDR cur_record,Last_Record,temp_record;
-	u_short hourNB = 0;                 //360Ð¡Ê±¼ÆÊýÆ÷
-	u_int CurRemainMinuteNB;            //µ±Ç°Ê£Óà·ÖÖÓÊý
-	u_int temp;
+	unsigned short hourNB = 0;                 //360Ð¡Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long CurRemainMinuteNB;            //ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long temp;
 	CLOCK StartTime;
 	CLOCK current_time,temptime;
 	DateTime BigTime,SmallTime;
-	u_int rhr;
-	u_int Buf;
-	u_char disbuf[3];
-	u_char HourLimit;
+	unsigned long rhr;
+	unsigned long Buf;
+	unsigned char disbuf[3];
+	unsigned char HourLimit;
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
@@ -1444,12 +1370,12 @@ void UpLoad_DoubtPoint()
 	temptime.minute = temp_record.end.dt.minute;
 		
 
-	//ÖÃ³õÖµ
-	HourLimit = BCD2Char(temptime.hour) + 24 + 1;	//Êý¾ÝÇøÃ»ÓÐºÏ·¨¼ÇÂ¼
+	//ï¿½Ã³ï¿½Öµ
+	HourLimit = BCD2Char(temptime.hour) + 24 + 1;	//ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ÐºÏ·ï¿½ï¿½ï¿½Â¼
 	if(!GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(cur_record.start), &(cur_record.end)))
 	{
 		RS232UploadError();
-		//Æô¶¯¿´ÃÅ¹·
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 		#if WATCH_DOG_EN
 	    WD_CR = 0xc071;
 	    WD_OMR = 0x2343;
@@ -1463,54 +1389,54 @@ void UpLoad_DoubtPoint()
 	
 	do
 	{
-		//ÓÐ¶Á¼ÇÂ¼±êÖ¾
+		//ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 		if(ReadOTDRFlag)
 		{
-			//Ã»ÓÐ³É¹¦¶ÁÈëÆ£ÀÍ¼ÇÂ¼£¬²¹×îºó65×Ö½Ú²¢½áÊø
+			//Ã»ï¿½Ð³É¹ï¿½ï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½65ï¿½Ö½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½
 			if(!GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(Last_Record.start), &(Last_Record.end)))
 			{
-				ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-				//»ñÈ¡Ê£Óà·ÖÖÓÊýµÄÊý¾Ý×°ÈëÄÚ´æ
+				ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+				//ï¿½ï¿½È¡Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½Ú´ï¿½
 //				Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 				hourNB++;
 				break;
 			}
-			//³É¹¦¶ÁÈëÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
+			//ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
 			else
 			{
 				Buf += Last_Record.end.TotalDistance;
 				spt.CurPoint = Old_Pointer;
 				FirstRead = 0;
-				//¼ÆËãÁ½Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î
-				PrepareTime((u_char *)(&(cur_record.start.dt.year)),&BigTime);
-				PrepareTime((u_char *)(&(Last_Record.end.dt.year)),&SmallTime);
+				//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½
+				PrepareTime((unsigned char *)(&(cur_record.start.dt.year)),&BigTime);
+				PrepareTime((unsigned char *)(&(Last_Record.end.dt.year)),&SmallTime);
 				TimeInterval = HaveTime(BigTime,SmallTime);
-				//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ô´óÓÚ60·ÖÖÓ
+				//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 				if((TimeInterval+FilledNB)>=60)
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 //					Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 //					for(i=0;i<60;i++)
 //						Buf60Bytes[i] = 0;
 					hourNB++;
 					InOTDRFlag = 0;
-					//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+					//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 					CurRemainMinuteNB = Last_Record.end.MinuteNb;
 					RefreshCurTime((CLOCK *)(&(Last_Record.end.dt.year)),&current_time);
 					ReadOTDRFlag = 0;				
 					continue;
 				}
-				//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ôÐ¡ÓÚ60·ÖÖÓ
+				//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 				else if((TimeInterval+FilledNB)<60)
 				{
 					if((TimeInterval+FilledNB+Last_Record.end.MinuteNb)>=60)
 					{
-						ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+						ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						temp = 60-TimeInterval-FilledNB;
 						Old_Pointer = AddPointer(&spt, -sizeof(OTDR_end));
 						spt.CurPoint = Old_Pointer;
 						offset = 0-temp;
-//						GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,Buf60Bytes);
+//						GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,Buf60Bytes);
 //						Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);			
 //						for(i=0;i<60;i++)
 //							Buf60Bytes[i] = 0;
@@ -1519,7 +1445,7 @@ void UpLoad_DoubtPoint()
 						spt.CurPoint = Old_Pointer;
 						hourNB++;
 						InOTDRFlag = 1;
-						//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+						//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 						CurRemainMinuteNB = Last_Record.end.MinuteNb-temp;
 						RefreshCurTime(&StartTime,&current_time);	
 						ReadOTDRFlag = 0;
@@ -1532,12 +1458,12 @@ void UpLoad_DoubtPoint()
 						spt.CurPoint = Old_Pointer;
 //						offset = 0-Last_Record.end.MinuteNb;
 //						j = 60-TimeInterval-FilledNB-Last_Record.end.MinuteNb;
-//						GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[j]));
+//						GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[j]));
 						offset = 0-sizeof(OTDR_start)-Last_Record.end.MinuteNb;
 						Old_Pointer = AddPointer(&spt, offset);
 						spt.CurPoint = Old_Pointer;
 						ReadOTDRFlag = 1;
-						//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+						//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
 						FilledNB = TimeInterval+FilledNB+Last_Record.end.MinuteNb;
 						continue;
@@ -1545,20 +1471,20 @@ void UpLoad_DoubtPoint()
 				}
 			}
 		}
-		//Ã»ÓÐ¶Á¼ÇÂ¼±êÖ¾
+		//Ã»ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 		if(!ReadOTDRFlag)
 		{
-			//µ±Ç°Ê£Óà·ÖÖÓÊý´óÓÚ60
+			//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60
 			if(CurRemainMinuteNB > 60)
 			{
-				ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-				//»ñÈ¡±¾Ð¡Ê±µÄ60·ÖÖÓÊý¾Ý´æÈëBuf60Bytes
+				ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+				//ï¿½ï¿½È¡ï¿½ï¿½Ð¡Ê±ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½Buf60Bytes
 				if(!InOTDRFlag)
 				{
 					Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
 					spt.CurPoint = Old_Pointer;
 				}
-//				GetOTDRDataFromFlash((u_short *)Old_Pointer,-60,Buf60Bytes);
+//				GetOTDRDataFromFlash((unsigned short *)Old_Pointer,-60,Buf60Bytes);
 				Old_Pointer = AddPointer(&spt, -60);
 				Mid_Pointer = Old_Pointer;
 				spt.CurPoint = Old_Pointer;
@@ -1567,19 +1493,19 @@ void UpLoad_DoubtPoint()
 //					Buf60Bytes[i] = 0;
 				hourNB++;
 				InOTDRFlag = 1;
-				//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+				//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 				CurRemainMinuteNB -= 60;
 				RefreshCurTime(&StartTime,&current_time);				
 				continue;
 			}
-			//µ±Ç°Ê£Óà·ÖÖÓÊýÐ¡ÓÚ60
+			//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60
 			else
 			{
-				//ÖÃ¶Á¼ÇÂ¼±êÖ¾
+				//ï¿½Ã¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 				ReadOTDRFlag = 1;
-				if(!FirstRead)//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+				if(!FirstRead)//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 					RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
-				//²¹³ä²¿·ÖÊý¾ÝÈë60×Ö½Ú»º³åÇø
+				//ï¿½ï¿½ï¿½ä²¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½Ö½Ú»ï¿½ï¿½ï¿½ï¿½ï¿½
 				if(!InOTDRFlag)
 				{
 					Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
@@ -1589,7 +1515,7 @@ void UpLoad_DoubtPoint()
 //				if(offset!=0)
 //				{
 //					temp = 60-CurRemainMinuteNB;
-//					GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
+//					GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
 //				}
 				Old_Pointer = AddPointer(&spt, offset-sizeof(OTDR_start));
 				spt.CurPoint = Old_Pointer;
@@ -1599,14 +1525,14 @@ void UpLoad_DoubtPoint()
 		}
 	}while((hourNB<=HourLimit)&&(pTable.RunRecord360h.CurPoint!=Old_Pointer));
 	
-	//ÓÉÂö³åÊýËã³öÀï³Ì
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	Buf = ComputeDistance100m(Buf);
 	Int2BCD(Buf, disbuf);
-//	disbuf[0]=(u_char)(Buf>>16);
-//	disbuf[1]=(u_char)(Buf>>8);
-//	disbuf[2]=(u_char)(Buf);
+//	disbuf[0]=(unsigned char)(Buf>>16);
+//	disbuf[1]=(unsigned char)(Buf>>8);
+//	disbuf[2]=(unsigned char)(Buf);
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x03;
@@ -1619,23 +1545,23 @@ void UpLoad_DoubtPoint()
 		at91_usart_write(RS232,RSCmdtxBuf[i]);
 		SendCheckSum = SendCheckSum^RSCmdtxBuf[i];
 	}
-	//·¢ËÍÉÏÔØÊý¾Ý¿é
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 	for(i = 0;i < 3;i++)
 	{
 		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
 		at91_usart_write(RS232,disbuf[i]);
 		SendCheckSum = SendCheckSum^(disbuf[i]);
 	}
-	//·¢ËÍÊý¾Ý¶Á³öÊ±¿Ì
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 	WriteDataTxTime(RSCmdrxBuf[2]);
 	
-	//·¢ËÍÐ£ÑéºÍ
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
 	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
 	at91_usart_write(RS232,SendCheckSum);
 	
 	Modify_LastUploadTime();
 	
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 #if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -1645,23 +1571,23 @@ void UpLoad_DoubtPoint()
 void UpLoad_DistanceinTwoDays()
 {
 	int i,j,TimeInterval,TimeIntervalSum,Nb;
-	u_int TimeLimit;
-	u_int curPointer;
+	unsigned long TimeLimit;
+	unsigned long curPointer;
 	OTDR record,temp_record;
 	OTDR_start last_start;
-	u_int Buf;
+	unsigned long Buf;
 	StructPT spt;
 	DateTime BigTime,SmallTime,BigTime1,SmallTime1;
 	CLOCK temptime;
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
 	int offset;
 	spt = pTable.RunRecord360h;
 
-	//ÖÃ³õÖµ
+	//ï¿½Ã³ï¿½Öµ
 	Buf = 0;
 	TimeIntervalSum = 0;
 	curPointer = pTable.RunRecord360h.CurPoint;	
@@ -1686,11 +1612,11 @@ void UpLoad_DistanceinTwoDays()
 	temptime.minute = temp_record.end.dt.minute;
 		
 
-	//ÖÃ³õÖµ
+	//ï¿½Ã³ï¿½Öµ
 	TimeLimit = (BCD2Char(temptime.hour))*60+BCD2Char(temptime.minute)+24*60;	
 	do
 	{
-		//È¡³öµ±Ç°¼ÇÂ¼ÊÇ²»ÕýÈ·µÄ
+		//È¡ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½Ç²ï¿½ï¿½ï¿½È·ï¿½ï¿½
 		if(!GetOTDR(curPointer,&(record.start), &(record.end)))
 		{
 			offset = -1;
@@ -1698,12 +1624,12 @@ void UpLoad_DistanceinTwoDays()
 			spt.CurPoint = curPointer;
 			continue;
 		}
-		PrepareTime((u_char *)(&(record.end.dt.year)),&BigTime1);
-		PrepareTime((u_char *)(&(record.start.dt.year)),&SmallTime1);
+		PrepareTime((unsigned char *)(&(record.end.dt.year)),&BigTime1);
+		PrepareTime((unsigned char *)(&(record.start.dt.year)),&SmallTime1);
 		TimeInterval = HaveTime(BigTime1,SmallTime1);
 		if(TimeInterval<0)
 		{
-			//ÐÞ¸ÄÖ¸Õë
+			//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 			offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 			curPointer = AddPointer(&spt, offset);
 			spt.CurPoint = curPointer;
@@ -1713,16 +1639,16 @@ void UpLoad_DistanceinTwoDays()
 			
 
 		if(last_start.dt.type==0xafaf)
-			PrepareTime((u_char *)(&(last_start.dt.year)),&BigTime);
+			PrepareTime((unsigned char *)(&(last_start.dt.year)),&BigTime);
 		else
-			PrepareTime((u_char *)(&temptime),&BigTime);
+			PrepareTime((unsigned char *)(&temptime),&BigTime);
 		
-		//¼ÆËãµ±Ç°¼ÇÂ¼ÓëÉÏÒ»Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î	
-		PrepareTime((u_char *)(&(record.end.dt.year)),&SmallTime);
+		//ï¿½ï¿½ï¿½ãµ±Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½	
+		PrepareTime((unsigned char *)(&(record.end.dt.year)),&SmallTime);
 		TimeInterval = HaveTime(BigTime,SmallTime);
 		if(TimeInterval < 0)
 		{
-			//ÐÞ¸ÄÖ¸Õë
+			//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 			offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 			curPointer = AddPointer(&spt, offset);
 			spt.CurPoint = curPointer;
@@ -1739,7 +1665,7 @@ void UpLoad_DistanceinTwoDays()
 		
 		if(TimeIntervalSum >=TimeLimit)
 			break;
-		//ÐÞ¸ÄÖ¸Õë
+		//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 		offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 		curPointer = AddPointer(&spt, offset);
 		spt.CurPoint = curPointer;
@@ -1747,12 +1673,12 @@ void UpLoad_DistanceinTwoDays()
 		last_start = record.start;		
 	}while((TimeIntervalSum <= TimeLimit)&&(pTable.RunRecord360h.CurPoint!=curPointer));
 	
-	//ÓÉÂö³åÊýËã³öÀï³Ì
-	u_char disbuf[3];
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned char disbuf[3];
 	Buf = ComputeDistance100m(Buf);
 	Int2BCD(Buf, disbuf);
 
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x08;
@@ -1760,28 +1686,21 @@ void UpLoad_DistanceinTwoDays()
 	RSCmdtxBuf[4] = 0x08;
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0x55^0x7a^0x08^0x00^0x08^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
-	//·¢ËÍÉÏÔØÊý¾Ý¿é
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 	for(i = 0;i < 3;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-//		at91_usart_write(RS232,(u_char)(Buf>>(8*(2-i))));
-		at91_usart_write(RS232,disbuf[i]);
-//		SendCheckSum = SendCheckSum^((u_char)(Buf>>(8*(2-i))));
+		rt_device_write(&uart2_device, 0, &disbuf[i], 1);
+//		SendCheckSum = SendCheckSum^((unsigned char)(Buf>>(8*(2-i))));
 		SendCheckSum = SendCheckSum^(disbuf[i]);
 	}
-	//·¢ËÍÊý¾Ý¶Á³öÊ±¿Ì
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 	WriteDataTxTime(RSCmdrxBuf[2]);
 	
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 	Modify_LastUploadTime();
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -1791,46 +1710,46 @@ void UpLoad_DistanceinTwoDays()
 
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_SpeedinTwoDays
-//* Object                   : ÉÏÔØ×î½ü2¸öÈÕÀúÌìÄÚµÄÐÐÊ»ËÙ¶È£¬ÐèÒª½«ÄÚ´æÖÐ
-//*                          : ¼ÇÂ¼µÄÊý¾ÝÌôÑ¡¡¢ÅÐ¶Ï¡¢ÀÛ¼Ó¡¢¼ÆËãºó²ÅÄÜÊä³ö£¬
-//*                          : ×î½ü2¸öÈÕÀúÌìµÄÐÐÊ»ËÙ¶ÈÊý¾Ý´æÓÚÈ«¾Ö±äÁ¿LargeDataBufferÖÐ£¬
-//*                          : ×îÏÈ·¢ËÍµÄÊý¾Ý¿éÊÇËÙ¶ÈÊý¾Ý¶ÔÓ¦µÄÆðÊ¼Ê±¼ä£¨·ÅÔÚBufÖÐ£©£¬
-//*                          : ¶ÔÐÐÊ»ËÙ¶ÈµÄ·¢ËÍÊÇÏÈÔçÊ±¼äºóÍíÊ±¼ä£¬
-//*                          : ÃüÁî×ÖÎª0x09
+//* Object                   : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½Ê»ï¿½Ù¶È£ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Ð¶Ï¡ï¿½ï¿½Û¼Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½Ù¶ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½LargeDataBufferï¿½Ð£ï¿½
+//*                          : ï¿½ï¿½ï¿½È·ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½Ý¶ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ä£¨ï¿½ï¿½ï¿½ï¿½Bufï¿½Ð£ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½Ê»ï¿½Ù¶ÈµÄ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£¬
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x09
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú£¬
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØ×î½ü2¸öÈÕÀúÌìÄÚÐÐÊ»ËÙ¶ÈÊý¾ÝµÄÓ¦´ðÖ¡£¬
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
-//*                          : LargeDataBuffer¡ª¡ª´æ·ÅÄÚ´æÖÐÈ¡³öµÄ×î½ü2¸öÈÕÀúÌìËÙ¶ÈÊý¾Ý
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½Ù¶ï¿½ï¿½ï¿½Ýµï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : LargeDataBufferï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 /*void UpLoad_SpeedinTwoDays()
 {
 	int i,j,TimeInterval,TimeIntervalSum;
 	int Nb;
-	u_char buf[2];
-	u_int TimeLimit;
-	u_int curPointer,p;
+	unsigned char buf[2];
+	unsigned long TimeLimit;
+	unsigned long curPointer,p;
 	OTDR record;
 	OTDR_start last_start;
 	StructPT spt;
 	DateTime BigTime,SmallTime;
 	CLOCK TimeBefore2day;
-	u_char Buf[5];
+	unsigned char Buf[5];
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
-	u_char StartTimeBuf[6];
-	u_char StopTimeBuf[6];
+	unsigned char StartTimeBuf[6];
+	unsigned char StopTimeBuf[6];
 	int offset;
 	spt = pTable.RunRecord360h;
 
-	//ÖÃ³õÖµ
+	//ï¿½Ã³ï¿½Öµ
 	TimeLimit = (BCD2Char(curTime.hour))*60+BCD2Char(curTime.minute)+24*60;
 	j = TimeLimit-1;
 	TimeIntervalSum = 0;
@@ -1843,7 +1762,7 @@ void UpLoad_DistanceinTwoDays()
 	
 	last_start.dt.type = 0;
 	
-	//¼ÆËã³ö360Ð¡Ê±Ö®Ç°µÄÊ±¼ä²¢×°Èë»º³åÇø
+	//ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±Ö®Ç°ï¿½ï¿½Ê±ï¿½ä²¢×°ï¿½ë»ºï¿½ï¿½ï¿½ï¿½
 	ComputeTimeBeforeX(&curTime,&TimeBefore2day,TimeLimit);
 	Buf[0] = TimeBefore2day.year;
 	Buf[1] = TimeBefore2day.month;
@@ -1853,7 +1772,7 @@ void UpLoad_DistanceinTwoDays()
 	
 	do
 	{
-		//È¡³öµ±Ç°¼ÇÂ¼ÊÇ²»ÕýÈ·µÄ
+		//È¡ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½Ç²ï¿½ï¿½ï¿½È·ï¿½ï¿½
 		if(!GetOTDR(curPointer,&(record.start), &(record.end)))
 		{
 			offset = -1;
@@ -1863,12 +1782,12 @@ void UpLoad_DistanceinTwoDays()
 		}
 		
 		if(last_start.dt.type==0xafaf)
-			PrepareTime((u_char *)(&(last_start.dt.year)),&BigTime);
+			PrepareTime((unsigned char *)(&(last_start.dt.year)),&BigTime);
 		else
-			PrepareTime((u_char *)(&curTime),&BigTime);
+			PrepareTime((unsigned char *)(&curTime),&BigTime);
 		
-		//¼ÆËãµ±Ç°¼ÇÂ¼ÓëÉÏÒ»Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î	
-		PrepareTime((u_char *)(&(record.end.dt.year)),&SmallTime);
+		//ï¿½ï¿½ï¿½ãµ±Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½	
+		PrepareTime((unsigned char *)(&(record.end.dt.year)),&SmallTime);
 		TimeInterval = HaveTime(BigTime,SmallTime);
 		if(TimeInterval < 0)
 			break;
@@ -1885,7 +1804,7 @@ void UpLoad_DistanceinTwoDays()
 		while((j>=0)&&(Nb>0))
 		{
 			offset = -2;
-			GetOTDRDataFromFlash((u_short *)p, offset,buf);
+			GetOTDRDataFromFlash((unsigned short *)p, offset,buf);
 			LargeDataBuffer[j] = buf[1];
 			j--;
 			Nb--;
@@ -1904,7 +1823,7 @@ void UpLoad_DistanceinTwoDays()
 		
 		if(TimeIntervalSum >=TimeLimit)
 			break;
-		//ÐÞ¸ÄÖ¸Õë
+		//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 		offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 		curPointer = AddPointer(&spt, offset);
 		spt.CurPoint = curPointer;
@@ -1913,12 +1832,12 @@ void UpLoad_DistanceinTwoDays()
 	}while((j>0)&&(pTable.RunRecord360h.CurPoint!=curPointer));
 	
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x09;
-	RSCmdtxBuf[3] = (u_char)((TimeLimit+5)>>8);
-	RSCmdtxBuf[4] = (u_char)(TimeLimit+5);
+	RSCmdtxBuf[3] = (unsigned char)((TimeLimit+5)>>8);
+	RSCmdtxBuf[4] = (unsigned char)(TimeLimit+5);
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0;
 	for(i = 0; i < 6;i++)
@@ -1927,7 +1846,7 @@ void UpLoad_DistanceinTwoDays()
 		at91_usart_write(RS232,RSCmdtxBuf[i]);
 		SendCheckSum = SendCheckSum^RSCmdtxBuf[i];
 	}
-	//·¢ËÍÉÏÔØÊý¾Ý¿é
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 	for(i = 0;i < 5;i++)
 	{
 		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
@@ -1941,11 +1860,11 @@ void UpLoad_DistanceinTwoDays()
 		SendCheckSum = SendCheckSum^LargeDataBuffer[i];
 	}
 	
-	//·¢ËÍÐ£ÑéºÍ
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
 	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
 	at91_usart_write(RS232,SendCheckSum);
 	Modify_LastUploadTime();
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -1956,24 +1875,24 @@ void UpLoad_SpeedinTwoDays()
 {
 	int offset,i,j,TimeInterval;
 	StructPT spt;
-	u_char ReadOTDRFlag = 0;            //¶Á¼ÇÂ¼±êÖ¾
-	u_char InOTDRFlag = 0;              //ÔÚÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼ÖÐ¼ä±êÖ¾
-	u_char FilledNB = 0;                //60×Ö½ÚÖÐÒÑ¾­Ìî³äµÄ×Ö½ÚÊý
-	u_char FirstRead = 1;               //¶ÁµÚÒ»Ìõ¼ÇÂ¼±êÖ¾
-	u_int curPointer,Old_Pointer,Mid_Pointer;   //DataFlashÖÐµÄÖ¸Õë
+	unsigned char ReadOTDRFlag = 0;            //ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned char InOTDRFlag = 0;              //ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½Ð¼ï¿½ï¿½Ö¾
+	unsigned char FilledNB = 0;                //60ï¿½Ö½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½
+	unsigned char FirstRead = 1;               //ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned long curPointer,Old_Pointer,Mid_Pointer;   //DataFlashï¿½Ðµï¿½Ö¸ï¿½ï¿½
 	OTDR cur_record,Last_Record,temp_record;
-	u_short hourNB = 0;                 //360Ð¡Ê±¼ÆÊýÆ÷
-	u_int CurRemainMinuteNB;            //µ±Ç°Ê£Óà·ÖÖÓÊý
-	u_int temp;
+	unsigned short hourNB = 0;                 //360Ð¡Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long CurRemainMinuteNB;            //ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long temp;
 	CLOCK StartTime;
 	CLOCK current_time,temptime;
-	u_char Buf60Bytes[60];              //60·ÖÖÓÊý¾Ý»º³åÇø
+	unsigned char Buf60Bytes[60];              //60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý»ï¿½ï¿½ï¿½ï¿½ï¿½
 	DateTime BigTime,SmallTime;
-	u_int status232;
-	u_int rhr;
-	u_char HourLimit;
+	unsigned long status232;
+	unsigned long rhr;
+	unsigned char HourLimit;
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
@@ -2005,9 +1924,9 @@ void UpLoad_SpeedinTwoDays()
 	temptime.minute = temp_record.end.dt.minute;
 		
 
-	//ÖÃ³õÖµ
+	//ï¿½Ã³ï¿½Öµ
 	HourLimit = BCD2Char(temptime.hour) + 24 + 1;
-	//Êý¾ÝÇøÃ»ÓÐºÏ·¨¼ÇÂ¼
+	//ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ÐºÏ·ï¿½ï¿½ï¿½Â¼
 	if(GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(cur_record.start), &(cur_record.end)))
 	{
 		CurRemainMinuteNB = cur_record.end.MinuteNb;
@@ -2016,53 +1935,53 @@ void UpLoad_SpeedinTwoDays()
 		
 		do
 		{
-			//ÓÐ¶Á¼ÇÂ¼±êÖ¾
+			//ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 			if(ReadOTDRFlag)
 			{
-				//Ã»ÓÐ³É¹¦¶ÁÈëÆ£ÀÍ¼ÇÂ¼£¬²¹×îºó65×Ö½Ú²¢½áÊø
+				//Ã»ï¿½Ð³É¹ï¿½ï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½65ï¿½Ö½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½
 				if(!GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(Last_Record.start), &(Last_Record.end)))
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-					//»ñÈ¡Ê£Óà·ÖÖÓÊýµÄÊý¾Ý×°ÈëÄÚ´æ
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+					//ï¿½ï¿½È¡Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½Ú´ï¿½
 					Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 					hourNB++;
 					break;
 				}
-				//³É¹¦¶ÁÈëÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
+				//ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
 				else
 				{
 					spt.CurPoint = Old_Pointer;
 					FirstRead = 0;
-					//¼ÆËãÁ½Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î
-					PrepareTime((u_char *)(&(cur_record.start.dt.year)),&BigTime);
-					PrepareTime((u_char *)(&(Last_Record.end.dt.year)),&SmallTime);
+					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½
+					PrepareTime((unsigned char *)(&(cur_record.start.dt.year)),&BigTime);
+					PrepareTime((unsigned char *)(&(Last_Record.end.dt.year)),&SmallTime);
 					TimeInterval = HaveTime(BigTime,SmallTime);
-					//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ô´óÓÚ60·ÖÖÓ
+					//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 					if((TimeInterval+FilledNB)>=60)
 					{
-						ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+						ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 						for(i=0;i<60;i++)
 							Buf60Bytes[i] = 0;
 						hourNB++;
 						InOTDRFlag = 0;
-						//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+						//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 						CurRemainMinuteNB = Last_Record.end.MinuteNb;
 						RefreshCurTime((CLOCK *)(&(Last_Record.end.dt.year)),&current_time);
 						ReadOTDRFlag = 0;				
 						continue;
 					}
-					//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ôÐ¡ÓÚ60·ÖÖÓ
+					//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 					else if((TimeInterval+FilledNB)<60)
 					{
 						if((TimeInterval+FilledNB+Last_Record.end.MinuteNb)>=60)
 						{
-							ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+							ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 							temp = 60-TimeInterval-FilledNB;
 							Old_Pointer = AddPointer(&spt, -sizeof(OTDR_end));
 							spt.CurPoint = Old_Pointer;
 							offset = 0-temp;
-							GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,Buf60Bytes);
+							GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,Buf60Bytes);
 							Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);			
 							for(i=0;i<60;i++)
 								Buf60Bytes[i] = 0;
@@ -2071,7 +1990,7 @@ void UpLoad_SpeedinTwoDays()
 							spt.CurPoint = Old_Pointer;
 							hourNB++;
 							InOTDRFlag = 1;
-							//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+							//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 							CurRemainMinuteNB = Last_Record.end.MinuteNb-temp;
 							RefreshCurTime(&StartTime,&current_time);	
 							ReadOTDRFlag = 0;
@@ -2084,12 +2003,12 @@ void UpLoad_SpeedinTwoDays()
 							spt.CurPoint = Old_Pointer;
 							offset = 0-Last_Record.end.MinuteNb;
 							j = 60-TimeInterval-FilledNB-Last_Record.end.MinuteNb;
-							GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[j]));
+							GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[j]));
 							offset = 0-sizeof(OTDR_start)-Last_Record.end.MinuteNb;
 							Old_Pointer = AddPointer(&spt, offset);
 							spt.CurPoint = Old_Pointer;
 							ReadOTDRFlag = 1;
-							//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+							//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 							RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
 							FilledNB = TimeInterval+FilledNB+Last_Record.end.MinuteNb;
 							continue;
@@ -2097,20 +2016,20 @@ void UpLoad_SpeedinTwoDays()
 					}
 				}
 			}
-			//Ã»ÓÐ¶Á¼ÇÂ¼±êÖ¾
+			//Ã»ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 			if(!ReadOTDRFlag)
 			{
-				//µ±Ç°Ê£Óà·ÖÖÓÊý´óÓÚ60
+				//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60
 				if(CurRemainMinuteNB > 60)
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-					//»ñÈ¡±¾Ð¡Ê±µÄ60·ÖÖÓÊý¾Ý´æÈëBuf60Bytes
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+					//ï¿½ï¿½È¡ï¿½ï¿½Ð¡Ê±ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½Buf60Bytes
 					if(!InOTDRFlag)
 					{
 						Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
 						spt.CurPoint = Old_Pointer;
 					}
-					GetOTDRDataFromFlash((u_short *)Old_Pointer,-60,Buf60Bytes);
+					GetOTDRDataFromFlash((unsigned short *)Old_Pointer,-60,Buf60Bytes);
 					Old_Pointer = AddPointer(&spt, -60);
 					Mid_Pointer = Old_Pointer;
 					spt.CurPoint = Old_Pointer;
@@ -2119,19 +2038,19 @@ void UpLoad_SpeedinTwoDays()
 						Buf60Bytes[i] = 0;
 					hourNB++;
 					InOTDRFlag = 1;
-					//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+					//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 					CurRemainMinuteNB -= 60;
 					RefreshCurTime(&StartTime,&current_time);				
 					continue;
 				}
-				//µ±Ç°Ê£Óà·ÖÖÓÊýÐ¡ÓÚ60
+				//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60
 				else
 				{
-					//ÖÃ¶Á¼ÇÂ¼±êÖ¾
+					//ï¿½Ã¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 					ReadOTDRFlag = 1;
-					if(!FirstRead)//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+					if(!FirstRead)//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
-					//²¹³ä²¿·ÖÊý¾ÝÈë60×Ö½Ú»º³åÇø
+					//ï¿½ï¿½ï¿½ä²¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½Ö½Ú»ï¿½ï¿½ï¿½ï¿½ï¿½
 					if(!InOTDRFlag)
 					{
 						Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
@@ -2141,7 +2060,7 @@ void UpLoad_SpeedinTwoDays()
 					if(offset!=0)
 					{
 						temp = 60-CurRemainMinuteNB;
-						GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
+						GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
 					}
 					Old_Pointer = AddPointer(&spt, offset-sizeof(OTDR_start));
 					spt.CurPoint = Old_Pointer;
@@ -2152,38 +2071,32 @@ void UpLoad_SpeedinTwoDays()
 		}while((hourNB<=HourLimit)&&(pTable.RunRecord360h.CurPoint!=Old_Pointer));
 	}
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x09;
-	RSCmdtxBuf[3] = (u_char)((hourNB*65)>>8);
-	RSCmdtxBuf[4] = (u_char)(hourNB*65);
+	RSCmdtxBuf[3] = (unsigned char)((hourNB*65)>>8);
+	RSCmdtxBuf[4] = (unsigned char)(hourNB*65);
 	RSCmdtxBuf[5] = 0x00;
-	SendCheckSum = 0x55^0x7a^0x09^((u_char)((hourNB*65)>>8))^((u_char)(hourNB*65))^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
+	SendCheckSum = 0x55^0x7a^0x09^((unsigned char)((hourNB*65)>>8))^((unsigned char)(hourNB*65))^0x00;
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 
 
 	for(j=0;j<hourNB;j++)
 	{
-		//·¢ËÍÉÏÔØÊý¾Ý¿é£¨360hÖ®Ç°µÄÊ±¼ä£©
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿é£¨360hÖ®Ç°ï¿½ï¿½Ê±ï¿½ä£©
 		for(i = 0;i < 65;i++)
 		{
-			while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-			at91_usart_write(RS232,LargeDataBuffer[j*65+i]);
+			rt_device_write(&uart2_device, 0, &LargeDataBuffer[j*65+i], 1);
 			SendCheckSum = SendCheckSum^LargeDataBuffer[j*65+i];
 		}
 		
 
 	}
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -2191,96 +2104,89 @@ void UpLoad_SpeedinTwoDays()
 }
 //*----------------------------------------------------------------------------
 //* Function Name            : TransmitOneOTDR
-//* Object                   : ´«ËÍÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
-//* Input Parameters         : record¡ª¡ªÖ¸ÏòÆ£ÀÍ¼ÝÊ»¼ÇÂ¼µÄÖ¸Õë
-//*                          : nb¡ª¡ª¼ÇÂ¼µÄÐòºÅ
+//* Object                   : ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
+//* Input Parameters         : recordï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                          : nbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Output Parameters        : none
-//* Global  Variable Quoted  : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú
-//* Global  Variable Modified: SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
-void TransmitOneOTDR(OTDR *record,u_char nb)
+void TransmitOneOTDR(OTDR *record,unsigned char nb)
 {
-	u_char i;
+	unsigned char i;
 	for(i=0;i<18;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,record[nb].end.driver.DriverLisenseCode[i]);
+		rt_device_write(&uart2_device, 0, &record[nb].end.driver.DriverLisenseCode[i], 1);
 		SendCheckSum = SendCheckSum^record[nb].end.driver.DriverLisenseCode[i];
 	}
 	
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].start.dt.year);
+	rt_device_write(&uart2_device, 0, &record[nb].start.dt.year, 1);
 	SendCheckSum = SendCheckSum^record[nb].start.dt.year;
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].start.dt.month);
+
+	rt_device_write(&uart2_device, 0, &record[nb].start.dt.month, 1);
 	SendCheckSum = SendCheckSum^record[nb].start.dt.month;
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].start.dt.day);
+
+	rt_device_write(&uart2_device, 0, &record[nb].start.dt.day, 1);
 	SendCheckSum = SendCheckSum^record[nb].start.dt.day;
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].start.dt.hour);
+
+	rt_device_write(&uart2_device, 0, &record[nb].start.dt.hour, 1);
 	SendCheckSum = SendCheckSum^record[nb].start.dt.hour;
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].start.dt.minute);
+
+	rt_device_write(&uart2_device, 0, &record[nb].start.dt.minute, 1);
 	SendCheckSum = SendCheckSum^record[nb].start.dt.minute;
 	
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].end.dt.year);
+	rt_device_write(&uart2_device, 0, &record[nb].end.dt.year, 1);
 	SendCheckSum = SendCheckSum^record[nb].end.dt.year;
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].end.dt.month);
+
+	rt_device_write(&uart2_device, 0, &record[nb].end.dt.month, 1);
 	SendCheckSum = SendCheckSum^record[nb].end.dt.month;
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].end.dt.day);
+
+	rt_device_write(&uart2_device, 0, &record[nb].end.dt.day, 1);
 	SendCheckSum = SendCheckSum^record[nb].end.dt.day;
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].end.dt.hour);
+
+	rt_device_write(&uart2_device, 0, &record[nb].end.dt.hour, 1);
 	SendCheckSum = SendCheckSum^record[nb].end.dt.hour;
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,record[nb].end.dt.minute);
+
+	rt_device_write(&uart2_device, 0, &record[nb].end.dt.minute, 1);
 	SendCheckSum = SendCheckSum^record[nb].end.dt.minute;
 }
 //*----------------------------------------------------------------------------
 //* Function Name            : UpLoad_OverThreeHours
-//* Object                   : ÉÏÔØ×î½ü2¸öÈÕÀúÌìÄÚÍ¬Ò»¼ÝÊ»Ô±Á¬Ðø¼ÝÊ»Ê±¼ä³¬¹ý3Ð¡Ê±
-//*                          : µÄËùÓÐ¼ÇÂ¼Êý¾Ý£¬
+//* Object                   : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬Ò»ï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ï¿½ï¿½Ê»Ê±ï¿½ä³¬ï¿½ï¿½3Ð¡Ê±
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½Â¼ï¿½ï¿½Ý£ï¿½
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷,
-//*                          : ¸³ÖµºóÍ¨¹ý232½Ó¿Ú½«ÆäÖÐµÄÖµ£¨Ó¦´ðÖ¡£©´«ËÍ¸øPC»ú
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬µÃµ½¼ÆËã½á¹ûºó´«ËÍ¸øPC»ú£¬
-//* Global  Variable Modified: RSCmdtxBuf[0]£­RSCmdtxBuf[5]¡ª¡ªÃüÁî´«ËÍ¼Ä´æÆ÷£¬
-//*                          : ¸³ÖµÎªÉÏÔØ×î½ü2¸öÈÕÀúÌìÄÚÍ¬Ò»¼ÝÊ»Ô±Á¬Ðø¼ÝÊ»Ê±¼ä³¬¹ý3Ð¡Ê±µÄÓ¦´ðÖ¡£¬
-//*                          : SendCheckSum¡ª¡ªÐ£ÑéºÍ£¬½«´«ËÍµÄÊý¾Ý°´×Ö½Ú½øÐÐÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½,
+//*                          : ï¿½ï¿½Öµï¿½ï¿½Í¨ï¿½ï¿½232ï¿½Ó¿Ú½ï¿½ï¿½ï¿½ï¿½Ðµï¿½Öµï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½PCï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBuf[0]ï¿½ï¿½RSCmdtxBuf[5]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î´«ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬Ò»ï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ï¿½ï¿½Ê»Ê±ï¿½ä³¬ï¿½ï¿½3Ð¡Ê±ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½Ý°ï¿½ï¿½Ö½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void UpLoad_OverThreeHours()
 {
-	u_int i;
-	u_char recordnb;
-	u_short length;
+	unsigned long i;
+	unsigned char recordnb;
+	unsigned short length;
 	OTDR record[16];
 	
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
 	recordnb = GetOverTimeRecordIn2Days(record);
 	length = recordnb*28;
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x11;
-	RSCmdtxBuf[3] = (u_char)(length>>8);
-	RSCmdtxBuf[4] = (u_char)length;
+	RSCmdtxBuf[3] = (unsigned char)(length>>8);
+	RSCmdtxBuf[4] = (unsigned char)length;
 	RSCmdtxBuf[5] = 0x00;
-	SendCheckSum = 0x55^0x7a^0x11^((u_char)(length>>8))^((u_char)length)^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
-	//·¢ËÍÉÏÔØÊý¾Ý¿é
+	SendCheckSum = 0x55^0x7a^0x11^((unsigned char)(length>>8))^((unsigned char)length)^0x00;
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 	if(recordnb!=0)
 	{
 		for(i=0;i<recordnb;i++)
@@ -2288,11 +2194,10 @@ void UpLoad_OverThreeHours()
 			TransmitOneOTDR(&(record[i]),i);
 		}
 	}
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 	Modify_LastUploadTime();
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -2302,93 +2207,93 @@ void UpLoad_OverThreeHours()
 
 //*----------------------------------------------------------------------------
 //* Function Name            : Set_DriverCode
-//* Object                   : ÉèÖÃ¼ÝÊ»Ô±´úÂë¡¢¼ÝÊ»Ö¤ºÅÂë
-//*                          : ÃüÁî×ÖÎª0x81(RSCmdrxBuf[2])
+//* Object                   : ï¿½ï¿½ï¿½Ã¼ï¿½Ê»Ô±ï¿½ï¿½ï¿½ë¡¢ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x81(RSCmdrxBuf[2])
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdrxBuf[2]¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÃüÁî×Ö£¬Ó¦Îª0x81
-//*                          : DataLengthReceived¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÊý¾Ý³¤¶È£¬Ó¦Îª0x15£¬
-//*                          : ±¾³ÌÐòÖÐÓÃÀ´ÅÐ¶ÏÊý¾Ý³¤¶ÈÊÇ·ñÕýÈ·
-//*                          : RSDatarxBuf¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄ¼ÝÊ»Ô±´úÂë¡¢¼ÝÊ»Ö¤ºÅÂëÊý¾Ý
+//* Global  Variable Quoted  : RSCmdrxBuf[2]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½Ó¦Îª0x81
+//*                          : DataLengthReceivedï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½È£ï¿½Ó¦Îª0x15ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È·
+//*                          : RSDatarxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½Ä¼ï¿½Ê»Ô±ï¿½ï¿½ï¿½ë¡¢ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
 void Set_DriverCode()
 {
-	u_int i=0;
-	u_int new_drivercode;
+	unsigned long i=0;
+	unsigned long new_drivercode;
 	StructPara para;
-	u_char CorrespondCmdWord;
+	unsigned char CorrespondCmdWord;
 	CorrespondCmdWord = RSCmdrxBuf[2];
 	
-	//ÅÐ¶ÏÊý¾Ý¿é³¤¶ÈÊÇ·ñÎª21×Ö½Ú
+	//ï¿½Ð¶ï¿½ï¿½ï¿½Ý¿é³¤ï¿½ï¿½ï¿½Ç·ï¿½Îª21ï¿½Ö½ï¿½
 	if(DataLengthReceived == 0x15)
 	{
-		//ÅÐ¶Ï½ÓÊÕµ½µÄÊ±¼äÊÇ·ñ´¦ÓÚºÏ·¨Êý¾Ý·¶Î§
+		//ï¿½Ð¶Ï½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ÚºÏ·ï¿½ï¿½ï¿½Ý·ï¿½Î§
 		
-		//·¢ËÍÉèÖÃÕýÈ·Ó¦´ðÖ¡
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·Ó¦ï¿½ï¿½Ö¡
 		RS232SetSuccess(CorrespondCmdWord);
 
-		//Ê×ÏÈ½«DATAFLASHµÄµÚÒ»¸ö4KÇøµÄ·ÖÇø±íºÍ²ÎÊý±í¿½±´µÄÄÚ´æÖÐ
+		//ï¿½ï¿½ï¿½È½ï¿½DATAFLASHï¿½Äµï¿½Ò»ï¿½ï¿½4Kï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
 		para = *PARAMETER_BASE;
 	
-		//¼ÆËãÐÂµÄ¼ÝÊ»Ô±´úÂë
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ÂµÄ¼ï¿½Ê»Ô±ï¿½ï¿½ï¿½ï¿½
 		new_drivercode = RSDatarxBuf[0]*65536+RSDatarxBuf[1]*256 +RSDatarxBuf[2];
 			
 		while(para.DriverLisenseCode[i]==RSDatarxBuf[i+3])
 			i++;		
 		if((i < 18)||(para.DriverCode != new_drivercode))
 		{
-			//½«ÐèÒªÐÞ¸ÄµÄÊý¾ÝÐ´ÈëÄÚ´æÖÐÒÑ±£´æµÄ4kÖÐµÄÏàÓ¦Î»ÖÃ
+			//ï¿½ï¿½ï¿½ï¿½Òªï¿½Þ¸Äµï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½ï¿½ï¿½4kï¿½Ðµï¿½ï¿½ï¿½Ó¦Î»ï¿½ï¿½
 			para.DriverCode = new_drivercode;
 			for(i = 0;i < 18;i++)
 				para.DriverLisenseCode[i]=RSDatarxBuf[i+3];
-			//½«ÄÚ´æÖÐ¸ÄºÃµÄ²ÎÊý±íCopy»ØDATAFLASHµÄFirst4kÖÐ
+			//ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ð¸ÄºÃµÄ²ï¿½ï¿½ï¿½ï¿½Copyï¿½ï¿½DATAFLASHï¿½ï¿½First4kï¿½ï¿½
 			WriteParameterTable(&para);
 		}		
 	}
-	else//Êý¾Ý¿é³¤¶È´íÎó£¬·µ»ØPC»úÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
+	else//ï¿½ï¿½Ý¿é³¤ï¿½È´ï¿½ï¿½ó£¬·ï¿½ï¿½ï¿½PCï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 		RS232SetError();
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name            : Set_AutoVIN
-//* Object                   : ÉèÖÃ³µÁ¾VINºÅ¡¢³µÅÆºÅÂë¡¢³µÅÆ·ÖÀà£¬
-//*                          : Èç¹ûÐÂ³µÅÆºÅÓë¼ÇÂ¼ÒÇÄÚ´æÖÐÔ­ÓÐ³µÅÆºÅ²»Í¬£¬
-//*                          : ¾ÍË¢ÐÂ¼ÇÂ¼ÒÇÄÚ²¿³ý²ÎÊý±íºÍ·ÖÇø±íÍâµÄÊý¾Ý´æ´¢Çø£¬²¢
-//*                          : ½«·ÖÇø±í³õÊ¼»¯£¬
-//*                          : ÃüÁî×ÖÎª0x82(RSCmdrxBuf[2])
+//* Object                   : ï¿½ï¿½ï¿½Ã³ï¿½ï¿½ï¿½VINï¿½Å¡ï¿½ï¿½ï¿½ï¿½Æºï¿½ï¿½ë¡¢ï¿½ï¿½ï¿½Æ·ï¿½ï¿½à£¬
+//*                          : ï¿½ï¿½ï¿½ï¿½Â³ï¿½ï¿½Æºï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½Ô­ï¿½Ð³ï¿½ï¿½ÆºÅ²ï¿½Í¬ï¿½ï¿½
+//*                          : ï¿½ï¿½Ë¢ï¿½Â¼ï¿½Â¼ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x82(RSCmdrxBuf[2])
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdrxBuf[2]¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÃüÁî×Ö£¬Ó¦Îª0x82
-//*                          : DataLengthReceived¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÊý¾Ý³¤¶È£¬Ó¦Îª0x29£¬
-//*                          : ±¾³ÌÐòÖÐÓÃÀ´ÅÐ¶ÏÊý¾Ý³¤¶ÈÊÇ·ñÕýÈ·
-//*                          : RSDatarxBuf¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄ³µÁ¾VINºÅ¡¢³µÅÆºÅÂë¡¢
-//*                          : ³µÅÆ·ÖÀàÊý¾Ý
+//* Global  Variable Quoted  : RSCmdrxBuf[2]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½Ó¦Îª0x82
+//*                          : DataLengthReceivedï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½È£ï¿½Ó¦Îª0x29ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È·
+//*                          : RSDatarxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½Ä³ï¿½ï¿½ï¿½VINï¿½Å¡ï¿½ï¿½ï¿½ï¿½Æºï¿½ï¿½ë¡¢
+//*                          : ï¿½ï¿½ï¿½Æ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
 void Set_AutoVIN()
 {
-	u_int i,j,k,sector_addr;
+	unsigned long i,j,k,sector_addr;
 	StructPara para;
-	u_char CorrespondCmdWord;
+	unsigned char CorrespondCmdWord;
 	CorrespondCmdWord = RSCmdrxBuf[2];
 	i = 0;
 	j = 0;
 	k = 0;
 	
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
-	//ÅÐ¶ÏÊý¾Ý¿é³¤¶ÈÊÇ·ñÎª41×Ö½Ú
+	//ï¿½Ð¶ï¿½ï¿½ï¿½Ý¿é³¤ï¿½ï¿½ï¿½Ç·ï¿½Îª41ï¿½Ö½ï¿½
 	if(DataLengthReceived == 0x29)
 	{
-		//ÅÐ¶Ï½ÓÊÕµ½µÄÊ±¼äÊÇ·ñ´¦ÓÚºÏ·¨Êý¾Ý·¶Î§
+		//ï¿½Ð¶Ï½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ÚºÏ·ï¿½ï¿½ï¿½Ý·ï¿½Î§
 		
-		//·¢ËÍÉèÖÃÕýÈ·Ó¦´ðÖ¡
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·Ó¦ï¿½ï¿½Ö¡
 		RS232SetSuccess(CorrespondCmdWord);
 
-		//Ê×ÏÈ½«DATAFLASHµÄµÚÒ»¸ö4KÇøµÄ·ÖÇø±íºÍ²ÎÊý±í¿½±´µÄÄÚ´æÖÐ
+		//ï¿½ï¿½ï¿½È½ï¿½DATAFLASHï¿½Äµï¿½Ò»ï¿½ï¿½4Kï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
 		para = *PARAMETER_BASE;
 	
 		while((para.AutoVIN[i]==RSDatarxBuf[i])&&(i<18))
@@ -2399,7 +2304,7 @@ void Set_AutoVIN()
 			k++;		
 		if((i < 17)||(j < 12)||(k < 12))
 		{
-			//½«ÐèÒªÐÞ¸ÄµÄÊý¾ÝÐ´ÈëÄÚ´æÖÐÒÑ±£´æµÄ4kÖÐµÄÏàÓ¦Î»ÖÃ
+			//ï¿½ï¿½ï¿½ï¿½Òªï¿½Þ¸Äµï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½ï¿½ï¿½4kï¿½Ðµï¿½ï¿½ï¿½Ó¦Î»ï¿½ï¿½
 			for(i = 0;i < 17;i++)
 				para.AutoVIN[i]=RSDatarxBuf[i];
 			for(i = 0;i < 18;i++)
@@ -2411,7 +2316,7 @@ void Set_AutoVIN()
 				para.Door1Type = 0xff;
 				para.Door2Type = 0xff;
 			}
-			//½«ÄÚ´æÖÐ¸ÄºÃµÄ²ÎÊý±íCopy»ØDATAFLASHµÄFirst4kÖÐ
+			//ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ð¸ÄºÃµÄ²ï¿½ï¿½ï¿½ï¿½Copyï¿½ï¿½DATAFLASHï¿½ï¿½First4kï¿½ï¿½
 			WriteParameterTable(&para);
 		}
 		if(j < 12)	
@@ -2425,25 +2330,25 @@ void Set_AutoVIN()
 //					return(0);
 			}
 			InitializeTable(1,0,1);
-			PulseTotalNumber = 0;//µ±Ç°Àï³ÌÇåÁã
-			//Çå³ý±êÖ¾	
-			InRecordCycle=0;	//ÊÇ·ñÔÚ¼ÇÂ¼Êý¾Ý¹ý³ÌÖÐ
-			InFlashWriting=0;	//ÔÚFLASHÐ´ÖÜÆÚÖÐ
+			PulseTotalNumber = 0;//ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			//ï¿½ï¿½ï¿½ï¿½Ö¾	
+			InRecordCycle=0;	//ï¿½Ç·ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ý¹ï¿½ï¿½ï¿½ï¿½
+			InFlashWriting=0;	//ï¿½ï¿½FLASHÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			FinishFlag=0;
 
 			lcm_clear_ram(ALL);
 			DisplayNormalUI();	
 		}	
 	}
-	else//Êý¾Ý¿é³¤¶È´íÎó£¬·µ»ØPC»úÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
+	else//ï¿½ï¿½Ý¿é³¤ï¿½È´ï¿½ï¿½ó£¬·ï¿½ï¿½ï¿½PCï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 		RS232SetError();
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
 	#endif
 
-/*		//ÅÐ¶Ï½ÓÊÕµ½µÄ³µÁ¾VINºÅÊÇ·ñ´¦ÓÚºÏ·¨Êý¾Ý·¶Î§
+/*		//ï¿½Ð¶Ï½ï¿½ï¿½Õµï¿½ï¿½Ä³ï¿½ï¿½ï¿½VINï¿½ï¿½ï¿½Ç·ï¿½ï¿½ÚºÏ·ï¿½ï¿½ï¿½Ý·ï¿½Î§
 		for(i = 0;i < 17;i++)
 		{
 			LowFourBits[i] = (RSDatarxBuf[i]) & 0x0f;
@@ -2460,29 +2365,29 @@ void Set_AutoVIN()
 
 //*----------------------------------------------------------------------------
 //* Function Name            : Set_RealTime
-//* Object                   : ÉèÖÃÊµÊ±Ê±¼ä
-//*                          : ÃüÁî×ÖÎª0xc2
+//* Object                   : ï¿½ï¿½ï¿½ï¿½ÊµÊ±Ê±ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0xc2
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdrxBuf[2]¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÃüÁî×Ö£¬Ó¦Îª0x82
-//*                          : DataLengthReceived¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÊý¾Ý³¤¶È£¬Ó¦Îª0x06£¬
-//*                          : ±¾³ÌÐòÖÐÓÃÀ´ÅÐ¶ÏÊý¾Ý³¤¶ÈÊÇ·ñÕýÈ·
-//*                          : RSDatarxBuf¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÊµÊ±Ê±¼ä
+//* Global  Variable Quoted  : RSCmdrxBuf[2]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½Ó¦Îª0x82
+//*                          : DataLengthReceivedï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½È£ï¿½Ó¦Îª0x06ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È·
+//*                          : RSDatarxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ÊµÊ±Ê±ï¿½ï¿½
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
 void Set_RealTime()
 {
-	u_int i,j;
+	unsigned long i,j;
 	flash_word *p;
 	StructPara para;
-	u_char CorrespondCmdWord;
+	unsigned char CorrespondCmdWord;
 	CorrespondCmdWord = RSCmdrxBuf[2];
 	CLOCK ClockSet;
 	
-	//ÅÐ¶ÏÊý¾Ý¿é³¤¶ÈÊÇ·ñÎª6×Ö½Ú
+	//ï¿½Ð¶ï¿½ï¿½ï¿½Ý¿é³¤ï¿½ï¿½ï¿½Ç·ï¿½Îª6ï¿½Ö½ï¿½
 	if(DataLengthReceived == 0x06)
 	{
-		//ÅÐ¶Ï½ÓÊÕµ½µÄÊ±¼äÊÇ·ñ´¦ÓÚºÏ·¨Êý¾Ý·¶Î§
+		//ï¿½Ð¶Ï½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ÚºÏ·ï¿½ï¿½ï¿½Ý·ï¿½Î§
 	    ClockSet.year = RSDatarxBuf[0];
 	    ClockSet.month = RSDatarxBuf[1];
 	    ClockSet.day = RSDatarxBuf[2];
@@ -2494,110 +2399,110 @@ void Set_RealTime()
 			RS232SetError();
 			return;
 		}
-		//·¢ËÍÉèÖÃÕýÈ·Ó¦´ðÖ¡
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·Ó¦ï¿½ï¿½Ö¡
 		RS232SetSuccess(CorrespondCmdWord);
 
-		//Ê×ÏÈ½«DATAFLASHµÄµÚÒ»¸ö4KÇøµÄ·ÖÇø±íºÍ²ÎÊý±í¿½±´µÄÄÚ´æÖÐ
+		//ï¿½ï¿½ï¿½È½ï¿½DATAFLASHï¿½Äµï¿½Ò»ï¿½ï¿½4Kï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
 		para = *PARAMETER_BASE;
 	
-		//½«ÐèÒªÐÞ¸ÄµÄÊý¾Ý£¨realtime£©Ð´ÈëÄÚ´æÖÐÒÑ±£´æµÄ4kÖÐµÄÏàÓ¦Î»ÖÃ
+		//ï¿½ï¿½ï¿½ï¿½Òªï¿½Þ¸Äµï¿½ï¿½ï¿½Ý£ï¿½realtimeï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½ï¿½ï¿½4kï¿½Ðµï¿½ï¿½ï¿½Ó¦Î»ï¿½ï¿½
 		para.time = ClockSet;
 		
-		//½«ÄÚ´æÖÐ¸ÄºÃµÄ²ÎÊý±íCopy»ØDATAFLASHµÄFirst4kÖÐ
+		//ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ð¸ÄºÃµÄ²ï¿½ï¿½ï¿½ï¿½Copyï¿½ï¿½DATAFLASHï¿½ï¿½First4kï¿½ï¿½
 		WriteParameterTable(&para);
 			
-		//ÏòÊ±ÖÓÐ¾Æ¬ÉèÖÃÊ±¼ä
+		//ï¿½ï¿½Ê±ï¿½ï¿½Ð¾Æ¬ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 		SetCurrentDateTime(&ClockSet);
 //		SetTimeFlag = 1;
 			
 	}
-	else//Êý¾Ý¿é³¤¶È´íÎó£¬·µ»ØPC»úÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
+	else//ï¿½ï¿½Ý¿é³¤ï¿½È´ï¿½ï¿½ó£¬·ï¿½ï¿½ï¿½PCï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 		RS232SetError();
 }
 
 
 //*----------------------------------------------------------------------------
 //* Function Name            : Set_CHCO
-//* Object                   : ÉèÖÃ³µÁ¾ÌØÕ÷ÏµÊý
-//*                          : ÃüÁî×ÖÎª0xc3
+//* Object                   : ï¿½ï¿½ï¿½Ã³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0xc3
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdrxBuf[2]¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÃüÁî×Ö£¬Ó¦Îª0xc3
-//*                          : DataLengthReceived¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÊý¾Ý³¤¶È£¬Ó¦Îª0x03£¬
-//*                          : ±¾³ÌÐòÖÐÓÃÀ´ÅÐ¶ÏÊý¾Ý³¤¶ÈÊÇ·ñÕýÈ·
-//*                          : RSDatarxBuf¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄ³µÁ¾ÌØÕ÷ÏµÊý
+//* Global  Variable Quoted  : RSCmdrxBuf[2]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½Ó¦Îª0xc3
+//*                          : DataLengthReceivedï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½È£ï¿½Ó¦Îª0x03ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È·
+//*                          : RSDatarxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½Ä³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
 void Set_CHCO()
 {
 	StructPara para;
-	u_int new_chco;
-	u_char CorrespondCmdWord;
+	unsigned long new_chco;
+	unsigned char CorrespondCmdWord;
 	CorrespondCmdWord = RSCmdrxBuf[2];
 	
-	//ÅÐ¶ÏÊý¾Ý¿é³¤¶ÈÊÇ·ñÎª3×Ö½Ú
+	//ï¿½Ð¶ï¿½ï¿½ï¿½Ý¿é³¤ï¿½ï¿½ï¿½Ç·ï¿½Îª3ï¿½Ö½ï¿½
 	if(DataLengthReceived == 0x03)
 	{
-		//·¢ËÍÉèÖÃÕýÈ·Ó¦´ðÖ¡
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·Ó¦ï¿½ï¿½Ö¡
 		RS232SetSuccess(CorrespondCmdWord);
 		
-		//Ê×ÏÈ½«DATAFLASHµÄµÚÒ»¸ö4KÇøµÄ·ÖÇø±íºÍ²ÎÊý±í¿½±´µÄÄÚ´æÖÐ
+		//ï¿½ï¿½ï¿½È½ï¿½DATAFLASHï¿½Äµï¿½Ò»ï¿½ï¿½4Kï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
 		para = *PARAMETER_BASE;
 		
-		//¼ÆËãÐÂµÄ³µÂÖÏµÊý
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ÂµÄ³ï¿½ï¿½ï¿½Ïµï¿½ï¿½
 		new_chco = RSDatarxBuf[0]*65536+RSDatarxBuf[1]*256 +RSDatarxBuf[2];
 		
-		//ÅÐ¶Ï²ÎÊý±íÊÇ·ñÓÐ±ä»¯//²ÎÊý±íÓÐ±ä»¯
+		//ï¿½Ð¶Ï²ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½Ð±ä»¯//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ä»¯
 		if(new_chco!=para.CHCO)
 		{
 			para.CHCO = new_chco;
 			WriteParameterTable(&para);
 		}
 	}
-	else//Êý¾Ý¿é³¤¶È´íÎó£¬·µ»ØPC»úÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
+	else//ï¿½ï¿½Ý¿é³¤ï¿½È´ï¿½ï¿½ó£¬·ï¿½ï¿½ï¿½PCï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 		RS232SetError();
 }
 
 
 //*----------------------------------------------------------------------------
 //* Function Name            : Set_ALL_PARA
-//* Object                   : ÉèÖÃ¼ÇÂ¼ÒÇµÄËùÓÐ²ÎÊý
-//*                          : ÃüÁî×ÖÎª0x83(RSCmdrxBuf[2])
+//* Object                   : ï¿½ï¿½ï¿½Ã¼ï¿½Â¼ï¿½Çµï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0x83(RSCmdrxBuf[2])
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdrxBuf[2]¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÃüÁî×Ö£¬Ó¦Îª0x83
-//*                          : DataLengthReceived¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÊý¾Ý³¤¶È£¬Ó¦Îª0xff£¬
-//*                          : ±¾³ÌÐòÖÐÓÃÀ´ÅÐ¶ÏÊý¾Ý³¤¶ÈÊÇ·ñÕýÈ·
-//*                          : RSDatarxBuf¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄ²ÎÊý±íÐÅÏ¢
+//* Global  Variable Quoted  : RSCmdrxBuf[2]ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö£ï¿½Ó¦Îª0x83
+//*                          : DataLengthReceivedï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½È£ï¿½Ó¦Îª0xffï¿½ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È·
+//*                          : RSDatarxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
 void Set_ALL_PARA()
 {
-	u_int i,j,k,sector_addr;
+	unsigned long i,j,k,sector_addr;
 	StructPara para;
-	u_int new_chco;
-	u_short new_CodeColor;
-	u_int new_DriverCode;
+	unsigned long new_chco;
+	unsigned short new_CodeColor;
+	unsigned long new_DriverCode;
 	CLOCK ClockSet;
-	u_char CorrespondCmdWord;
+	unsigned char CorrespondCmdWord;
 	CorrespondCmdWord = RSCmdrxBuf[2];
 	
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
-	//ÅÐ¶ÏÊý¾Ý¿é³¤¶ÈÊÇ·ñÎª256×Ö½Ú
+	//ï¿½Ð¶ï¿½ï¿½ï¿½Ý¿é³¤ï¿½ï¿½ï¿½Ç·ï¿½Îª256ï¿½Ö½ï¿½
 	if((DataLengthReceived == 0x100)&&(RSDatarxBuf[0]==0xaa)&&(RSDatarxBuf[1]==0x30))
 	{
-		//ÅÐ¶Ï½ÓÊÕµ½µÄÊ±¼äÊÇ·ñ´¦ÓÚºÏ·¨Êý¾Ý·¶Î§
+		//ï¿½Ð¶Ï½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ÚºÏ·ï¿½ï¿½ï¿½Ý·ï¿½Î§
 		
-		//Ê×ÏÈ½«DATAFLASHµÄµÚÒ»¸ö4KÇøµÄ·ÖÇø±íºÍ²ÎÊý±í¿½±´µÄÄÚ´æÖÐ
+		//ï¿½ï¿½ï¿½È½ï¿½DATAFLASHï¿½Äµï¿½Ò»ï¿½ï¿½4Kï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
 		para = *PARAMETER_BASE;
 	
 		for(i=0;i<22;i++)
 			para.sn[i] = RSDatarxBuf[i+2];
 
-		//¼ÆËãÐÂµÄ³µÂÖÏµÊý
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ÂµÄ³ï¿½ï¿½ï¿½Ïµï¿½ï¿½
 		new_chco = RSDatarxBuf[26]*65536+RSDatarxBuf[25]*256 +RSDatarxBuf[24];
 		if(new_chco!=para.CHCO)
 			para.CHCO = new_chco;	
@@ -2616,7 +2521,7 @@ void Set_ALL_PARA()
 			k++;		
 		if((i < 18)||(j < 12)||(k < 12))   
 		{
-			//½«ÐèÒªÐÞ¸ÄµÄÊý¾ÝÐ´ÈëÄÚ´æÖÐÒÑ±£´æµÄ4kÖÐµÄÏàÓ¦Î»ÖÃ
+			//ï¿½ï¿½ï¿½ï¿½Òªï¿½Þ¸Äµï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½Ñ±ï¿½ï¿½ï¿½ï¿½4kï¿½Ðµï¿½ï¿½ï¿½Ó¦Î»ï¿½ï¿½
 			for(i = 0;i < 18;i++)
 				para.AutoVIN[i]=RSDatarxBuf[i+40];
 			for(i = 0;i < 12;i++)
@@ -2669,10 +2574,10 @@ void Set_ALL_PARA()
 		
 		para.IBBType = RSDatarxBuf[255]*256 + RSDatarxBuf[254];  
 		
-		//½«ÄÚ´æÖÐ¸ÄºÃµÄ²ÎÊý±íCopy»ØDATAFLASHµÄFirst4kÖÐ
+		//ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ð¸ÄºÃµÄ²ï¿½ï¿½ï¿½ï¿½Copyï¿½ï¿½DATAFLASHï¿½ï¿½First4kï¿½ï¿½
 		WriteParameterTable(&para);
 				
-		//ÏòÊ±ÖÓÐ¾Æ¬ÉèÖÃÊ±¼ä
+		//ï¿½ï¿½Ê±ï¿½ï¿½Ð¾Æ¬ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 		SetCurrentDateTime(&ClockSet);
 
 		if(j < 12)	
@@ -2686,28 +2591,28 @@ void Set_ALL_PARA()
 //					return(0);
 			}
 			InitializeTable(1,0,1);
-			PulseTotalNumber = 0;//µ±Ç°Àï³ÌÇåÁã
-			//Çå³ý±êÖ¾	
-			InRecordCycle=0;	//ÊÇ·ñÔÚ¼ÇÂ¼Êý¾Ý¹ý³ÌÖÐ
-			InFlashWriting=0;	//ÔÚFLASHÐ´ÖÜÆÚÖÐ
+			PulseTotalNumber = 0;//ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			//ï¿½ï¿½ï¿½ï¿½Ö¾	
+			InRecordCycle=0;	//ï¿½Ç·ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ý¹ï¿½ï¿½ï¿½ï¿½
+			InFlashWriting=0;	//ï¿½ï¿½FLASHÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			FinishFlag=0;
 
 			lcm_clear_ram(ALL);
 			DisplayNormalUI();	
 		}	
-		//·¢ËÍÉèÖÃÕýÈ·Ó¦´ðÖ¡
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·Ó¦ï¿½ï¿½Ö¡
 		RS232SetSuccess(CorrespondCmdWord);
 
 	}
-	else//Êý¾Ý¿é³¤¶È´íÎó£¬·µ»ØPC»úÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
+	else//ï¿½ï¿½Ý¿é³¤ï¿½È´ï¿½ï¿½ó£¬·ï¿½ï¿½ï¿½PCï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 		RS232SetError();
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
         WD_CR = 0xc071;
         WD_OMR = 0x2343;
 	#endif
 
-/*		//ÅÐ¶Ï½ÓÊÕµ½µÄ³µÁ¾VINºÅÊÇ·ñ´¦ÓÚºÏ·¨Êý¾Ý·¶Î§
+/*		//ï¿½Ð¶Ï½ï¿½ï¿½Õµï¿½ï¿½Ä³ï¿½ï¿½ï¿½VINï¿½ï¿½ï¿½Ç·ï¿½ï¿½ÚºÏ·ï¿½ï¿½ï¿½Ý·ï¿½Î§
 		for(i = 0;i < 17;i++)
 		{
 			LowFourBits[i] = (RSDatarxBuf[i]) & 0x0f;
@@ -2723,80 +2628,70 @@ void Set_ALL_PARA()
 
 //*----------------------------------------------------------------------------
 //* Function Name            : RS232SetError
-//* Object                   : ¼ÇÂ¼ÒÇÏòPC»ú·µ»ØÉèÖÃÍ¨Ñ¶´íÎóÃüÁîÖ¡
-//*                          : ÃüÁî×ÖÎª0xfb
+//* Object                   : ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0xfb
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf¡ª¡ª´ý´«ËÍµÄÉèÖÃÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ª´ý´«ËÍµÄÐ£ÑéºÍ
-//* Global  Variable Modified: RSCmdtxBuf¡ª¡ª¸³ÖµÎªÉèÖÃÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ª½«´ý´«ËÍµÄÓ¦´ðÖ¡°´×Ö½ÚÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½Ð£ï¿½ï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void RS232SetError()
 {
-	u_int i;
+	unsigned long i;
 	
-	//ÏòPC»ú·µ»ØÉèÖÃÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
+	//ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0xfb;
 	RSCmdtxBuf[3] = 0x00;
 	SendCheckSum = 0x55^0x7a^0xfb^0x00;	
-	for(i = 0; i < 4;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);									
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 4);
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 6);
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name            : RS232UploadError
-//* Object                   : ¼ÇÂ¼ÒÇÏòPC»ú·µ»ØÉÏÔØÍ¨Ñ¶´íÎóÃüÁîÖ¡
-//*                          : ÃüÁî×ÖÎª0xfa
+//* Object                   : ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0xfa
 //* Input Parameters         : none
 //* Output Parameters        : none
-//* Global  Variable Quoted  : RSCmdtxBuf¡ª¡ª´ý´«ËÍµÄÉÏÔØÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ª´ý´«ËÍµÄÐ£ÑéºÍ
-//* Global  Variable Modified: RSCmdtxBuf¡ª¡ª¸³ÖµÎªÉÏÔØÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ª½«´ý´«ËÍµÄÓ¦´ðÖ¡°´×Ö½ÚÒì»ò
+//* Global  Variable Quoted  : RSCmdtxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½Ð£ï¿½ï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 void RS232UploadError()
 {
-	u_int i;
+	unsigned long i;
 
-	//ÏòPC»ú·µ»ØÉÏÔØÍ¨Ñ¶´íÎóÓ¦´ðÖ¡
+	//ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0xfa;
 	RSCmdtxBuf[3] = 0x00;
 	SendCheckSum = 0x55^0x7a^0xfa^0x00;	
-	for(i = 0; i < 4;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);									
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 4);
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name            : RS232SetSuccess
-//* Object                   : ¼ÇÂ¼ÒÇÏòPC»ú·µ»ØÉèÖÃÕýÈ·Ó¦´ðÖ¡
-//* Input Parameters         : CorrespondCmdWord¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÓëÉèÖÃÃüÁîÏà¶ÔÓ¦µÄÃüÁî×Ö
+//* Object                   : ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·Ó¦ï¿½ï¿½Ö¡
+//* Input Parameters         : CorrespondCmdWordï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Output Parameters        : none
-//* Global  Variable Quoted  : CorrespondCmdWord¡ª¡ª´ÓPC»ú½ÓÊÕµ½µÄÓëÉèÖÃÃüÁîÏà¶ÔÓ¦µÄÃüÁî×Ö
-//*                          : RSCmdtxBuf¡ª¡ª´ý´«ËÍµÄÉèÖÃÍ¨Ñ¶ÕýÈ·Ó¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ª´ý´«ËÍµÄÐ£ÑéºÍ
-//* Global  Variable Modified: RSCmdtxBuf¡ª¡ª¸³ÖµÎªÉèÖÃÍ¨Ñ¶ÕýÈ·Ó¦´ðÖ¡
-//*                          : SendCheckSum¡ª¡ª½«´ý´«ËÍµÄÓ¦´ðÖ¡°´×Ö½ÚÒì»ò
+//* Global  Variable Quoted  : CorrespondCmdWordï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PCï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//*                          : RSCmdtxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½È·Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½Ð£ï¿½ï¿½ï¿½
+//* Global  Variable Modified: RSCmdtxBufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎªï¿½ï¿½ï¿½ï¿½Í¨Ñ¶ï¿½ï¿½È·Ó¦ï¿½ï¿½Ö¡
+//*                          : SendCheckSumï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
-void RS232SetSuccess(u_char CorrespondCmdWord)
+void RS232SetSuccess(unsigned char CorrespondCmdWord)
 {
-	u_int i;
+	unsigned long i;
 
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = CorrespondCmdWord;
@@ -2804,32 +2699,26 @@ void RS232SetSuccess(u_char CorrespondCmdWord)
 	RSCmdtxBuf[4] = 0x00;
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0x55^0x7a^CorrespondCmdWord^0x00^0x00^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name            : Write4kDataToFlash
-//* Object                   : ½«ÄÚ´æÖÐµÄ4k²ÎÊýÐ´ÈëFLASHµÄÒ»¸ö4KÖÐ£¬
-//*                          : Èç¹ûÊÇÐ´µÚ0¸ö4k£¨²ÎÊý±í£©¶øÇÒÆäÖÐµÄ³µÅÆºÅ·¢ÉúÁË±ä»¯£¬
-//*                          : ¾Í½«Êý¾Ý´æ´¢Æ÷µÄ2£­255¸ö4kÈ«²¿²Á³ý£¬Í¬Ê±¸üÐÂ·ÖÇø±í
-//* Input Parameters         : PageNb¡ª¡ª´ýÐ´ÈëµÄ4kÔÚÊý¾Ý´æ´¢Æ÷ÖÐµÄÒ³ºÅ£¨0»ò1£©
-//* Output Parameters        : "1"¡ª¡ªÐ´Èë³É¹¦
-//*                          : "0"¡ª¡ªÐ´ÈëÊ§°Ü
-//* Global  Variable Quoted  : ep2_bufr¡ª¡ªUSBÉè±¸½ÓÊÕµ½µÄÒ»¸ö4k
+//* Object                   : ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ðµï¿½4kï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½FLASHï¿½ï¿½Ò»ï¿½ï¿½4Kï¿½Ð£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½0ï¿½ï¿½4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÐµÄ³ï¿½ï¿½ÆºÅ·ï¿½ï¿½ï¿½ï¿½Ë±ä»¯ï¿½ï¿½
+//*                          : ï¿½Í½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½255ï¿½ï¿½4kÈ«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬Ê±ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters         : PageNbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½4kï¿½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½ï¿½Ðµï¿½Ò³ï¿½Å£ï¿½0ï¿½ï¿½1ï¿½ï¿½
+//* Output Parameters        : "1"ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½É¹ï¿½
+//*                          : "0"ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ê§ï¿½ï¿½
+//* Global  Variable Quoted  : ep2_bufrï¿½ï¿½ï¿½ï¿½USBï¿½è±¸ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ò»ï¿½ï¿½4k
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
-int Write4kDataToFlash(u_char PageNb)
+int Write4kDataToFlash(unsigned char PageNb)
 {
-	u_int i = 0;
-	u_int j = 0;
-	u_short *Buffer;
+	unsigned long i = 0;
+	unsigned long j = 0;
+	unsigned short *Buffer;
 	StructPara old_para,new_para;
 	
 	flash_word *sector_addr = (flash_word *)(DATAFLASH_BASE + 0x1000*PageNb);
@@ -2837,12 +2726,12 @@ int Write4kDataToFlash(u_char PageNb)
 
 	if(PageNb==0)
 		old_para = *PARAMETER_BASE;
-	//²Á³ýFLASH
+	//ï¿½ï¿½ï¿½ï¿½FLASH
 	if(!flash_sst39_erase_sector((flash_word *)DATAFLASH_BASE,(flash_word *)sector_addr))
 		return(0);
 	
-	//ÄÚ´æÖÐµÄÒ»¸ö4kÊý¾ÝÖØÐÂÐ´»ØFLASH
-	Buffer = (u_short *)ep2_bufr;
+	//ï¿½Ú´ï¿½ï¿½Ðµï¿½Ò»ï¿½ï¿½4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½FLASH
+	Buffer = (unsigned short *)ep2_bufr;
 	for(i = 0;i < 2048;i++ )
 	{
 		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,word_addr,*Buffer))
@@ -2862,7 +2751,7 @@ int Write4kDataToFlash(u_char PageNb)
 		while((old_para.AutoCode[j]==new_para.AutoCode[j])&&(j<12))
 			j++;
 		
-		//Èç¹û³µÅÆºÅÂëÓÐ±ä»¯£¬¾Í²Á³ýDATAFLASHµÄ2£­255·ÖÇø
+		//ï¿½ï¿½ï¿½ï¿½Æºï¿½ï¿½ï¿½ï¿½Ð±ä»¯ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½DATAFLASHï¿½ï¿½2ï¿½ï¿½255ï¿½ï¿½ï¿½ï¿½
 		if(j < 12)	
 		{
 			DisplayEraseDataFlash();
@@ -2875,10 +2764,10 @@ int Write4kDataToFlash(u_char PageNb)
 //					return(0);
 			}
 			InitializeTable(1,0,1);
-			PulseTotalNumber = 0;//µ±Ç°Àï³ÌÇåÁã	
-			//Çå³ý±êÖ¾	
-			InRecordCycle=0;	//ÊÇ·ñÔÚ¼ÇÂ¼Êý¾Ý¹ý³ÌÖÐ
-			InFlashWriting=0;	//ÔÚFLASHÐ´ÖÜÆÚÖÐ
+			PulseTotalNumber = 0;//ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½	
+			//ï¿½ï¿½ï¿½ï¿½Ö¾	
+			InRecordCycle=0;	//ï¿½Ç·ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ý¹ï¿½ï¿½ï¿½ï¿½
+			InFlashWriting=0;	//ï¿½ï¿½FLASHÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			FinishFlag=0;
 
 
@@ -2890,13 +2779,13 @@ int Write4kDataToFlash(u_char PageNb)
 }		
 //*----------------------------------------------------------------------------
 //* Function Name            : Modify_LastUploadTime
-//* Object                   : ½«ÄÚ´æÖÐµÄ4k²ÎÊýÐ´ÈëFLASHµÄÒ»¸ö4KÖÐ£¬
-//*                          : Èç¹ûÊÇÐ´µÚ0¸ö4k£¨²ÎÊý±í£©¶øÇÒÆäÖÐµÄ³µÅÆºÅ·¢ÉúÁË±ä»¯£¬
-//*                          : ¾Í½«Êý¾Ý´æ´¢Æ÷µÄ2£­255¸ö4kÈ«²¿²Á³ý£¬Í¬Ê±¸üÐÂ·ÖÇø±í
-//* Input Parameters         : PageNb¡ª¡ª´ýÐ´ÈëµÄ4kÔÚÊý¾Ý´æ´¢Æ÷ÖÐµÄÒ³ºÅ£¨0»ò1£©
-//* Output Parameters        : "1"¡ª¡ªÐ´Èë³É¹¦
-//*                          : "0"¡ª¡ªÐ´ÈëÊ§°Ü
-//* Global  Variable Quoted  : ep2_bufr¡ª¡ªUSBÉè±¸½ÓÊÕµ½µÄÒ»¸ö4k
+//* Object                   : ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ðµï¿½4kï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½FLASHï¿½ï¿½Ò»ï¿½ï¿½4Kï¿½Ð£ï¿½
+//*                          : ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½0ï¿½ï¿½4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÐµÄ³ï¿½ï¿½ÆºÅ·ï¿½ï¿½ï¿½ï¿½Ë±ä»¯ï¿½ï¿½
+//*                          : ï¿½Í½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½255ï¿½ï¿½4kÈ«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬Ê±ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters         : PageNbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½4kï¿½ï¿½ï¿½ï¿½Ý´æ´¢ï¿½ï¿½ï¿½Ðµï¿½Ò³ï¿½Å£ï¿½0ï¿½ï¿½1ï¿½ï¿½
+//* Output Parameters        : "1"ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½É¹ï¿½
+//*                          : "0"ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ê§ï¿½ï¿½
+//* Global  Variable Quoted  : ep2_bufrï¿½ï¿½ï¿½ï¿½USBï¿½è±¸ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ò»ï¿½ï¿½4k
 //* Global  Variable Modified: none
 //*----------------------------------------------------------------------------
 void Modify_LastUploadTime()
@@ -2913,23 +2802,23 @@ void UpLoad_Speed360h_wayon()
 {
 	int offset,i,j,k,TimeInterval;
 	StructPT spt;
-	u_char ReadOTDRFlag = 0;            //¶Á¼ÇÂ¼±êÖ¾
-	u_char InOTDRFlag = 0;              //ÔÚÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼ÖÐ¼ä±êÖ¾
-	u_char FilledNB = 0;                //60×Ö½ÚÖÐÒÑ¾­Ìî³äµÄ×Ö½ÚÊý
-	u_char FirstRead = 1;               //¶ÁµÚÒ»Ìõ¼ÇÂ¼±êÖ¾
-	u_int curPointer,Old_Pointer,Mid_Pointer;   //DataFlashÖÐµÄÖ¸Õë
+	unsigned char ReadOTDRFlag = 0;            //ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned char InOTDRFlag = 0;              //ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½Ð¼ï¿½ï¿½Ö¾
+	unsigned char FilledNB = 0;                //60ï¿½Ö½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½
+	unsigned char FirstRead = 1;               //ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
+	unsigned long curPointer,Old_Pointer,Mid_Pointer;   //DataFlashï¿½Ðµï¿½Ö¸ï¿½ï¿½
 	OTDR cur_record,Last_Record;
-	u_short hourNB = 0;                 //360Ð¡Ê±¼ÆÊýÆ÷
-	u_int CurRemainMinuteNB;            //µ±Ç°Ê£Óà·ÖÖÓÊý
-	u_int temp;
+	unsigned short hourNB = 0;                 //360Ð¡Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long CurRemainMinuteNB;            //ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	unsigned long temp;
 	CLOCK StartTime;
 	CLOCK current_time;
-	u_char Buf60Bytes[60];              //60·ÖÖÓÊý¾Ý»º³åÇø
+	unsigned char Buf60Bytes[60];              //60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý»ï¿½ï¿½ï¿½ï¿½ï¿½
 	DateTime BigTime,SmallTime;
-	u_int status232;
-	u_int rhr;
+	unsigned long status232;
+	unsigned long rhr;
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
@@ -2940,7 +2829,7 @@ void UpLoad_Speed360h_wayon()
 	for(i=0;i<60;i++)
 		Buf60Bytes[i] = 0;
 	
-	//Êý¾ÝÇøÃ»ÓÐºÏ·¨¼ÇÂ¼
+	//ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ÐºÏ·ï¿½ï¿½ï¿½Â¼
 	if(GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(cur_record.start), &(cur_record.end)))
 	{
 		CurRemainMinuteNB = cur_record.end.MinuteNb;
@@ -2949,53 +2838,53 @@ void UpLoad_Speed360h_wayon()
 		
 		do
 		{
-			//ÓÐ¶Á¼ÇÂ¼±êÖ¾
+			//ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 			if(ReadOTDRFlag)
 			{
-				//Ã»ÓÐ³É¹¦¶ÁÈëÆ£ÀÍ¼ÇÂ¼£¬²¹×îºó65×Ö½Ú²¢½áÊø
+				//Ã»ï¿½Ð³É¹ï¿½ï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½65ï¿½Ö½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½
 				if(!GetOneOTDRandModifyPointer(&(curPointer), &(Old_Pointer), &(Last_Record.start), &(Last_Record.end)))
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-					//»ñÈ¡Ê£Óà·ÖÖÓÊýµÄÊý¾Ý×°ÈëÄÚ´æ
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+					//ï¿½ï¿½È¡Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½Ú´ï¿½
 					Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 					hourNB++;
 					break;
 				}
-				//³É¹¦¶ÁÈëÒ»ÌõÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
+				//ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
 				else
 				{
 					spt.CurPoint = Old_Pointer;
 					FirstRead = 0;
-					//¼ÆËãÁ½Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î
-					PrepareTime((u_char *)(&(cur_record.start.dt.year)),&BigTime);
-					PrepareTime((u_char *)(&(Last_Record.end.dt.year)),&SmallTime);
+					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½
+					PrepareTime((unsigned char *)(&(cur_record.start.dt.year)),&BigTime);
+					PrepareTime((unsigned char *)(&(Last_Record.end.dt.year)),&SmallTime);
 					TimeInterval = HaveTime(BigTime,SmallTime);
-					//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ô´óÓÚ60·ÖÖÓ
+					//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 					if((TimeInterval+FilledNB)>=60)
 					{
-						ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+						ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);
 						for(i=0;i<60;i++)
 							Buf60Bytes[i] = 0;
 						hourNB++;
 						InOTDRFlag = 0;
-						//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+						//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 						CurRemainMinuteNB = Last_Record.end.MinuteNb;
 						RefreshCurTime((CLOCK *)(&(Last_Record.end.dt.year)),&current_time);
 						ReadOTDRFlag = 0;				
 						continue;
 					}
-					//Èç¹ûÊ£Óà·ÖÖÓÊý¼ÓÊ±¼ä¼ä¸ôÐ¡ÓÚ60·ÖÖÓ
+					//ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½
 					else if((TimeInterval+FilledNB)<60)
 					{
 						if((TimeInterval+FilledNB+Last_Record.end.MinuteNb)>=60)
 						{
-							ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
+							ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 							temp = 60-TimeInterval-FilledNB;
 							Old_Pointer = AddPointer(&spt, -sizeof(OTDR_end));
 							spt.CurPoint = Old_Pointer;
 							offset = 0-temp;
-							GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,Buf60Bytes);
+							GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,Buf60Bytes);
 							Write65ByteToSRAM(hourNB,&StartTime,Buf60Bytes);			
 							for(i=0;i<60;i++)
 								Buf60Bytes[i] = 0;
@@ -3004,7 +2893,7 @@ void UpLoad_Speed360h_wayon()
 							spt.CurPoint = Old_Pointer;
 							hourNB++;
 							InOTDRFlag = 1;
-							//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+							//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 							CurRemainMinuteNB = Last_Record.end.MinuteNb-temp;
 							RefreshCurTime(&StartTime,&current_time);	
 							ReadOTDRFlag = 0;
@@ -3017,12 +2906,12 @@ void UpLoad_Speed360h_wayon()
 							spt.CurPoint = Old_Pointer;
 							offset = 0-Last_Record.end.MinuteNb;
 							j = 60-TimeInterval-FilledNB-Last_Record.end.MinuteNb;
-							GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[j]));
+							GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[j]));
 							offset = 0-sizeof(OTDR_start)-Last_Record.end.MinuteNb;
 							Old_Pointer = AddPointer(&spt, offset);
 							spt.CurPoint = Old_Pointer;
 							ReadOTDRFlag = 1;
-							//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+							//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 							RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
 							FilledNB = TimeInterval+FilledNB+Last_Record.end.MinuteNb;
 							continue;
@@ -3030,20 +2919,20 @@ void UpLoad_Speed360h_wayon()
 					}
 				}
 			}
-			//Ã»ÓÐ¶Á¼ÇÂ¼±êÖ¾
+			//Ã»ï¿½Ð¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 			if(!ReadOTDRFlag)
 			{
-				//µ±Ç°Ê£Óà·ÖÖÓÊý´óÓÚ60
+				//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60
 				if(CurRemainMinuteNB > 60)
 				{
-					ComputeTimeBeforeX(&current_time,&StartTime,60);  //¼ÆËã±¾Ð¡Ê±µÄÆðÊ¼Ê±¼ä
-					//»ñÈ¡±¾Ð¡Ê±µÄ60·ÖÖÓÊý¾Ý´æÈëBuf60Bytes
+					ComputeTimeBeforeX(&current_time,&StartTime,60);  //ï¿½ï¿½ï¿½ã±¾Ð¡Ê±ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
+					//ï¿½ï¿½È¡ï¿½ï¿½Ð¡Ê±ï¿½ï¿½60ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½Buf60Bytes
 					if(!InOTDRFlag)
 					{
 						Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
 						spt.CurPoint = Old_Pointer;
 					}
-					GetOTDRDataFromFlash((u_short *)Old_Pointer,-60,Buf60Bytes);
+					GetOTDRDataFromFlash((unsigned short *)Old_Pointer,-60,Buf60Bytes);
 					Old_Pointer = AddPointer(&spt, -60);
 					Mid_Pointer = Old_Pointer;
 					spt.CurPoint = Old_Pointer;
@@ -3052,19 +2941,19 @@ void UpLoad_Speed360h_wayon()
 						Buf60Bytes[i] = 0;
 					hourNB++;
 					InOTDRFlag = 1;
-					//¸üÐÂÊ£Óà·ÖÖÓÊýºÍÊ±¼ä
+					//ï¿½ï¿½ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 					CurRemainMinuteNB -= 60;
 					RefreshCurTime(&StartTime,&current_time);				
 					continue;
 				}
-				//µ±Ç°Ê£Óà·ÖÖÓÊýÐ¡ÓÚ60
+				//ï¿½ï¿½Ç°Ê£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½60
 				else
 				{
-					//ÖÃ¶Á¼ÇÂ¼±êÖ¾
+					//ï¿½Ã¶ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
 					ReadOTDRFlag = 1;
-					if(!FirstRead)//»ñÈ¡µ±Ç°¼ÇÂ¼µÄÆðÊ¼Ê±¼ä
+					if(!FirstRead)//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
 						RefreshCurTime((CLOCK *)(&(Last_Record.start.dt.year)),(CLOCK *)(&(cur_record.start.dt.year)));
-					//²¹³ä²¿·ÖÊý¾ÝÈë60×Ö½Ú»º³åÇø
+					//ï¿½ï¿½ï¿½ä²¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½60ï¿½Ö½Ú»ï¿½ï¿½ï¿½ï¿½ï¿½
 					if(!InOTDRFlag)
 					{
 						Old_Pointer = AddPointer(&spt, -(sizeof(OTDR_end)));
@@ -3074,7 +2963,7 @@ void UpLoad_Speed360h_wayon()
 					if(offset!=0)
 					{
 						temp = 60-CurRemainMinuteNB;
-						GetOTDRDataFromFlash((u_short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
+						GetOTDRDataFromFlash((unsigned short *)Old_Pointer,offset,&(Buf60Bytes[temp]));
 					}
 					Old_Pointer = AddPointer(&spt, offset-sizeof(OTDR_start));
 					spt.CurPoint = Old_Pointer;
@@ -3085,40 +2974,35 @@ void UpLoad_Speed360h_wayon()
 		}while((hourNB<=360)&&(pTable.RunRecord360h.CurPoint!=Old_Pointer));
 	}
 	
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x12;
-	RSCmdtxBuf[3] = (u_char)(hourNB>>8);
-	RSCmdtxBuf[4] = (u_char)hourNB;
+	RSCmdtxBuf[3] = (unsigned char)(hourNB>>8);
+	RSCmdtxBuf[4] = (unsigned char)hourNB;
 	RSCmdtxBuf[5] = 0x00;
-	SendCheckSum = 0x55^0x7a^0x12^((u_char)(hourNB>>8))^((u_char)hourNB)^0x00;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-	}
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	SendCheckSum = 0x55^0x7a^0x12^((unsigned char)(hourNB>>8))^((unsigned char)hourNB)^0x00;
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 
 	if(!rs232_status_ready(&status232, 0x01))
 	{
 		RS232UploadError();
-		//Æô¶¯¿´ÃÅ¹·
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 		#if WATCH_DOG_EN
 	    WD_CR = 0xc071;
 	    WD_OMR = 0x2343;
 		#endif
 		return;
 	}
-	//¶ÁÈ¡PC»úµÄÓ¦´ðÖ¡
+	//ï¿½ï¿½È¡PCï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 	for(i = 0;i < 3;i++)
 	{
 		if(!rs232_status_ready(&status232, 0x01))
 		{
 			RS232UploadError();
-			//Æô¶¯¿´ÃÅ¹·
+			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 			#if WATCH_DOG_EN
 		    WD_CR = 0xc071;
 		    WD_OMR = 0x2343;
@@ -3130,11 +3014,11 @@ void UpLoad_Speed360h_wayon()
 		RSCmdrxBuf[i] = (char)rhr;
 	}
 	
-	//ÅÐ¶ÏPC»úµÄÓ¦´ðÖ¡ÊÇ·ñÕýÈ·
+	//ï¿½Ð¶ï¿½PCï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½Ç·ï¿½ï¿½ï¿½È·
 	if((RSCmdrxBuf[0]!=0xaa)||(RSCmdrxBuf[1]!=0x75)||(RSCmdrxBuf[2]!=0x12))
 	{
 		RS232UploadError();
-		//Æô¶¯¿´ÃÅ¹·
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 		#if WATCH_DOG_EN
 	    WD_CR = 0xc071;
 	    WD_OMR = 0x2343;
@@ -3144,39 +3028,33 @@ void UpLoad_Speed360h_wayon()
 
 	for(j=0;j<hourNB;j++)
 	{
-		//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+		//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		RSCmdtxBuf[0] = 0x55;
 		RSCmdtxBuf[1] = 0x7a;
 		RSCmdtxBuf[2] = 0x12;
-		RSCmdtxBuf[3] = (u_char)(hourNB>>8);
-		RSCmdtxBuf[4] = (u_char)hourNB;
+		RSCmdtxBuf[3] = (unsigned char)(hourNB>>8);
+		RSCmdtxBuf[4] = (unsigned char)hourNB;
 		RSCmdtxBuf[5] = 0x00;
-		SendCheckSum = 0x55^0x7a^0x12^((u_char)(hourNB>>8))^((u_char)hourNB)^0x00;
-		for(i = 0; i < 6;i++)
-		{
-			while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-			at91_usart_write(RS232,RSCmdtxBuf[i]);
-		}
+		SendCheckSum = 0x55^0x7a^0x12^((unsigned char)(hourNB>>8))^((unsigned char)hourNB)^0x00;
+		rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 
-		//·¢ËÍÉÏÔØÊý¾Ý¿é£¨360hÖ®Ç°µÄÊ±¼ä£©
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿é£¨360hÖ®Ç°ï¿½ï¿½Ê±ï¿½ä£©
 		for(i = 0;i < 65;i++)
 		{
-			while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-			at91_usart_write(RS232,LargeDataBuffer[j*65+i]);
+			rt_device_write(&uart2_device, 0, &LargeDataBuffer[j*65+i], 1);
 			SendCheckSum = SendCheckSum^LargeDataBuffer[j*65+i];
 		}
 		
-		//·¢ËÍÐ£ÑéºÍ
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,SendCheckSum);
+		//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+		rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 		
-		//¶ÁÈ¡PC»úµÄÓ¦´ðÖ¡
+		//ï¿½ï¿½È¡PCï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡
 		for(i = 0;i < 3;i++)
 		{
 			if(!rs232_status_ready(&status232, 0x01))
 			{
 				RS232UploadError();
-				//Æô¶¯¿´ÃÅ¹·
+				//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 				#if WATCH_DOG_EN
 			    WD_CR = 0xc071;
 			    WD_OMR = 0x2343;
@@ -3188,7 +3066,7 @@ void UpLoad_Speed360h_wayon()
 			RSCmdrxBuf[i] = (char)rhr;
 		}
 		
-		//ÅÐ¶ÏPC»úµÄÓ¦´ðÖ¡ÊÇ·ñÕýÈ·
+		//ï¿½Ð¶ï¿½PCï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½Ç·ï¿½ï¿½ï¿½È·
 		if((RSCmdrxBuf[0]==0xaa)&&(RSCmdrxBuf[1]==0x75)&&(RSCmdrxBuf[2]==0x12))
 			continue;
 		else if((RSCmdrxBuf[0]==0xaa)&&(RSCmdrxBuf[1]==0x75)&&(RSCmdrxBuf[2]==0xfa))
@@ -3199,7 +3077,7 @@ void UpLoad_Speed360h_wayon()
 		else
 		{
 			RS232UploadError();
-			//Æô¶¯¿´ÃÅ¹·
+			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 			#if WATCH_DOG_EN
 		    WD_CR = 0xc071;
 		    WD_OMR = 0x2343;
@@ -3208,7 +3086,7 @@ void UpLoad_Speed360h_wayon()
 		}
 	}
 
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -3219,22 +3097,22 @@ void UpLoad_SpeedinTwoDays_wayon()
 {
 	int i,j,TimeInterval,TimeIntervalSum;
 	int Nb;
-	u_char buf[2];
-	u_int TimeLimit;
-	u_int curPointer,p;
+	unsigned char buf[2];
+	unsigned long TimeLimit;
+	unsigned long curPointer,p;
 	OTDR record,temp_record;
 	OTDR_start last_start;
 	StructPT spt;
 	DateTime BigTime,SmallTime;
 	CLOCK TimeBefore2day,temptime;
-	u_char Buf[5];
+	unsigned char Buf[5];
 
-	//¹Ø±Õ¿´ÃÅ¹·
+	//ï¿½Ø±Õ¿ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
 	WD_OMR = 0x2340;
 	#endif	
-	u_char StartTimeBuf[6];
-	u_char StopTimeBuf[6];
+	unsigned char StartTimeBuf[6];
+	unsigned char StopTimeBuf[6];
 	int offset;
 	temp_record.end.dt.year = 0xff;
 	temp_record.end.dt.month = 0xff;
@@ -3270,13 +3148,13 @@ void UpLoad_SpeedinTwoDays_wayon()
 		temptime.hour = temp_record.end.dt.hour;
 		temptime.minute = temp_record.end.dt.minute;	
 
-		//ÖÃ³õÖµ
+		//ï¿½Ã³ï¿½Öµ
 		TimeLimit = (BCD2Char(temptime.hour))*60+BCD2Char(temptime.minute)+24*60;
 		j = TimeLimit-1;
 		
 		last_start.dt.type = 0;
 		
-		//¼ÆËã³ö360Ð¡Ê±Ö®Ç°µÄÊ±¼ä²¢×°Èë»º³åÇø
+		//ï¿½ï¿½ï¿½ï¿½ï¿½360Ð¡Ê±Ö®Ç°ï¿½ï¿½Ê±ï¿½ä²¢×°ï¿½ë»ºï¿½ï¿½ï¿½ï¿½
 		ComputeTimeBeforeX(&temptime,&TimeBefore2day,TimeLimit);
 		Buf[0] = TimeBefore2day.year;
 		Buf[1] = TimeBefore2day.month;
@@ -3286,7 +3164,7 @@ void UpLoad_SpeedinTwoDays_wayon()
 		
 		do
 		{
-			//È¡³öµ±Ç°¼ÇÂ¼ÊÇ²»ÕýÈ·µÄ
+			//È¡ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½Ç²ï¿½ï¿½ï¿½È·ï¿½ï¿½
 			if(!GetOTDR(curPointer,&(record.start), &(record.end)))
 			{
 				offset = -1;
@@ -3296,12 +3174,12 @@ void UpLoad_SpeedinTwoDays_wayon()
 			}
 			
 			if(last_start.dt.type==0xafaf)
-				PrepareTime((u_char *)(&(last_start.dt.year)),&BigTime);
+				PrepareTime((unsigned char *)(&(last_start.dt.year)),&BigTime);
 			else
-				PrepareTime((u_char *)(&temptime),&BigTime);
+				PrepareTime((unsigned char *)(&temptime),&BigTime);
 			
-			//¼ÆËãµ±Ç°¼ÇÂ¼ÓëÉÏÒ»Ìõ¼ÇÂ¼Ö®¼äµÄÊ±¼ä²î	
-			PrepareTime((u_char *)(&(record.end.dt.year)),&SmallTime);
+			//ï¿½ï¿½ï¿½ãµ±Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼Ö®ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½	
+			PrepareTime((unsigned char *)(&(record.end.dt.year)),&SmallTime);
 			TimeInterval = HaveTime(BigTime,SmallTime);
 			if(TimeInterval < 0)
 				break;
@@ -3320,7 +3198,7 @@ void UpLoad_SpeedinTwoDays_wayon()
 			while((j>=0)&&(Nb>0))
 			{
 				offset = -2;
-				GetOTDRDataFromFlash((u_short *)p, offset,buf);
+				GetOTDRDataFromFlash((unsigned short *)p, offset,buf);
 				LargeDataBuffer[j] = buf[1];
 				j--;
 				Nb--;
@@ -3339,7 +3217,7 @@ void UpLoad_SpeedinTwoDays_wayon()
 			
 			if(TimeIntervalSum >=TimeLimit)
 				break;
-			//ÐÞ¸ÄÖ¸Õë
+			//ï¿½Þ¸ï¿½Ö¸ï¿½ï¿½
 			offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+record.end.MinuteNb);
 			curPointer = AddPointer(&spt, offset);
 			spt.CurPoint = curPointer;
@@ -3347,7 +3225,7 @@ void UpLoad_SpeedinTwoDays_wayon()
 			last_start = record.start;		
 		}while((j>0)&&(pTable.RunRecord360h.CurPoint!=curPointer));
 	}
-	//Êý¾ÝÇøÎÞÊý¾Ý
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	else
 	{
 		TimeLimit = (BCD2Char(curTime.hour))*60+BCD2Char(curTime.minute)+24*60;
@@ -3359,39 +3237,31 @@ void UpLoad_SpeedinTwoDays_wayon()
 		Buf[4] = TimeBefore2day.minute;
 	}
 		
-	//Ê×ÏÈ·¢ËÍÓ¦´ðÖ¡µÄÆðÊ¼×ÖÍ·ºÍÃüÁî×Ö
+	//ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
 	RSCmdtxBuf[2] = 0x13;
-	RSCmdtxBuf[3] = (u_char)((TimeLimit+5)>>8);
-	RSCmdtxBuf[4] = (u_char)(TimeLimit+5);
+	RSCmdtxBuf[3] = (unsigned char)((TimeLimit+5)>>8);
+	RSCmdtxBuf[4] = (unsigned char)(TimeLimit+5);
 	RSCmdtxBuf[5] = 0x00;
 	SendCheckSum = 0;
-	for(i = 0; i < 6;i++)
-	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,RSCmdtxBuf[i]);
-		SendCheckSum = SendCheckSum^RSCmdtxBuf[i];
-	}
-	//·¢ËÍÉÏÔØÊý¾Ý¿é
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 	for(i = 0;i < 5;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,Buf[i]);
+		rt_device_write(&uart2_device, 0, &Buf[i], 1);
 		SendCheckSum = SendCheckSum^Buf[i];
 	}
 	for(i = 0;i < TimeLimit;i++)
 	{
-		while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-		at91_usart_write(RS232,LargeDataBuffer[i]);
+		rt_device_write(&uart2_device, 0, &LargeDataBuffer[i], 1);
 		SendCheckSum = SendCheckSum^LargeDataBuffer[i];
 	}
 	
-	//·¢ËÍÐ£ÑéºÍ
-	while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-	at91_usart_write(RS232,SendCheckSum);
+	//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
 	Modify_LastUploadTime();
-	//Æô¶¯¿´ÃÅ¹·
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¹ï¿½
 	#if WATCH_DOG_EN
     WD_CR = 0xc071;
     WD_OMR = 0x2343;
@@ -3400,73 +3270,102 @@ void UpLoad_SpeedinTwoDays_wayon()
 
 void Reply_Schedule(void)
 {
-	u_char i;
-	u_char sendchecksum = 0;
+	unsigned char i;
+	unsigned char sendchecksum = 0;
 	switch(Schedule_Result)
 	{
-		//²éÑ¯µ½´ï³É¹¦
+		//ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½É¹ï¿½
 		case 1:
 			RSCmdrxBuf[0] = 0x55;
 			RSCmdrxBuf[1] = 0x7a;
 			for(i = 0;i < 16;i++)
 			{
-				while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-				at91_usart_write(RS232,RSCmdrxBuf[i]);
+				rt_device_write(&uart2_device, 0, &RSCmdtxBuf[i], 1);
 				sendchecksum = sendchecksum^RSCmdrxBuf[i];
 			}
-			//·¢ËÍÐ£ÑéºÍ
-			while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-			at91_usart_write(RS232,sendchecksum);
+			//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+			rt_device_write(&uart2_device, 0, &sendchecksum, 1);
 		break;
-		//²éÑ¯µ½´ïÊ§°Ü
+		//ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
 		case 2 : 
 			RSCmdrxBuf[0] = 0x55;
 			RSCmdrxBuf[1] = 0x7a;
 			RSCmdrxBuf[2] = 0xce;
 			for(i = 0;i < 16;i++)
 			{
-				while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-				at91_usart_write(RS232,RSCmdrxBuf[i]);
+				rt_device_write(&uart2_device, 0, &RSCmdtxBuf[i], 1);
 				sendchecksum = sendchecksum^RSCmdrxBuf[i];
 			}
-			//·¢ËÍÐ£ÑéºÍ
-			while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-			at91_usart_write(RS232,sendchecksum);
+			//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+			rt_device_write(&uart2_device, 0, &sendchecksum, 1);
 		break;
-		//µ÷¶È³É¹¦
+		//ï¿½ï¿½ï¿½È³É¹ï¿½
 		case 3 :
 			RSCmdrxBuf[0] = 0x55;
 			RSCmdrxBuf[1] = 0x7a;
 			for(i = 0;i < 16;i++)
 			{
-				while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-				at91_usart_write(RS232,RSCmdrxBuf[i]);
+				rt_device_write(&uart2_device, 0, &RSCmdtxBuf[i], 1);
 				sendchecksum = sendchecksum^RSCmdrxBuf[i];
 			}
-			//·¢ËÍÐ£ÑéºÍ
-			while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-			at91_usart_write(RS232,sendchecksum);
+			//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+			rt_device_write(&uart2_device, 0, &sendchecksum, 1);
 		break;
-		//µ÷¶ÈÊ§°Ü
+		//ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
 		case 4 :
 			RSCmdrxBuf[0] = 0x55;
 			RSCmdrxBuf[1] = 0x7a;
 			RSCmdrxBuf[2] = 0xbd;
 			for(i = 0;i < 16;i++)
 			{
-				while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-				at91_usart_write(RS232,RSCmdrxBuf[i]);
+				rt_device_write(&uart2_device, 0, &RSCmdtxBuf[i], 1);
 				sendchecksum = sendchecksum^RSCmdrxBuf[i];
 			}
-			//·¢ËÍÐ£ÑéºÍ
-			while((at91_usart_get_status(RS232) & 0x02) != 0x02);
-			at91_usart_write(RS232,sendchecksum);
+			//ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
+			rt_device_write(&uart2_device, 0, &sendchecksum, 1);
 		break;
 	}
 	Schedule_Result = 0;
-	//½ûÖ¹USART1µÄRXRDYÖÐ¶Ï
+	//ï¿½ï¿½Ö¹USART1ï¿½ï¿½RXRDYï¿½Ð¶ï¿½
 	RS232->usart_base->US_CR = 0x20;
 	RS232->usart_base->US_IDR = 0x01;
 	CloseUSART1Time=0;
 
+}
+
+void rs232_handle_application(rt_device_t device)
+{
+
+	struct stm32_serial_device* uart = (struct stm32_serial_device*) device->user_data;
+	uint8_t Datalenth;
+	if(( uart->int_rx->getcmd) > 0x7f)
+	{
+		uart->int_rx->getcmd = 0;
+		RS232UploadError();
+
+	}
+	while (uart->int_rx->getcmd )
+	{
+		Datalenth = uart->int_rx->rx_buffer[(uart->int_rx->read_index +4)];
+		switch(uart->int_rx->rx_buffer[uart->int_rx->read_index])
+		{
+				case 0x01 : UpLoad_DriverCode();         break;
+				case 0x02 : UpLoad_RealTime();           break;
+				case 0x03 : UpLoad_TotalDistance360h();  break;
+				case 0x04 : UpLoad_CHCO();               break;
+				case 0x05 : UpLoad_Speed360h();          break;
+				case 0x06 : UpLoad_AutoVIN();            break;
+				case 0x07 : UpLoad_DoubtPoint();         break;
+				case 0x08 : UpLoad_DistanceinTwoDays();  break;
+				case 0x09 : UpLoad_SpeedinTwoDays();     break;
+				case 0x11 : UpLoad_OverThreeHours();     break;
+				case 0x12 : UpLoad_Speed360h_wayon();    	   break;
+				case 0x13 : UpLoad_SpeedinTwoDays_wayon();     break;
+				case 0x14 : UpLoad_ALL_PARA();               break;
+				default   : RS232UploadError(); break;
+		}
+		uart->int_rx->read_index = Datalenth+uart->int_rx->read_index;
+		uart->int_rx->getcmd--;
+
+	}
 }
