@@ -28,7 +28,7 @@
 
 #include <usb_core.h>
 #include <usbh_core.h>
-
+#include<stm32f10x_dma.h>
 /** @addtogroup Template_Project
   * @{
   */

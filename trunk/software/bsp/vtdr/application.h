@@ -16,7 +16,7 @@
 #define OpenDoorDeal    	1
 #define RTC8025             1     //ʱ��оƬѡ�񿪹�
 #define GetSpeedStatusBy232 0     //ͨ��ں�������ͨѶ��ȡ�ٶȺ�ȫ��״̬����
-#define WATCH_DOG_EN    	1     // ���Ź�����
+//#define WATCH_DOG_EN    	1     // ���Ź�����
 #define RPM_EN				0     //������ת�ٿ���
 #define SectionAlarm_EN     0     //��·�α�������
 #define OpenDoorAlarm		0     //������ʻ��������
