@@ -46,6 +46,7 @@
 #include "led.h"
 #include "lcd.h"
 #include "i2c_drv.h"
+#include "menu.h"
 //#include "font_lib.h"
 #include "atmel_dataflash.h"
 #include<rtdef.h>
@@ -121,6 +122,7 @@ static void led_thread_entry(void* parameter)
         jonhbak = jonh;
 #endif
         //I2C_Master_BufferRead(I2C1,OwnAddress1,0,1,&testreadbuff);
+        DisplayProductVersion();
 
 
 

@@ -312,17 +312,8 @@ void rt_hw_lcd_on(void)
 	    lcd_write_cmdordata(CMD,Power_Set,0);
 	    lcd_delay(100);
 	    //lcd_write_cmdordata(CMD,0xe0,0);
-		rt_hw_lcd_clear(0);
+		rt_hw_lcd_clear(lineall);
 		//lcd_write_cmdordata(CMD,0xee,0);
-		lcd_write_matrix(3,0,(unsigned char *)&charmap16[1][0][0],16);
-		lcd_write_matrix(2,0,(unsigned char *)&charmap16[1][1][0],16);
-		lcd_write_matrix(3,16,(unsigned char *)&charmap8[10][0],8);
-		lcd_write_matrix(2,16,(unsigned char *)&charmap8[10][1],8);
-		lcd_write_matrix(7,0,(unsigned char *)&charmap16[3][0][0],16);
-		lcd_write_matrix(6,0,(unsigned char *)&charmap16[3][1][0],16);
-		lcd_write_matrix(5,0,(unsigned char *)&charmap16[0][0][0],16);
-		lcd_write_matrix(4,0,(unsigned char *)&charmap16[0][1][0],16);
-
 }
 
 void rt_hw_lcd_off(void)
@@ -332,14 +323,14 @@ void rt_hw_lcd_off(void)
 
 void lcd_write_matrix(LINE_CMD row,rt_uint8_t column,FONT_MATRIX *pt,rt_uint8_t num)
 {
-	rt_uint8_t i;
+	rt_uint8_t i,j;
 	rt_uint8_t  temp;
 	for(i = 0;i<2;i++)
 	{
 		lcd_write_cmdordata(CMD, Page_Set, row-i);
 		lcd_set_column(column);
 
-		for (i = 0; i < num; i++)
+		for (j = 0; j < num; j++)
 		{
 			lcd_write_cmdordata(DATA, (*(unsigned char*) pt++),0);
 		}
