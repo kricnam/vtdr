@@ -411,6 +411,7 @@ void SPI_FLASH_Sector4kErase(SPI_TypeDef* SPIx ,u32 SectorAddr)
   /* Wait the end of Flash writing */
   SPI_FLASH_WaitForWriteEnd(SPIx);
 }
+
 /*******************************************************************************
 * Function Name  : SPI_FLASH_SectorErase
 * Description    : Erases the specified FLASH sector.
