@@ -1,7 +1,8 @@
 #ifndef application_h
 #define application_h
 
-
+#define TRUE 1
+#define FALSE 0
 
 
 #define GetSpeedSelf    	0
@@ -146,9 +147,9 @@ typedef struct
 } DRIVER;
 
 typedef struct
-{//�����ṹ
+{
 
-	unsigned long  BaseAddr;//��ʼ��ַ
+	unsigned long  BaseAddr;
 	unsigned long  EndAddr;//�����ַ
 	unsigned long  CurPoint;//��ǰָ���ַ,ָ����һ����ݿɴ�ŵ�λ��
 	
@@ -220,9 +221,9 @@ typedef struct
 #define OILPRESSDATA_EN 		0
 
 #define PartitionTableFlag  (DOUBTPOINTDATA_EN << DOUBTPOINTDATA)|(OVERSPEEDRECORD_EN << OVERSPEEDRECORD)|(RUNRECORD360h_EN << RUNRECORD360h)|(BASEDATA_EN << BASEDATA)|(RPMDATA_EN << RPMDATA)|(Status14DATA_EN << STATUS14DATA)
-
-#define PARAMETER_BASE    ((StructPara *)0x00000000)   //((StructPara *)(DATAFLASH_BASE+0x00000000))
-#define PartitionTable_BASE  ((PartitionTable *)0x00001000)//((PartitionTable *)(DATAFLASH_BASE+0x00001000))
+#define DATAFLASH_BASE    0x00030000
+#define PARAMETER_BASE    ((StructPara *)(DATAFLASH_BASE+0x00000000))
+#define PartitionTable_BASE ((PartitionTable *)(DATAFLASH_BASE+0x00001000))
 #define DPD_BASE      DATAFLASH_BASE+0x02000
 #define DPD_END       DATAFLASH_BASE+0x06fff
 #define RR360H_BASE   DATAFLASH_BASE+0x07000

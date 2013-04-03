@@ -36,5 +36,6 @@ void rt_hw_lcd_on(void);
 void rt_hw_lcd_off(void);
 void lcd_write_matrix(rt_uint8_t row,rt_uint8_t column,FONT_MATRIX *pt,rt_uint8_t num);
 void lcd_Reset(void);
+void lcd_clear(LINE_CMD value);
 
 #endif

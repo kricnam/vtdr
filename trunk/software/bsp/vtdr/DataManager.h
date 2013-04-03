@@ -4,14 +4,14 @@
 #define RoadType 0
 #define OverSpeed 1
 
-//AlarmFlag±¨¾¯±êÖ¾°´Î»¶¨Òå
+//AlarmFlagï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½
 #define OverLow       0
 #define OverHigh      1
 #define OverTime1     2
 #define OverTime2     3
 #define OpenDoorDrive 4
 
-//¶¨ÒåÐÐÊ»Êý¾ÝÀàÐÍ
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 #define START 		1
 #define END			2
 #define MinuteChg	3
@@ -19,26 +19,26 @@
 #define StatusChg	5
 #define DATA_1min	6
 
-#define NewOTData		0	//ÐÂ¼ÇÂ¼
-#define MergeLastData 	1	//ºÏ²¢ÉÏ´Î¼ÇÂ¼
+#define NewOTData		0	//ï¿½Â¼ï¿½Â¼
+#define MergeLastData 	1	//ï¿½Ï²ï¿½ï¿½Ï´Î¼ï¿½Â¼
 
-//Update4kÀàÐÍ
+//Update4kï¿½ï¿½ï¿½ï¿½
 #define UpdateFlashTimes 0
 #define UpdateFlashOnce	 1
 /////////*******2003.10.06 panhui*********////////
 #define UpdateFlashAll	 2
 /////////*******2003.10.06 panhui*********////////
 
-#define EnterHighWayTime 900 	//3·ÖÖÓ
-#define OutOfHighWayTime 300 	//1·ÖÖÓ
+#define EnterHighWayTime 900 	//3ï¿½ï¿½ï¿½ï¿½
+#define OutOfHighWayTime 300 	//1ï¿½ï¿½ï¿½ï¿½
 
-//Ö¸Õë»ØËÝ
-#define RecordFlagByte   16     //16¸ö×Ö½ÚµÄÔ¤Áô±êÖ¾
+//Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½
+#define RecordFlagByte   16     //16ï¿½ï¿½ï¿½Ö½Úµï¿½Ô¤ï¿½ï¿½ï¿½ï¿½Ö¾
 
 extern void SelfCheck();
 extern void OverSpeedHandler();
 extern void DoubtPointHandler();
 extern void RunRecordHandler();
-extern unsigned int ComputeDistance100m(unsigned int pulseNb);
+extern unsigned long ComputeDistance100m(unsigned long pulseNb);
 
 #endif

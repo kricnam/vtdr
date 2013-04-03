@@ -76,4 +76,6 @@ extern void DisplayProductVersion();
 extern void DisplayTotalDistance();
 extern void DisplayInteger(unsigned long integer,unsigned char row,unsigned char end_column,unsigned char len);
 extern void DisplayAlarm();
+extern void DisplayNormalUI();
+extern void DisplayEraseDataFlash();
 #endif /* menu_h */

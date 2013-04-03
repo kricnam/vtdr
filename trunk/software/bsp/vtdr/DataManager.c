@@ -1,65 +1,65 @@
 //*----------------------------------------------------------------------------
-//*      Êý¾Ý´¦Àí×Ó³ÌÐò
+//*      ï¿½ï¿½Ý´ï¿½ï¿½ï¿½ï¿½Ó³ï¿½ï¿½ï¿½
 //*----------------------------------------------------------------------------
 //* File Name           : DataManager.c
-//* Object              : ¼ÇÂ¼ÒÇ²É¼¯µÄËÙ¶È×´Ì¬Êý¾ÝµÄ´¦ÀíºÍ±£´æ
+//* Object              : ï¿½ï¿½Â¼ï¿½Ç²É¼ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½×´Ì¬ï¿½ï¿½ÝµÄ´ï¿½ï¿½ï¿½Í±ï¿½ï¿½ï¿½
 //*
 //* 1.0 24/02/03 PANHUI : Creation
 //*----------------------------------------------------------------------------
 //
 #include	"DataManager.h"
-#include	"ibb3.h"
-#include	"flash_sst39.h"
+#include   "atmel_dataflash.h"
+#include "application.h"
 #include    "lcd.h" 
 
-extern u_int CurSpeed;
+extern unsigned long CurSpeed;
 extern int DeltaSpeed;
 extern CLOCK curTime;
-extern u_char CurStatus;
-extern u_int LastSPE;
-extern u_char TimeChange;	//Ê±¼ä±ä»¯±êÖ¾
-extern u_int AddupSpeed;
-extern u_short SpeedNb;
+extern unsigned char CurStatus;
+extern unsigned long LastSPE;
+extern unsigned char TimeChange;	//Ê±ï¿½ï¿½ä»¯ï¿½ï¿½Ö¾
+extern unsigned long AddupSpeed;
+extern unsigned short SpeedNb;
 extern PartitionTable pTable;
 extern StructPara Parameter;
-extern u_int PulseTotalNumber;	/*±¾´ÎÐÐÊ»×ÜÂö³åÊý*/
-extern u_short STATUS;			/*16ÖÖ×´Ì¬*/
-extern u_int PulseNB_In1Sec;     //Ã¿0.2ÃëÖÜÆÚÇ°ÍÆ1ÃëÄÚÀÛ¼ÆËÙ¶ÈÂö³åÊý
-extern u_char PowerOn;
-extern u_int CurEngine;
-extern u_short DriveMinuteLimit;       //Æ£ÀÍ¼ÝÊ»ÐÐÊ»Ê±¼äÃÅÏÞ
-extern u_short RestMinuteLimit;        //Æ£ÀÍ¼ÝÊ»×îÉÙÐÝÏ¢Ê±¼äÃÅÏÞ
-extern u_int CurPulse; 
+extern unsigned long PulseTotalNumber;	/*ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½*/
+extern unsigned short STATUS;			/*16ï¿½ï¿½×´Ì¬*/
+extern unsigned long PulseNB_In1Sec;     //Ã¿0.2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½Û¼ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+extern unsigned char PowerOn;
+extern unsigned long CurEngine;
+extern unsigned short DriveMinuteLimit;       //Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Ê»Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+extern unsigned short RestMinuteLimit;        //Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+extern unsigned long CurPulse;
  
-DoubtDataBlock ddb;			//µ±Ç°ÒÉµãÊý¾Ý¿é
-u_char InRecordCycle=0;		//ÊÇ·ñÔÚ¼ÇÂ¼Êý¾Ý¹ý³ÌÖÐ
-u_char InFlashWriting=0;	//ÔÚFLASHÐ´ÖÜÆÚÖÐ
-u_int Tick02NB;				//Á½´ÎÍ£³µÖ®¼ä0.2sµÄ¸öÊý
-OTDR_end otdrEND;			//Æ£ÀÍ¼ÝÊ»¼ÇÂ¼½áÊøµãÊý¾Ý
-u_int AddupSpeed = 0;		//1·ÖÖÓËÙ¶ÈÀÛ¼Æ
-u_short SpeedNb = 0;		//1·ÖÖÓËÙ¶ÈÖµ¸öÊý
-u_char PowerOnTime=0;		//ÉÏµç³ÖÐøÊ±¼ä
-u_char OTRecordType=0;		//¶¨ÒåÆ£ÀÍ¼ÝÊ»¼ÇÂ¼ÀàÐÍ
-u_int LastDistance;			//ÉÏ´ÎÆ£ÀÍ¼ÝÊ»¼ÇÂ¼ÀÛ¼ÆÀï³Ì
-u_char STATUS1min;			//1ÃëÖÓ×´Ì¬»ò
-DRIVER CurrentDriver;		//µ±Ç°Ë¾»ú
-DRIVER RecordDriver;		//¼ÇÂ¼Ë¾»ú
-Record_CLOCK PowerOnDT;     //ÉÏµçÈÕÆÚÊ±¼ä
+DoubtDataBlock ddb;			//ï¿½ï¿½Ç°ï¿½Éµï¿½ï¿½ï¿½Ý¿ï¿½
+unsigned char InRecordCycle=0;		//ï¿½Ç·ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ý¹ï¿½ï¿½ï¿½ï¿½
+unsigned char InFlashWriting=0;	//ï¿½ï¿½FLASHÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+unsigned long Tick02NB;				//ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½Ö®ï¿½ï¿½0.2sï¿½Ä¸ï¿½ï¿½ï¿½
+OTDR_end otdrEND;			//Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+unsigned long AddupSpeed = 0;		//1ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½Û¼ï¿½
+unsigned short SpeedNb = 0;		//1ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½Öµï¿½ï¿½ï¿½ï¿½
+unsigned char PowerOnTime=0;		//ï¿½Ïµï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+unsigned char OTRecordType=0;		//ï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½
+unsigned long LastDistance;			//ï¿½Ï´ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½Û¼ï¿½ï¿½ï¿½ï¿½
+unsigned char STATUS1min;			//1ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½
+DRIVER CurrentDriver;		//ï¿½ï¿½Ç°Ë¾ï¿½ï¿½
+DRIVER RecordDriver;		//ï¿½ï¿½Â¼Ë¾ï¿½ï¿½
+Record_CLOCK PowerOnDT;     //ï¿½Ïµï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 RecordData_end rec_end;
-u_char FinishFlag=0;
+unsigned char FinishFlag=0;
 
-extern u_char LargeDataBuffer[];
-u_short *DoubtData_4k = (u_short *)(&(LargeDataBuffer[12*1024]));//[2*1024];
-u_char *OTDR_4k = &(LargeDataBuffer[16*1024]);//[4*1024];
-u_short *BaseData_4k = (u_short *)(&(LargeDataBuffer[20*1024]));//[2*1024];
+extern unsigned char LargeDataBuffer[];
+unsigned short *DoubtData_4k = (unsigned short *)(&(LargeDataBuffer[12*1024]));//[2*1024];
+unsigned char *OTDR_4k = &(LargeDataBuffer[16*1024]);//[4*1024];
+unsigned short *BaseData_4k = (unsigned short *)(&(LargeDataBuffer[20*1024]));//[2*1024];
 
 //*----------------------------------------------------------------------------
 //* Function Name       : Task_GetData
-//* Object              : ×Ô¼ì³ÌÐò
+//* Object              : ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void SelfCheck()
 {
@@ -74,18 +74,18 @@ void SelfCheck()
 		
 	int i;
 	for(i=0;i<200000;i++);
-	lcm_clear_ram(ALL);	
+	lcd_clear(lineall);
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name       : StrCmp
-//* Object              : ±È½ÏÁ½¸ö×Ö·û´®ÊÇ·ñÏàÍ¬
-//* Input Parameters    : ´ý±È½ÏµÄÁ½¸ö×Ö·û´®str1,str2,³¤¶Èlength
-//* Output Parameters   : 1¡ª¡ª×Ö·û´®ÏàÍ¬£»0¡ª¡ª×Ö·û´®²»Í¬
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½È½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Í¬
+//* Input Parameters    : ï¿½ï¿½È½Ïµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½str1,str2,ï¿½ï¿½ï¿½ï¿½length
+//* Output Parameters   : 1ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½Í¬ï¿½ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½Í¬
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-char StrCmp(u_char *str1, u_char *str2, short length)
+char StrCmp(unsigned char *str1, unsigned char *str2, short length)
 {
 	short i;
 	char ret;
@@ -101,90 +101,77 @@ char StrCmp(u_char *str1, u_char *str2, short length)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteParameterTable
-//* Object              : Ð´²ÎÊý±í
+//* Object              : Ð´ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
-//* Output Parameters   : ÊÇ·ñ³É¹¦
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Output Parameters   : ï¿½Ç·ï¿½É¹ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int WriteParameterTable(StructPara *para)
 {
-	flash_word *data;
-	flash_word *p;
+	unsigned long *data;
+	unsigned long *p;
 	int i,size;
 
-	//²Á³ý4k
-	p = (flash_word *)PARAMETER_BASE;
-	if(!flash_sst39_erase_sector((flash_word *)DATAFLASH_BASE,p))
-		return(FALSE);
+	//ï¿½ï¿½ï¿½ï¿½4k
+	p = (unsigned long *)PARAMETER_BASE;
+	SPI_FLASH_Sector4kErase(SPI1,*p);
 	
 	
-	//½«²ÎÊý±íÐ´ÈëFLASH
-	data = (flash_word *)(para);
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½FLASH
+	data = (unsigned long *)(para);
 	size=sizeof(StructPara);
 
-	for(i=0;i<size;i+=2)
-	{
-		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,p,*data))
-			return ( FALSE ) ;
-		p++;
-		data++;
-	}
+	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
+
 	
 	return ( TRUE ) ;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WritePartitionTable
-//* Object              : Ð´·ÖÇø±í
+//* Object              : Ð´ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
-//* Output Parameters   : ÊÇ·ñ³É¹¦
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Output Parameters   : ï¿½Ç·ï¿½É¹ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int WritePartitionTable(PartitionTable *ptt)
 {
-	flash_word *data;
-	flash_word *p;
+	unsigned long *data;
+	unsigned long *p;
 	int i,size;
 
-	//²Á³ý4k
-	p = (flash_word *)PartitionTable_BASE;
-	if(!flash_sst39_erase_sector((flash_word *)DATAFLASH_BASE,p))
-		return(FALSE);
+	//ï¿½ï¿½ï¿½ï¿½4k
+	p = (unsigned long *)PartitionTable_BASE;
+	SPI_FLASH_Sector4kErase(SPI1,*p);
 	
-	//½«·ÖÇø±íÐ´ÈëFLASH
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½FLASH
 	if(ptt->TotalDistance==0xffffffff)
 		ptt->TotalDistance = 0;
-	data = (flash_word *)(ptt);
+	data = (unsigned long *)(ptt);
 	size=sizeof(PartitionTable);
 	
-	for(i=0;i<size;i+=2)
-	{
-		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,p,*data))
-			return ( FALSE ) ;
-		p++;
-		data++;
-	}
+	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
 		
 	return ( TRUE ) ;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : IsPartitionTableCorrect
-//* Object              : ³õÊ¼»¯·ÖÇø±í
+//* Object              : ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
-//* Output Parameters   : Ð´·ÖÇø±íÊÇ·ñ³É¹¦
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Output Parameters   : Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½É¹ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int IsPartitionTableCorrect()
 {
-	flash_word *data;
-	flash_word *p;
+	unsigned long *data;
+	unsigned long *p;
 	int i,size;
 	
 	pTable = *PartitionTable_BASE;
 	/////////*******2003.10.06 panhui*********////////
-	u_short temp = PartitionTableFlag;
+	unsigned short temp = PartitionTableFlag;
 	if( pTable.Available != temp)
 		return(0);
 	/////////*******2003.10.06 panhui*********////////
@@ -208,34 +195,34 @@ int IsPartitionTableCorrect()
 		return(-2);
 	if((pTable.BaseData.CurPoint < BASEDATA_BASE)||(pTable.BaseData.CurPoint > BASEDATA_END))
 		return(-3);
-	/////////////·ÀÖ¹Ö¸ÕëÅÜ·Ç/////////////////////////////
+	/////////////ï¿½ï¿½Ö¹Ö¸ï¿½ï¿½ï¿½Ü·ï¿½/////////////////////////////
 
-	//½«²ÎÊý±íÐ´ÈëFLASH
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½FLASH
 	return (1);
 	
 
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : InitializeTable
-//* Object              : ³õÊ¼»¯·ÖÇø±í
-//* Input Parameters    : u_char parti¡ª¡ªÊÇ·ñÖØÐÂ»Ö¸´²ÎÊý±í
-//                        u_char para¡ª¡ªÊÇ·ñÖØÐÂ»Ö¸´·ÖÇø±í
-//                        u_char change_set¡ª¡ªÊÇ·ñÖØÐÂÉèÖÃ³µÅÆºÅ£¬
-//                                             ÊÇÔòÀÛ¼Æ×ÜÀï³ÌÇåÁã
-//* Output Parameters   : ³õÊ¼»¯·ÖÇø±íºÍ²ÎÊý±íÊÇ·ñ³É¹¦
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters    : unsigned char partiï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Â»Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//                        unsigned char paraï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Â»Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//                        unsigned char change_setï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã³ï¿½ï¿½ÆºÅ£ï¿½
+//                                             ï¿½ï¿½ï¿½ï¿½ï¿½Û¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Output Parameters   : ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½É¹ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-int InitializeTable(u_char parti,u_char para,u_char change_set)
+int InitializeTable(unsigned char parti,unsigned char para,unsigned char change_set)
 {
 	int i;
 
-	//¶ÁÈ¡²ÎÊý±í	
+	//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½	
 	Parameter = *PARAMETER_BASE;
 	if(para)
 	{
-		Parameter.mark=0x30aa;//*ÌØÕ÷×Ö¡ª¡ª2
-		Parameter.IBBType=0x3000;//¼ÇÂ¼ÒÇ´úÂë¡ª¡ª2
+		Parameter.mark=0x30aa;//*ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½2
+		Parameter.IBBType=0x3000;//ï¿½ï¿½Â¼ï¿½Ç´ï¿½ï¿½ë¡ªï¿½ï¿½2
 		if( !WriteParameterTable(&Parameter) )
 			return (0);
 	}
@@ -255,11 +242,11 @@ int InitializeTable(u_char parti,u_char para,u_char change_set)
 		if(change_set)
 		{
 			pTable.TotalDistance = 0;
-			pTable.DriverCode = 0;//¼ÝÊ»Ô±´úÂë
+			pTable.DriverCode = 0;//ï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ï¿½
 			for( i = 0; i < 20; i++)
-				pTable.DriverLisenseCode[i] = 0;//¼ÝÊ»Ö¤ºÅÂë
-			pTable.InOSAlarmCycle = 0;//¡°ÔÚ·ÖÂ·¶Î±¨¾¯ÖÜÆÚÖÐ¡±±êÖ¾
-			pTable.OSAlarmAddupDistance = 0;//·ÖÂ·¶Î±¨¾¯Â·³ÌÀÛ¼Æ
+				pTable.DriverLisenseCode[i] = 0;//ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½
+			pTable.InOSAlarmCycle = 0;//ï¿½ï¿½ï¿½Ú·ï¿½Â·ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ï¿½Ö¾
+			pTable.OSAlarmAddupDistance = 0;//ï¿½ï¿½Â·ï¿½Î±ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½Û¼ï¿½
 		}
 		if( !WritePartitionTable(&pTable) )
 			return(0);
@@ -273,15 +260,15 @@ int InitializeTable(u_char parti,u_char para,u_char change_set)
 			pTable.RunRecord360h.CurPoint = RR360H_BASE;
 		if((pTable.BaseData.CurPoint < BASEDATA_BASE)||(pTable.BaseData.CurPoint > BASEDATA_END))
 			pTable.BaseData.CurPoint = BASEDATA_BASE;
-		/////////////·ÀÖ¹Ö¸ÕëÅÜ·Ç/////////////////////////////
+		/////////////ï¿½ï¿½Ö¹Ö¸ï¿½ï¿½ï¿½Ü·ï¿½/////////////////////////////
 		if(change_set)
 		{
 			pTable.TotalDistance = 0;
-			pTable.DriverCode = 0;//¼ÝÊ»Ô±´úÂë
+			pTable.DriverCode = 0;//ï¿½ï¿½Ê»Ô±ï¿½ï¿½ï¿½ï¿½
 			for( i = 0; i < 20; i++)
-				pTable.DriverLisenseCode[i] = 0;//¼ÝÊ»Ö¤ºÅÂë
-			pTable.InOSAlarmCycle = 0;//¡°ÔÚ·ÖÂ·¶Î±¨¾¯ÖÜÆÚÖÐ¡±±êÖ¾
-			pTable.OSAlarmAddupDistance = 0;//·ÖÂ·¶Î±¨¾¯Â·³ÌÀÛ¼Æ
+				pTable.DriverLisenseCode[i] = 0;//ï¿½ï¿½Ê»Ö¤ï¿½ï¿½ï¿½ï¿½
+			pTable.InOSAlarmCycle = 0;//ï¿½ï¿½ï¿½Ú·ï¿½Â·ï¿½Î±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ï¿½Ö¾
+			pTable.OSAlarmAddupDistance = 0;//ï¿½ï¿½Â·ï¿½Î±ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½Û¼ï¿½
 		}
 		if( !WritePartitionTable(&pTable) )
 			return(0);
@@ -292,84 +279,69 @@ int InitializeTable(u_char parti,u_char para,u_char change_set)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : UpdateParameterPartition
-//* Object              : ¸üÐÂ²ÎÊý±íÇøÓò
+//* Object              : ï¿½ï¿½ï¿½Â²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
-//* Output Parameters   : ÐÂ²ÎÊý±íÇøÓòÊÇ·ñ³É¹¦
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Output Parameters   : ï¿½Â²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½É¹ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int UpdateParameterPartition()
 {
-	u_int sector_addr;
+	unsigned long sector_addr;
 	sector_addr = 0;
-	flash_word *data;
-	flash_word *p;
+	unsigned long *data;
+	unsigned long *p;
 	int i,size;
 	
-	//²Á³ýFLASH
-	if(!flash_sst39_erase_sector((flash_word *)DATAFLASH_BASE, (flash_word *)sector_addr))
-		return(0);
-	//Ë¢ÐÂ²ÎÊý±í
-	p = (flash_word *)PARAMETER_BASE;
-	data = (flash_word *)(&Parameter);
+	//ï¿½ï¿½ï¿½ï¿½FLASH
+	SPI_FLASH_Sector4kErase(SPI1,*p);
+	//Ë¢ï¿½Â²ï¿½ï¿½ï¿½ï¿½
+	p = (unsigned long *)PARAMETER_BASE;
+	data = (unsigned long *)(&Parameter);
 	size=sizeof(StructPara);
 	
-	for(i=0;i<size;i+=2)
-	{
-		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,p,*data))
-			return ( 0 ) ;
-		p++;
-		data++;
-	}
+	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
 	
-	//Ë¢ÐÂ·ÖÇø±í
-	p = (flash_word *)PartitionTable_BASE;
-	data = (flash_word *)(&pTable);
+	//Ë¢ï¿½Â·ï¿½ï¿½ï¿½ï¿½
+	p = (unsigned long *)PartitionTable_BASE;
+	data = (unsigned long *)(&pTable);
 	size=sizeof(PartitionTable);
 	
-	for(i=0;i<size;i+=2)
-	{
-		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,p,*data))
-			return ( 0 ) ;
-		p++;
-		data++;
-	}
+	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
 	return(1);
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Update4k
-//* Object              : FLASHÖÐ4K¶ÁÈëÄÚ´æ£¬²Á³ýµ±Ç°4k£¬²¢¸ù¾ÝÀàÐÍÈ·¶¨ÊÇ·ñ
-//                        ½«Ö¸ÕëÖ®Ç°µÄÊý¾ÝÐ´»ØFLASH
-//* Input Parameters    : p¡ª¡ªµ±Ç°Êý¾ÝÖ¸Õë
-//*                       Buffer¡ª¡ªÄÚ´æÖÐ´ý¸üÐÂµÄ4kÊý¾ÝÇøÊ×µØÖ·
-//*                       type¡ª¡ªÀàÐÍ
+//* Object              : FLASHï¿½ï¿½4Kï¿½ï¿½ï¿½ï¿½ï¿½Ú´æ£¬ï¿½ï¿½ï¿½ï¿½Ç°4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Ç·ï¿½
+//                        ï¿½ï¿½Ö¸ï¿½ï¿½Ö®Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½FLASH
+//* Input Parameters    : pï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                       Bufferï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Âµï¿½4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×µï¿½Ö·
+//*                       typeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-int Update4k(u_short *p,u_short *Buffer,u_char type)
+int Update4k(unsigned short *p,unsigned short *Buffer,unsigned char type)
 {
-	u_short i;
-	flash_word *sector_addr;
-	sector_addr = (flash_word *)((u_int)p & 0xfffff000);
-	//4k¶ÁÈëÄÚ´æ
+	unsigned short i;
+	unsigned long *sector_addr;
+	sector_addr = (unsigned long *)((unsigned long)p & 0xfffff000);
+	//4kï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½
 	for(i=0;i<2*1024;i++)
 		Buffer[i] = sector_addr[i];
 
 	if(type == UpdateFlashOnce)
 		return(1); 
 		
-	//²Á³ýFLASH
-	if(!flash_sst39_erase_sector((flash_word *)DATAFLASH_BASE,sector_addr))
-		return(0);
-	//Ö¸ÕëÖ®Ç°µÄÊý¾ÝÖØÐÂÐ´»ØFLASH
+	//ï¿½ï¿½ï¿½ï¿½FLASH
+	SPI_FLASH_Sector4kErase(SPI1,*sector_addr);
+	//Ö¸ï¿½ï¿½Ö®Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½FLASH
 	if(type == UpdateFlashTimes)
 	{
 		i=0;
-		while(sector_addr<p)
+		while(sector_addr<(unsigned long *)p)
 		{
-			if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,sector_addr,Buffer[i]))
-				return ( FALSE ) ;
+			SPI_FLASH_BufferWrite( SPI1 ,(u8 *)(&Buffer[i]), *sector_addr, 2);
 			sector_addr++;
 			i++;
 		}
@@ -378,102 +350,99 @@ int Update4k(u_short *p,u_short *Buffer,u_char type)
 }		
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteDoubtDataToFlash
-//* Object              : Ð´Ò»¸öÒÉµãÊý¾Ýµ½FLASHÖÐ
+//* Object              : Ð´Ò»ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½Ýµï¿½FLASHï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : curTime
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : curTime
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int WriteDoubtDataToFlash()
 {
-	u_short i; 
-	u_short *p4k;
-	p4k = (u_short *)(pTable.DoubtPointData.CurPoint);
+	unsigned short i;
+	unsigned short *p4k;
+	p4k = (unsigned short *)(pTable.DoubtPointData.CurPoint);
 	if((InFlashWriting&(1<<DOUBTPOINTDATA))==0)
-	{//Èç¹ûÃ»ÓÐ¿ªÊ¼FLASHÐ´£¬Ê×ÏÈ¶ÁÈëµ±Ç°µÄÒÉµã4KÊý¾Ý³£×¤ÄÚ´æ
-		InFlashWriting |= 1<<DOUBTPOINTDATA;//±ê¼ÇÒÉµãÊý¾ÝÎª¡°ÔÚÐ´FLASH¡±
+	{//ï¿½ï¿½ï¿½Ã»ï¿½Ð¿ï¿½Ê¼FLASHÐ´ï¿½ï¿½ï¿½ï¿½ï¿½È¶ï¿½ï¿½ëµ±Ç°ï¿½ï¿½ï¿½Éµï¿½4Kï¿½ï¿½Ý³ï¿½×¤ï¿½Ú´ï¿½
+		InFlashWriting |= 1<<DOUBTPOINTDATA;//ï¿½ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ð´FLASHï¿½ï¿½
 		if(!Update4k(p4k,DoubtData_4k,UpdateFlashTimes))
 			return (0);
 	}
 	
-	//Ð´µ±Ç°µÄÍ£³µÒÉµãµ½FLASHÖÐ
-	p4k = (u_short *)((u_int)p4k&0xff000);
+	//Ð´ï¿½ï¿½Ç°ï¿½ï¿½Í£ï¿½ï¿½ï¿½Éµãµ½FLASHï¿½ï¿½
+	p4k = (unsigned short *)((unsigned long)p4k&0xff000);
 	if(RecordDriver.DriverCode != 0) 
 		ddb.DriverCode = RecordDriver.DriverCode;
 	else
 		ddb.DriverCode = 0xffffffff;
 	ddb.StopTime = curTime;
-	u_short *p,*data;
-	p = (u_short *)(pTable.DoubtPointData.CurPoint);
+	unsigned short *p,*data;
+	p = (unsigned short *)(pTable.DoubtPointData.CurPoint);
 	/////////////2003.10.20 modified by panhui/////////
-	if( (u_int)p > (pTable.DoubtPointData.EndAddr-110))
+	if( (unsigned long)p > (pTable.DoubtPointData.EndAddr-110))
 	{
 		pTable.DoubtPointData.CurPoint = pTable.DoubtPointData.BaseAddr;
-		p=(u_short *)(pTable.DoubtPointData.BaseAddr);
+		p=(unsigned short *)(pTable.DoubtPointData.BaseAddr);
 	}
 	///////////////////////////////////////////////////
-	data = (u_short *)(&ddb);
+	data = (unsigned short *)(&ddb);
 	for(i=0;i<10;i+=2)
 	{
-		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,p,*data))
-			return ( FALSE ) ;
+		SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, 2);
 		p++;
 		data++;
-		
-		//²é¿´Ö¸ÕëÊÇ·ñÒª×ª»»µ½ÏÂÒ»¸ö4kÊý¾ÝÇø
-		if(p4k != (u_short *)((u_int)p&0xff000))
+		//ï¿½é¿´Ö¸ï¿½ï¿½ï¿½Ç·ï¿½Òª×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½4kï¿½ï¿½ï¿½ï¿½ï¿½
+		if(p4k != (unsigned short *)((unsigned long)p&0xff000))
 		{
 			if(!Update4k(p,DoubtData_4k,UpdateFlashTimes))
 				return (0);
-			p4k = (u_short *)((u_int)p&0xff000);
+			p4k = (unsigned short *)((unsigned long)p&0xff000);
 		}
 	}
-	u_short vs;
-	u_char j;
+	unsigned short vs;
+	unsigned char j;
 	for(i=0;i<100;i++)
 	{
 		j = ddb.pt + i;
 		if(j>=100)
 			j=j-100;
 		vs =((ddb.data[j].status)<<8) + ddb.data[j].speed;
-		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,p,vs))
-			return ( FALSE ) ;
+		SPI_FLASH_BufferWrite( SPI1 ,(u8 *)&vs, *p, 2);
 		p++;
 		
-		//²é¿´Ö¸ÕëÊÇ·ñÒª×ª»»µ½ÏÂÒ»¸ö4kÊý¾ÝÇø
-		if(p4k != (u_short *)((u_int)p&0xff000))
+		//ï¿½é¿´Ö¸ï¿½ï¿½ï¿½Ç·ï¿½Òª×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½4kï¿½ï¿½ï¿½ï¿½ï¿½
+		if(p4k != (unsigned short *)((unsigned long)p&0xff000))
 		{
 			if(!Update4k(p,DoubtData_4k, UpdateFlashTimes))
 				return (0);
-			p4k = (u_short *)((u_int)p&0xff000);
+			p4k = (unsigned short *)((unsigned long)p&0xff000);
 		}
 	}
 	
-	//¸üÐÂÒÉµãÊý¾ÝÖ¸Õë
-	if((u_int)p > pTable.DoubtPointData.EndAddr-110)
+	//ï¿½ï¿½ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+	if((unsigned long)p > pTable.DoubtPointData.EndAddr-110)
 	{
 		pTable.DoubtPointData.CurPoint = pTable.DoubtPointData.BaseAddr;
-		p=(u_short *)(pTable.DoubtPointData.BaseAddr);
+		p=(unsigned short *)(pTable.DoubtPointData.BaseAddr);
 		if(!Update4k(p, DoubtData_4k, UpdateFlashTimes))
 			return (0);
 	}
 	else
-		pTable.DoubtPointData.CurPoint = (u_int)p;
+		pTable.DoubtPointData.CurPoint = (unsigned long)p;
 		
 	return(1);
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : BCD2Char
-//* Object              : BCDÂë×ª»»ÎªÊ®½øÖÆÊý
-//* Input Parameters    : bcd¡ª¡ª´ýÐ´×ª»»µÄBCDÂë
-//* Output Parameters   : ×ª»»ºóµÄÊ®½øÖÆÊý
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : BCDï¿½ï¿½×ªï¿½ï¿½ÎªÊ®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters    : bcdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´×ªï¿½ï¿½ï¿½ï¿½BCDï¿½ï¿½
+//* Output Parameters   : ×ªï¿½ï¿½ï¿½ï¿½ï¿½Ê®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-u_char BCD2Char(u_char bcd)
+unsigned char BCD2Char(unsigned char bcd)
 {
-	u_char ch;
-	u_char d1,d0;
+	unsigned char ch;
+	unsigned char d1,d0;
 	d1=((bcd & 0xf0)>>4);
 	if(d1>9)
 		return (0xff);
@@ -485,16 +454,16 @@ u_char BCD2Char(u_char bcd)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : IfOneAfterAotherDay
-//* Object              : ÅÐ¶ÏÊÇ·ñÊÇÁ¬ÐøµÄÁ½Ìì
-//* Input Parameters    : time¡ª¡ªÏà¶ÔÐÂµÄÊ±¼äÖ¸Õë
-//*                       end¡ª¡ªÉÏÒ»¸öÆ£ÀÍ¼ÇÂ¼½áÊøµãÊý¾ÝÖ¸Õë
-//* Output Parameters   : 0¡ª¡ª²»ÊÇ£»1¡ª¡ªÊÇ
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters    : timeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½Ê±ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                       endï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+//* Output Parameters   : 0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç£ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int IfOneAfterAotherDay(CLOCK *time,OTDR_end *end)
 {
-	u_char day,month,year;
+	unsigned char day,month,year;
 	day = BCD2Char(time->day);
 	if(day>1){
 		day --;
@@ -551,24 +520,24 @@ int IfOneAfterAotherDay(CLOCK *time,OTDR_end *end)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : JudgeTimeSpace
-//* Object              : ÅÐ¶ÏÊ±¼ä¼ä¸ô
-//* Input Parameters    : time¡ª¡ªÏà¶ÔÐÂµÄÊ±¼äÖ¸Õë
-//*                       end¡ª¡ªÉÏÒ»¸öÆ£ÀÍ¼ÇÂ¼½áÊøµãÊý¾ÝÖ¸Õë
-//* Output Parameters   : Ê±¼ä¼ä¸ôÖµ£¨·ÖÖÓ£©£¬µ±´óÓÚ20·ÖÖÓÊ±£¬¸øFF
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½Ð¶ï¿½Ê±ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters    : timeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½Ê±ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                       endï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+//* Output Parameters   : Ê±ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½Ó£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½20ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½FF
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-u_char JudgeTimeSpace(CLOCK *time,OTDR_end *end)
+unsigned char JudgeTimeSpace(CLOCK *time,OTDR_end *end)
 {
 	int space,conti;
-	u_char ret;
+	unsigned char ret;
 	if((time->year==end->dt.year)&&(time->month==end->dt.month)&&(time->day==end->dt.day))
 	{
 		space = BCD2Char(time->hour)*60 + BCD2Char(time->minute) - BCD2Char(end->dt.hour)*60 - BCD2Char(end->dt.minute);
 		if((space<0)||(space>20))
 			ret=0xff;
 		else
-			ret=(u_char)space;
+			ret=(unsigned char)space;
 			
 	}
 	else
@@ -579,7 +548,7 @@ u_char JudgeTimeSpace(CLOCK *time,OTDR_end *end)
 			if((space<0)||(space>20))
 				ret=0xff;
 			else
-				ret=(u_char)space;
+				ret=(unsigned char)space;
 		}
 		else
 			ret = 0xff;
@@ -588,16 +557,16 @@ u_char JudgeTimeSpace(CLOCK *time,OTDR_end *end)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : AddPointer
-//* Object              : ¼ÆËãÖ¸ÕëÔö¼ÓÆ«ÒÆÁ¿
-//* Input Parameters    : pt¡ª¡ªÊý¾ÝÇøÓò½á¹¹
-//*                       inc¡ª¡ªÀÛ¼ÓÖµ
-//* Output Parameters   : ¼ÆËãºóµÄ½á¹û
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ«ï¿½ï¿½ï¿½ï¿½
+//* Input Parameters    : ptï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á¹¹
+//*                       incï¿½ï¿½ï¿½ï¿½ï¿½Û¼ï¿½Öµ
+//* Output Parameters   : ï¿½ï¿½ï¿½ï¿½ï¿½Ä½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-u_int AddPointer(StructPT *pt, int inc)
+unsigned long AddPointer(StructPT *pt, int inc)
 {
-	u_int result;
+	unsigned long result;
 	if(inc>=0)
 	{
 		result = pt->CurPoint + inc;
@@ -614,17 +583,17 @@ u_int AddPointer(StructPT *pt, int inc)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Get_otdrEND
-//* Object              : »ñÈ¡Æ£ÀÍ¼ÝÊ»½áÊøµãÊý¾Ý²¢ÇÒ¸üÐÂÊý¾Ý»º´æÇø
+//* Object              : ï¿½ï¿½È¡Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý²ï¿½ï¿½Ò¸ï¿½ï¿½ï¿½ï¿½ï¿½Ý»ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
 //* Global Parameters   : otdrEND,InFlashWriting
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int Get_otdrEND(OTDR_start *start,OTDR_end *end)
 {
 	if((InFlashWriting&(1<<RUNRECORD360h))==0)
-	{//Èç¹ûÃ»ÓÐ¿ªÊ¼Ð´FLASH£¬Ê×ÏÈ¶ÁÈë×î½üÒ»×éÊý¾ÝµÄ½áÊøµãÊý¾Ý
+	{//ï¿½ï¿½ï¿½Ã»ï¿½Ð¿ï¿½Ê¼Ð´FLASHï¿½ï¿½ï¿½ï¿½ï¿½È¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ÝµÄ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		return(GetOTDR( pTable.RunRecord360h.CurPoint, start, end ));
 	}
 	else{
@@ -633,42 +602,40 @@ int Get_otdrEND(OTDR_start *start,OTDR_end *end)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Write4kToFlashOTDR
-//* Object              : ÏÈ²Á³ýÔÙÐ´4kÄÚ´æÊý¾Ýµ½FLASHÖÐ
-//* Input Parameters    : p¡ª¡ªµ±Ç°Êý¾ÝÖ¸Õë
-//*                       Buffer¡ª¡ªÄÚ´æÖÐ´ý¸üÐÂµÄ4kÊý¾ÝÇøÊ×µØÖ·
+//* Object              : ï¿½È²ï¿½ï¿½ï¿½ï¿½ï¿½Ð´4kï¿½Ú´ï¿½ï¿½ï¿½Ýµï¿½FLASHï¿½ï¿½
+//* Input Parameters    : pï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                       Bufferï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Âµï¿½4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×µï¿½Ö·
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-int Write4kToFlashOTDR(u_short *p,u_short *Buffer)
+int Write4kToFlashOTDR(unsigned short *p,unsigned short *Buffer)
 {
-	//²Á³ýFLASH
-	if(!flash_sst39_erase_sector((flash_word *)DATAFLASH_BASE,(flash_word *)p))
+	//ï¿½ï¿½ï¿½ï¿½FLASH
+	if(!flash_sst39_erase_sector((unsigned long *)DATAFLASH_BASE,(unsigned long *)p))
 		return (0);
 
 	return(Write4kToFlash(p,Buffer));
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Write4kToFlash
-//* Object              : Ð´4kÄÚ´æÊý¾Ýµ½FLASHÖÐ
-//* Input Parameters    : p¡ª¡ªµ±Ç°Êý¾ÝÖ¸Õë
-//*                       Buffer¡ª¡ªÄÚ´æÖÐ´ý¸üÐÂµÄ4kÊý¾ÝÇøÊ×µØÖ·
+//* Object              : Ð´4kï¿½Ú´ï¿½ï¿½ï¿½Ýµï¿½FLASHï¿½ï¿½
+//* Input Parameters    : pï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+//*                       Bufferï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Âµï¿½4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×µï¿½Ö·
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-int Write4kToFlash(u_short *p,u_short *Buffer)
+int Write4kToFlash(unsigned short *p,unsigned short *Buffer)
 {
-	u_short *inside_p,*flash_p;
-	u_short data;
-	inside_p = (u_short *)((u_int)p & 0x00fff);//4kÄÚµØÖ·Ö¸Õë
+	unsigned short *inside_p,*flash_p;
+	unsigned short data;
+	inside_p = (unsigned short *)((unsigned long)p & 0x00fff);//4kï¿½Úµï¿½Ö·Ö¸ï¿½ï¿½
 	flash_p = p;
-	while((u_int)inside_p<0x01000)
+	while((unsigned long)inside_p<0x01000)
 	{
-		data = *((u_short *)((u_int)Buffer + (u_int)inside_p));
-		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,flash_p,data))
-			return ( 0 ) ;
-		
+		data = *((unsigned short *)((unsigned long)Buffer + (unsigned long)inside_p));
+		SPI_FLASH_BufferWrite( SPI1 ,(u8 *)&data, *flash_p, 2);
 		inside_p++;
 		flash_p++;
 	}
@@ -676,21 +643,21 @@ int Write4kToFlash(u_short *p,u_short *Buffer)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteOTDRData
-//* Object              : Ð´OTDRÊý¾Ýµ½OTDRÄÚ´æÇø£¬Èç¹ûÐèÒª£¬Ôò»»ÏÂÒ»4k
-//* Input Parameters    : buf¡ª¡ª´ýÐ´ÈëµÄÊý¾ÝÊ×µØÖ·
-//*                       len¡ª¡ªÊý¾Ý³¤¶È
+//* Object              : Ð´OTDRï¿½ï¿½Ýµï¿½OTDRï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»4k
+//* Input Parameters    : bufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×µï¿½Ö·
+//*                       lenï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-int WriteOTDRData(u_char *buf,u_char len)
+int WriteOTDRData(unsigned char *buf,unsigned char len)
 {
-	u_char *p;
-	u_int pos,pt,last_pos;
-	u_char i;
+	unsigned char *p;
+	unsigned long pos,pt,last_pos;
+	unsigned char i;
 	
 	pos = 0x00fff & pTable.RunRecord360h.CurPoint;
-	p = (u_char *)((u_int)(OTDR_4k) + pos);
+	p = (unsigned char *)((unsigned long)(OTDR_4k) + pos);
 	
 	for(i=0;i<len;i++)
 	{
@@ -698,21 +665,21 @@ int WriteOTDRData(u_char *buf,u_char len)
 		p++;
 		pos++;
 		if(pos==0x01000)
-		{//ÇÐ»»µ½ÏÂÒ»¸ö4k
-			//¸üÐÂµØÖ·Ö¸Õë
-			p=(u_char *)(OTDR_4k);
+		{//ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½4k
+			//ï¿½ï¿½ï¿½Âµï¿½Ö·Ö¸ï¿½ï¿½
+			p=(unsigned char *)(OTDR_4k);
 			last_pos = pTable.RunRecord360h.CurPoint&0xfffff000;
 			pos = (pTable.RunRecord360h.CurPoint&0xff000) + 0x01000;
 			if(pos>(pTable.RunRecord360h.EndAddr&0xff000))
 				pos = pTable.RunRecord360h.BaseAddr;
 			else
-				pos += (u_int)DATAFLASH_BASE; 
+				pos += (unsigned long)DATAFLASH_BASE;
 			pTable.RunRecord360h.CurPoint = pos;
 		
-			//Ð´µ±Ç°4k»º³åÇøµ½FLASHÖÐ
-			Write4kToFlashOTDR((u_short *)last_pos,(u_short *)OTDR_4k);
-			//¸üÐÂ»º³åÇø
-			Update4k((u_short *)pos,(u_short *)OTDR_4k,UpdateFlashOnce);
+			//Ð´ï¿½ï¿½Ç°4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½FLASHï¿½ï¿½
+			Write4kToFlashOTDR((unsigned short *)last_pos,(unsigned short *)OTDR_4k);
+			//ï¿½ï¿½ï¿½Â»ï¿½ï¿½ï¿½ï¿½ï¿½
+			Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce);
 			pos=0;
 		}
 	}
@@ -723,24 +690,24 @@ int WriteOTDRData(u_char *buf,u_char len)
 
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteZeroToOTDREndData
-//* Object              : ²¹Áã
+//* Object              : ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-int WriteZeroToOTDREndData(u_char zeroNB)
+int WriteZeroToOTDREndData(unsigned char zeroNB)
 {
-	u_int pt;
-	u_char i,buf[20];
+	unsigned long pt;
+	unsigned char i,buf[20];
 	int inc;
 	
 	if((InFlashWriting&(1<<RUNRECORD360h))==0)
-	{//Èç¹ûÃ»ÓÐ¿ªÊ¼Ð´FLASH£¬Ê×ÏÈ¶ÁÈë×î½üÒ»×éÊý¾ÝµÄ½áÊøµãÊý¾Ý
-		InFlashWriting |= 1<<RUNRECORD360h;//±ê¼ÇÊý¾ÝÎª¡°ÔÚÐ´FLASH¡±
+	{//ï¿½ï¿½ï¿½Ã»ï¿½Ð¿ï¿½Ê¼Ð´FLASHï¿½ï¿½ï¿½ï¿½ï¿½È¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ÝµÄ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		InFlashWriting |= 1<<RUNRECORD360h;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ð´FLASHï¿½ï¿½
 		inc = 0 - sizeof(OTDR_end);
 		pt = AddPointer(&(pTable.RunRecord360h), inc);
-		if(!Update4k((u_short *)pt,(u_short *)OTDR_4k,UpdateFlashOnce))
+		if(!Update4k((unsigned short *)pt,(unsigned short *)OTDR_4k,UpdateFlashOnce))
 			return(0);
 		pTable.RunRecord360h.CurPoint=pt;
 	}
@@ -753,36 +720,36 @@ int WriteZeroToOTDREndData(u_char zeroNB)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteAverageSpeed
-//* Object              : Ð´Ò»¸öÆ½¾ùËÙ¶ÈÊý¾Ýµ½FLASHÖÐ
-//* Input Parameters    : V¡ª¡ª´ýÐ´ÈëµÄÆ½¾ùËÙ¶ÈÖµ
+//* Object              : Ð´Ò»ï¿½ï¿½Æ½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½Ýµï¿½FLASHï¿½ï¿½
+//* Input Parameters    : Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Æ½ï¿½ï¿½ï¿½Ù¶ï¿½Öµ
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-void WriteAverageSpeed(u_char v)
+void WriteAverageSpeed(unsigned char v)
 {
-	u_char *p;
-	u_int pos,pt,last_pos;
+	unsigned char *p;
+	unsigned long pos,pt,last_pos;
 	pos = 0x00fff & pTable.RunRecord360h.CurPoint;
-	p = (u_char *)((u_int)(OTDR_4k) + pos);
+	p = (unsigned char *)((unsigned long)(OTDR_4k) + pos);
 	*p = v;
 	pos++;	
 	if(pos==0x01000)
-	{//ÇÐ»»µ½ÏÂÒ»¸ö4k
-		//¸üÐÂµØÖ·Ö¸Õë
-		p=(u_char *)(OTDR_4k);
+	{//ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½4k
+		//ï¿½ï¿½ï¿½Âµï¿½Ö·Ö¸ï¿½ï¿½
+		p=(unsigned char *)(OTDR_4k);
 		last_pos = pTable.RunRecord360h.CurPoint&0xfffff000;
 		pos = (pTable.RunRecord360h.CurPoint&0xff000) + 0x01000;
 		if(pos>(pTable.RunRecord360h.EndAddr&0xff000))
 			pos = pTable.RunRecord360h.BaseAddr;
 		else
-			pos += (u_int)DATAFLASH_BASE; 
+			pos += (unsigned long)DATAFLASH_BASE;
 		pTable.RunRecord360h.CurPoint = pos;
 	
-		//Ð´µ±Ç°4k»º³åÇøµ½FLASHÖÐ
-		Write4kToFlashOTDR((u_short *)last_pos,(u_short *)OTDR_4k);
-		//¸üÐÂ»º³åÇø
-		Update4k((u_short *)pos,(u_short *)OTDR_4k,UpdateFlashOnce);
+		//Ð´ï¿½ï¿½Ç°4kï¿½ï¿½ï¿½ï¿½ï¿½ï¿½FLASHï¿½ï¿½
+		Write4kToFlashOTDR((unsigned short *)last_pos,(unsigned short *)OTDR_4k);
+		//ï¿½ï¿½ï¿½Â»ï¿½ï¿½ï¿½ï¿½ï¿½
+		Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce);
 	}
 	else
 		pTable.RunRecord360h.CurPoint++;	 
@@ -790,24 +757,24 @@ void WriteAverageSpeed(u_char v)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteOTDRStartData
-//* Object              : 360Ð¡Ê±Æ£ÀÍ¼ÝÊ»Êý¾ÝÆðÊ¼µãÊý¾Ý
+//* Object              : 360Ð¡Ê±Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : curTime
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : curTime
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int WriteOTDRStartData()
 {
-	u_char *p;
-	u_int pos;
-	u_char i,buf[8];
+	unsigned char *p;
+	unsigned long pos;
+	unsigned char i,buf[8];
 	int inc;
 	
 	if((InFlashWriting&(1<<RUNRECORD360h))==0)
-	{//Èç¹ûÃ»ÓÐ¿ªÊ¼Ð´FLASH£¬Ê×ÏÈ¶ÁÈë×î½üÒ»×éÊý¾ÝµÄ½áÊøµãÊý¾Ý
-		InFlashWriting |= 1<<RUNRECORD360h;//±ê¼ÇÊý¾ÝÎª¡°ÔÚÐ´FLASH¡±
+	{//ï¿½ï¿½ï¿½Ã»ï¿½Ð¿ï¿½Ê¼Ð´FLASHï¿½ï¿½ï¿½ï¿½ï¿½È¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ÝµÄ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		InFlashWriting |= 1<<RUNRECORD360h;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ð´FLASHï¿½ï¿½
 		pos = pTable.RunRecord360h.CurPoint;
-		if(!Update4k((u_short *)pos,(u_short *)OTDR_4k,UpdateFlashOnce))
+		if(!Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce))
 			return(0);
 	}
 	else
@@ -815,7 +782,7 @@ int WriteOTDRStartData()
 	
 	buf[0]=0xaf;
 	buf[1]=0xaf;
-	p=(u_char *)(&curTime);
+	p=(unsigned char *)(&curTime);
 	for(i=0;i<6;i++)
 		buf[2+i]=p[i];
 	
@@ -824,37 +791,38 @@ int WriteOTDRStartData()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteOTDREndData
-//* Object              : 360Ð¡Ê±Æ£ÀÍ¼ÝÊ»Êý¾ÝÆðÊ¼µãÊý¾Ý
+//* Object              : 360Ð¡Ê±Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : curTime
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : curTime
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
+
 int WriteOTDREndData(OTDR_end *end)
 {
-	u_int pos;
+	unsigned long pos;
 
 	if(end->MinuteNb==0)
 	{
 		pos = AddPointer(&(pTable.RunRecord360h), 0 - sizeof(OTDR_start));
 		if((pos&0xff000)!=(pTable.RunRecord360h.CurPoint&0xff000))
 		{
-			if(!Update4k((u_short *)pos,(u_short *)OTDR_4k,UpdateFlashOnce))
+			if(!Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce))
 				return(0);
 		}
 		pTable.RunRecord360h.CurPoint = pos;
 	}
 	else
-		WriteOTDRData((u_char *)end,sizeof(OTDR_end));
+		WriteOTDRData((unsigned char *)end,sizeof(OTDR_end));
 }
 
 //*----------------------------------------------------------------------------
 //* Function Name       : IsDoubtPointData
-//* Object              : ÅÐ¶ÏÊÇ·ñÊÇÒ»¸öÒÉµãÊý¾Ý
+//* Object              : ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : Tick02NB,ddb
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : Tick02NB,ddb
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int IsDoubtPointData()
 {
@@ -879,93 +847,93 @@ int IsDoubtPointData()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : RunRecord360Handler
-//* Object              :360Ð¡Ê±Æ½¾ùËÙ¶ÈÐÐÊ»¼ÇÂ¼ºÍÍ³¼ÆÆ£ÀÍ¼ÝÊ»
+//* Object              :360Ð¡Ê±Æ½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½Í³ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : CurSpeed,curTime
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : CurSpeed,curTime
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void RunRecord360Handler()
 {
-	u_char AverageV; 
-	u_char flag=InRecordCycle&(1<<RUNRECORD360h);
-	u_char space=0xff;
+	unsigned char AverageV;
+	unsigned char flag=InRecordCycle&(1<<RUNRECORD360h);
+	unsigned char space=0xff;
 	int succ;
 	
 	
-	//¼ÇÂ¼µ±Ç°ÒÉµãÊý¾Ý
-	ddb.data[ddb.pt].speed = (u_char)CurSpeed;
+	//ï¿½ï¿½Â¼ï¿½ï¿½Ç°ï¿½Éµï¿½ï¿½ï¿½ï¿½
+	ddb.data[ddb.pt].speed = (unsigned char)CurSpeed;
 	ddb.data[ddb.pt].status = CurStatus;
 	ddb.pt++;
 	if(ddb.pt>99)
 		ddb.pt = 0;
 		
-	if(flag==0)//Ã»ÓÐ¼ÇÂ¼Êý¾ÝÖÐ£¨speed==0£©
+	if(flag==0)//Ã»ï¿½Ð¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ð£ï¿½speed==0ï¿½ï¿½
 	{
 //		if((CurSpeed > 0)&&(LastSPE > 0))
 		if((CurSpeed - DeltaSpeed==0)&&(CurSpeed>0))
-		{//¼ÇÂ¼ÆðÊ¼µã
-			InRecordCycle |= 1<<RUNRECORD360h;//ÐÞ¸Ä¼ÇÂ¼Êý¾Ý±êÖ¾
+		{//ï¿½ï¿½Â¼ï¿½ï¿½Ê¼ï¿½ï¿½
+			InRecordCycle |= 1<<RUNRECORD360h;//ï¿½Þ¸Ä¼ï¿½Â¼ï¿½ï¿½Ý±ï¿½Ö¾
 			
 			Tick02NB = 0;
 
-			//ÅÐ¶ÏÊÇ·ñÁ¬½ÓÉÏÒ»Ìõ¼ÇÂ¼£¬¼´¼ä¸ôÊ±¼äÊÇ·ñ²»³¬¹ý20·ÖÖÓ
+			//ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ç·ñ²»³ï¿½ï¿½ï¿½20ï¿½ï¿½ï¿½ï¿½
 			OTDR_start CurOTDR_start;
 			OTDR_end CurOTDR_end;
 			succ=Get_otdrEND(&CurOTDR_start,&CurOTDR_end);
-			if(succ==1)//´ÓFLASHÖÐ¶ÁÈëÉÏÒ»Ìõ¼ÇÂ¼
+			if(succ==1)//ï¿½ï¿½FLASHï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼
 				otdrEND = CurOTDR_end;
 				
-			//Á¬ÐøÁ½Ìõ¼ÇÂ¼µÄË¾»ú´úºÅÏàµÈ£¬ÇÒ²»ÊÇÎ´ÖªË¾»ú	
+			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ë¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È£ï¿½ï¿½Ò²ï¿½ï¿½ï¿½Î´ÖªË¾ï¿½ï¿½	
 			if(succ && (otdrEND.driver.DriverCode != 0) && 
 				(otdrEND.driver.DriverCode==RecordDriver.DriverCode))	
 				space = JudgeTimeSpace(&curTime,&otdrEND);
 				
-			//Ò»Ìõ¼ÇÂ¼ÄÚ£¨Ò»´ÎÉÏµç£©Á¬ÐøÁ½´ÎËÙ¶ÈÇúÏßµÄË¾»ú´úºÅÎªÎ´ÖªË¾»ú
+			//Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½Ú£ï¿½Ò»ï¿½ï¿½ï¿½Ïµç£©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½ßµï¿½Ë¾ï¿½ï¿½ï¿½ï¿½ÎªÎ´ÖªË¾ï¿½ï¿½
 			if((succ == 2) && (otdrEND.driver.DriverCode == 0)&&
 				(RecordDriver.DriverCode ==0 ))
 				space = JudgeTimeSpace(&curTime,&otdrEND);
 				
-			//Ò»Ìõ¼ÇÂ¼ÄÚ£¨Ò»´ÎÉÏµç£©Á¬ÐøÁ½´ÎËÙ¶ÈÇúÏß,Ç°´ÎÎªÎ´ÖªË¾»ú£¬ºó´ÎÎªÒÑÖª
+			//Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½Ú£ï¿½Ò»ï¿½ï¿½ï¿½Ïµç£©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½ï¿½,Ç°ï¿½ï¿½ÎªÎ´ÖªË¾ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½Öª
 			if((succ == 2) && (otdrEND.driver.DriverCode == 0)&&
 			(RecordDriver.DriverCode !=0 )&&(PowerOnDT.type==0xefef))
 				space = JudgeTimeSpace(&curTime,&otdrEND);
 				
-			//Ê±¼ä¼ä¸ôÔÚÏÞ¶¨Ê±¼äÄÚ£¬ºÏ²¢ÉÏÒ»Ìõ¼ÇÂ¼
+			//Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Þ¶ï¿½Ê±ï¿½ï¿½ï¿½Ú£ï¿½ï¿½Ï²ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼
 			if((space<=RestMinuteLimit)&&(PowerOnDT.type!=0))
 			{
 				OTRecordType = MergeLastData;
 				LastDistance = otdrEND.TotalDistance;
-				//²¹space¸öÁãµ½endÖ¸ÕëÎ»ÖÃ
+				//ï¿½ï¿½spaceï¿½ï¿½ï¿½ãµ½endÖ¸ï¿½ï¿½Î»ï¿½ï¿½
 				WriteZeroToOTDREndData(space);
 				otdrEND.MinuteNb += space; 
 			}
-			else//ÐÂ¼ÇÂ¼
+			else//ï¿½Â¼ï¿½Â¼
 			{
 				if((succ == 2) && (otdrEND.driver.DriverCode == 0)&&
 					(RecordDriver.DriverCode !=0 )&&(PowerOnDT.type==0xefef))
 				{
-					//ÐÞ¸ÄÇ°Ò»Ìõ¼ÇÂ¼µÄË¾»ú
+					//ï¿½Þ¸ï¿½Ç°Ò»ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ë¾ï¿½ï¿½
 					//ModifyDriverToLastOTDR();
 					otdrEND.driver = RecordDriver;
 					 
 				}
-				//¿ªÊ¼Ð´Ò»ÌõÐÂ¼ÇÂ¼
+				//ï¿½ï¿½Ê¼Ð´Ò»ï¿½ï¿½ï¿½Â¼ï¿½Â¼
 				WriteOTDRStartData();
 				OTRecordType = NewOTData;
 				otdrEND.MinuteNb = 0;
 			}
-			//¸øotdrENDÊý¾Ý½á¹¹¸³Öµ
+			//ï¿½ï¿½otdrENDï¿½ï¿½Ý½á¹¹ï¿½ï¿½Öµ
 			otdrEND.TotalDistance = PulseTotalNumber;
 			
 		}
 	}
-	else//ÕýÔÚ¼ÇÂ¼Êý¾Ý£¨speed>0£©
+	else//ï¿½ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ý£ï¿½speed>0ï¿½ï¿½
 	{
-		//*¼ÇÂ¼1·ÖÖÓÆ½¾ùËÙ¶È
+		//*ï¿½ï¿½Â¼1ï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½ï¿½Ù¶ï¿½
 		AddupSpeed +=CurSpeed;
 		SpeedNb ++;
-		if(TimeChange & (0x01<<MINUTE_CHANGE))//µ½Ò»·ÖÖÓ
+		if(TimeChange & (0x01<<MINUTE_CHANGE))//ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½
 		{
 			AverageV=AddupSpeed/SpeedNb;
 			AddupSpeed = 0;
@@ -976,13 +944,13 @@ void RunRecord360Handler()
 		
 		Tick02NB ++;
 		
-		//*¼ÇÂ¼Í£³µ½áÊøµã
+		//*ï¿½ï¿½Â¼Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		if(((CurSpeed == 0)&&(PulseNB_In1Sec == 0))||((CurSpeed == 0)&&(!PowerOn)))
 		{
 			if(IsDoubtPointData())
-				WriteDoubtDataToFlash();//Ð´Ò»¸öÍ£³µÒÉµãÊý¾Ýµ½Êý¾ÝflashÖÐ
-			InRecordCycle &= ~(1<<RUNRECORD360h);//ÐÞ¸Ä¼ÇÂ¼Êý¾Ý±êÖ¾
-			//¼ÇÂ¼½áÊøÊý¾Ýµã
+				WriteDoubtDataToFlash();//Ð´Ò»ï¿½ï¿½Í£ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½Ýµï¿½ï¿½ï¿½ï¿½flashï¿½ï¿½
+			InRecordCycle &= ~(1<<RUNRECORD360h);//ï¿½Þ¸Ä¼ï¿½Â¼ï¿½ï¿½Ý±ï¿½Ö¾
+			//ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½
 			otdrEND.dt.type = 0xeaea;
 			otdrEND.dt.year = curTime.year;
 			otdrEND.dt.month = curTime.month;
@@ -999,20 +967,20 @@ void RunRecord360Handler()
 }		
 //*----------------------------------------------------------------------------
 //* Function Name       : FinishOTDRToFlash
-//* Object              :½«µ±Ç°¼ÇÂ¼360Ð¡Ê±Æ½¾ùËÙ¶ÈÐÐÊ»¼ÇÂ¼ºÍÍ³¼ÆÆ£ÀÍ¼ÝÊ»ÄÚ´æ
-//                       ±£´æµ½FLASHÖÐ
+//* Object              :ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼360Ð¡Ê±Æ½ï¿½ï¿½ï¿½Ù¶ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½Í³ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½Ú´ï¿½
+//                       ï¿½ï¿½ï¿½æµ½FLASHï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 void FinishOTDRToFlash()
 {
-	u_int p;
+	unsigned long p;
 	otdrEND.driver = RecordDriver;
 	if((InRecordCycle&(1<<RUNRECORD360h))!=0)
 	{
-		//¼ÇÂ¼½áÊøÊý¾Ýµã
+		//ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½
 		otdrEND.dt.type = 0xeaea;
 		otdrEND.dt.year = curTime.year;
 		otdrEND.dt.month = curTime.month;
@@ -1030,26 +998,26 @@ void FinishOTDRToFlash()
 	{
 		p = pTable.RunRecord360h.CurPoint;
 		p &= 0xfffff000;
-		Write4kToFlashOTDR((u_short *)p,(u_short *)OTDR_4k);
+		Write4kToFlashOTDR((unsigned short *)p,(unsigned short *)OTDR_4k);
 	}
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : ModifyUnknownDriver
-//* Object              : Ã¿´ÎÐÐÊ»¼ÇÂ¼½áÊøÊ±½«¼ÇÂ¼ÖÐ¼ÇÂ¼³ÉÎ´ÖªË¾»ú£¬µ«ºóÀ´²å¿¨ºó
-//						  ±ä³ÉÒÑÖªË¾»úµÄ¼ÇÂ¼ÐÞ¸ÄÆäË¾»ú´úºÅ
+//* Object              : Ã¿ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Â¼ï¿½Ð¼ï¿½Â¼ï¿½ï¿½Î´ÖªË¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å¿¨ï¿½ï¿½
+//						  ï¿½ï¿½ï¿½ï¿½ï¿½ÖªË¾ï¿½ï¿½Ä¼ï¿½Â¼ï¿½Þ¸ï¿½ï¿½ï¿½Ë¾ï¿½ï¿½ï¿½ï¿½
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 void ModifyUnknownDriver()
 {
-	u_int dpp;
-	u_short data;
+	unsigned long dpp;
+	unsigned short data;
 	Record_CLOCK stoptime,PowerOffDT;
 	int cmp1,cmp2;
 	Record_CLOCK *temp;
-	u_char i=0;
+	unsigned char i=0;
 	
 	PowerOffDT.year = curTime.year;
 	PowerOffDT.month = curTime.month;
@@ -1058,7 +1026,7 @@ void ModifyUnknownDriver()
 	PowerOffDT.minute = curTime.minute;
 	PowerOffDT.second = curTime.second;
 	
-	//ÒÉµã¼ÇÂ¼
+	//ï¿½Éµï¿½ï¿½Â¼
 	dpp=pTable.DoubtPointData.CurPoint;
 	do
 	{
@@ -1080,39 +1048,39 @@ void ModifyUnknownDriver()
 		cmp2=CompareDateTime(PowerOffDT,stoptime); 
 		if((cmp1==1)&&(cmp2==1)&&(stoptime.type==0xffff))
 		{
-			data = (u_short)(RecordDriver.DriverCode);
-			flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,(u_short *)dpp,data);
-			data = (u_short)(RecordDriver.DriverCode>>16);
-			flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,(u_short *)(dpp+2),data);
+			data = (unsigned short)(RecordDriver.DriverCode);
+			SPI_FLASH_BufferWrite( SPI1 ,(u8 *)&data, dpp, 2);
+			data = (unsigned short)(RecordDriver.DriverCode>>16);
+			SPI_FLASH_BufferWrite( SPI1 ,(u8 *)&data, dpp+2, 2);
 		}
-		i++;//2003.11.11,panhui(ËÀ»úÎÊÌâ)
+		i++;//2003.11.11,panhui(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 	}while((cmp1>0)&&(cmp2>=0)&&(i<97));
 	
-	//360Ð¡Ê±Æ½¾ùËÙ¶È¼ÇÂ¼
+	//360Ð¡Ê±Æ½ï¿½ï¿½ï¿½Ù¶È¼ï¿½Â¼
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteBaseDataToFlash
-//* Object              : ½«ÐÐÊ»¼ÇÂ¼Ð´ÈëÊý¾ÝFLASH
-//* Input Parameters    : buf¡ª¡ªÊý¾Ý»º³åÇøÖ¸Õë
-//                        len¡ª¡ªu_shortÐÍÊý¾Ý³¤¶È
-//						  type¡ª¡ªÊý¾ÝÀàÐÍ
+//* Object              : ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½Â¼Ð´ï¿½ï¿½ï¿½ï¿½ï¿½FLASH
+//* Input Parameters    : bufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý»ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+//                        lenï¿½ï¿½ï¿½ï¿½unsigned shortï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½
+//						  typeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Output Parameters   : if data write TRUE or FALSE
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-int WriteBaseDataToFlash(u_short *buf,u_char len,u_char type)
+int WriteBaseDataToFlash(unsigned short *buf,unsigned char len,unsigned char type)
 {
 
-	u_char i;
-	u_int pos,UpdatePos;
+	unsigned char i;
+	unsigned long pos,UpdatePos;
 	
 	if((InFlashWriting&(1<<BASEDATA))==0)
-	{//Èç¹ûÃ»ÓÐ¿ªÊ¼Ð´FLASH
+	{//ï¿½ï¿½ï¿½Ã»ï¿½Ð¿ï¿½Ê¼Ð´FLASH
 		if(type!=START)
 			return(0);
-		InFlashWriting |= 1<<BASEDATA;//±ê¼ÇÊý¾ÝÎª¡°ÔÚÐ´FLASH¡±
+		InFlashWriting |= 1<<BASEDATA;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ð´FLASHï¿½ï¿½
 		pos = pTable.BaseData.CurPoint;
-		if(!Update4k((u_short *)pos,BaseData_4k,UpdateFlashTimes))
+		if(!Update4k((unsigned short *)pos,BaseData_4k,UpdateFlashTimes))
 			return(0);
 
 		/////////*******2003.10.06 panhui*********////////
@@ -1120,8 +1088,8 @@ int WriteBaseDataToFlash(u_short *buf,u_char len,u_char type)
 		if(UpdatePos > pTable.BaseData.EndAddr)
 			UpdatePos = pTable.BaseData.BaseAddr + (UpdatePos-pTable.BaseData.EndAddr)-1;
 		if((pos&0xff000)!=(UpdatePos&0xff000))
-		{//¿çÒ³
-			if(!Update4k((u_short *)UpdatePos,BaseData_4k,UpdateFlashAll))
+		{//ï¿½ï¿½Ò³
+			if(!Update4k((unsigned short *)UpdatePos,BaseData_4k,UpdateFlashAll))
 				return(0);
 		}
 		/////////*******2003.10.06 panhui*********////////
@@ -1132,8 +1100,7 @@ int WriteBaseDataToFlash(u_short *buf,u_char len,u_char type)
 	
 	for(i=0;i<len;i++)
 	{
-		if(!flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,(flash_word *)pos,buf[i]))
-			return(0);
+		SPI_FLASH_BufferWrite( SPI1 ,(u8 *)(&buf[i]), pos, 2);
 		pos+=2;
 		////////////add by panhui 2003.10.28////////
 		if(pos>pTable.BaseData.EndAddr)
@@ -1143,16 +1110,16 @@ int WriteBaseDataToFlash(u_short *buf,u_char len,u_char type)
 		if(UpdatePos > pTable.BaseData.EndAddr)
 			UpdatePos = pTable.BaseData.BaseAddr + (UpdatePos-pTable.BaseData.EndAddr)-1;
 /*		if((pos&0x00fff)==0)
-		{//ÐèÒª¸ü»»ÏÂÒ»4k
+		{//ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ò»4k
 			if(pos>pTable.BaseData.EndAddr)
 				pos = pTable.BaseData.BaseAddr;
-			if(!Update4k((u_short *)pos,BaseData_4k,UpdateFlashTimes))
+			if(!Update4k((unsigned short *)pos,BaseData_4k,UpdateFlashTimes))
 				return(0);
 			
 		}*/
 		if(((pos&0xff000)!=(UpdatePos&0xff000))&&((UpdatePos&0x00fff)==0))
-		{//ÐèÒª¸ü»»ÏÂÒ»4k
-			if(!Update4k((u_short *)UpdatePos,BaseData_4k,UpdateFlashAll))
+		{//ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ò»4k
+			if(!Update4k((unsigned short *)UpdatePos,BaseData_4k,UpdateFlashAll))
 				return(0);
 		}
 		
@@ -1161,10 +1128,10 @@ int WriteBaseDataToFlash(u_short *buf,u_char len,u_char type)
 	
 	if(type==END)
 	{
-		Write4kToFlash((u_short *)UpdatePos,BaseData_4k);
+		Write4kToFlash((unsigned short *)UpdatePos,BaseData_4k);
 		if(pTable.DoubtPointData.CurPoint!=PartitionTable_BASE->DoubtPointData.CurPoint)
 		{
-			Write4kToFlash((u_short *)pTable.DoubtPointData.CurPoint,DoubtData_4k);
+			Write4kToFlash((unsigned short *)pTable.DoubtPointData.CurPoint,DoubtData_4k);
 			FinishOTDRToFlash();
 		}
 		else if(pTable.RunRecord360h.CurPoint!=PartitionTable_BASE->RunRecord360h.CurPoint)
@@ -1173,7 +1140,7 @@ int WriteBaseDataToFlash(u_short *buf,u_char len,u_char type)
 		InFlashWriting = 0;
 		WritePartitionTable(&pTable);
 		
-		//ÐÞ¸Ä¿ÉÄÜµÄ¡°Î´ÖªË¾»ú¡±ÒÉµãºÍ360Æ½¾ùËÙ¶È¼ÇÂ¼
+		//ï¿½Þ¸Ä¿ï¿½ï¿½ÜµÄ¡ï¿½Î´ÖªË¾ï¿½ï¿½ï¿½Éµï¿½ï¿½360Æ½ï¿½ï¿½ï¿½Ù¶È¼ï¿½Â¼
 		if(PowerOnDT.type==0xefef)
 			ModifyUnknownDriver();
 		
@@ -1185,31 +1152,31 @@ int WriteBaseDataToFlash(u_short *buf,u_char len,u_char type)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : BaseDataHandler
-//* Object              : »ù±¾ÏêÏ¸Êý¾Ý´¦Àí¼°Æä¼ÇÂ¼
+//* Object              : ï¿½ï¿½ï¿½ï¿½Ï¸ï¿½ï¿½Ý´ï¿½ï¿½?ï¿½ï¿½ï¿½Â¼
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : PowerOnTime,STATUS1min,TimeChange,InRecordCycle,curTime
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : PowerOnTime,STATUS1min,InRecordCycle   
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : PowerOnTime,STATUS1min,TimeChange,InRecordCycle,curTime
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : PowerOnTime,STATUS1min,InRecordCycle   
 //*----------------------------------------------------------------------------
 void BaseDataHandler()
 {
 	int i,pt;
-	u_short data;
+	unsigned short data;
 	RecordData_start rec_start;
 
 	if((InRecordCycle&(1<<BASEDATA))==0)
-	{//Èç¹ûÃ»ÓÐ¿ªÊ¼¼ÇÂ¼»ù±¾ÐÐÊ»Êý¾Ý
+	{//ï¿½ï¿½ï¿½Ã»ï¿½Ð¿ï¿½Ê¼ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ê»ï¿½ï¿½ï¿½
 		
 //		if((PowerOn&&(PowerOnTime>=5))||((CurSpeed - DeltaSpeed==0)&&(CurSpeed>0)))
 		if(CurSpeed>0)
-		{//ÉÏµçÊ±¿Ì£¬¼ÇÂ¼Ò»¸öÆðµã
+		{//ï¿½Ïµï¿½Ê±ï¿½Ì£ï¿½ï¿½ï¿½Â¼Ò»ï¿½ï¿½ï¿½ï¿½ï¿½
 			PowerOnTime = 0;
-			PulseTotalNumber = 0;//Àï³Ì	ÇåÁã
+			PulseTotalNumber = 0;//ï¿½ï¿½ï¿½	ï¿½ï¿½ï¿½ï¿½
 			
-			InRecordCycle |= 1<<BASEDATA;//±ê¼Ç¡°¿ªÊ¼¼ÇÂ¼Êý¾Ý¡±
+			InRecordCycle |= 1<<BASEDATA;//ï¿½ï¿½Ç¡ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½Â¼ï¿½ï¿½Ý¡ï¿½
 			STATUS1min = 0;//2003.10.23,panhui
 			
-			//×¼±¸ÆðÊ¼Êý¾Ý
+			//×¼ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½
 			rec_start.dt.type = 0xFEFE;
 			rec_start.dt.year = curTime.year;
 			rec_start.dt.month = curTime.month;
@@ -1218,11 +1185,11 @@ void BaseDataHandler()
 			rec_start.dt.minute = curTime.minute;
 			rec_start.dt.second = curTime.second;
 			
-			PowerOnDT = rec_start.dt;//³õÊ¼»¯ÉÏµçÊ±¼äºÍ±êÖ¾
+			PowerOnDT = rec_start.dt;//ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½Ïµï¿½Ê±ï¿½ï¿½Í±ï¿½Ö¾
 			if(CurrentDriver.DriverCode == 0)
 				PowerOnDT.type = 0xefef;
 			
-			//ÅÐ¶Ïµ±Ç°Ö¸ÕëÊÇ·ñÎªÅ¼Êý£¬ÈôÎªÆæÊý£¬¼ÓÒ»¸ö×Ö½Ú
+			//ï¿½Ð¶Ïµï¿½Ç°Ö¸ï¿½ï¿½ï¿½Ç·ï¿½ÎªÅ¼ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö½ï¿½
 			if((pTable.BaseData.CurPoint&1)!=0)
 			{
 				pTable.BaseData.CurPoint++;
@@ -1230,8 +1197,8 @@ void BaseDataHandler()
 					pTable.BaseData.CurPoint=pTable.BaseData.BaseAddr;
 			}
 			
-			//ÐÐÊ»¼ÇÂ¼ÆðµãÐ´Èëdataflash
-			WriteBaseDataToFlash((u_short *)(&rec_start),(sizeof(RecordData_start))/2,START);
+			//ï¿½ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ð´ï¿½ï¿½dataflash
+			WriteBaseDataToFlash((unsigned short *)(&rec_start),(sizeof(RecordData_start))/2,START);
 			
 		}
 		else if(PowerOn&&(PowerOnTime<5))
@@ -1244,11 +1211,11 @@ void BaseDataHandler()
 			PowerOnTime = 0;
 	}
 	else
-	{//ÕýÔÚ¼ÇÂ¼ÐÐÊ»Êý¾Ý
+	{//ï¿½ï¿½ï¿½Ú¼ï¿½Â¼ï¿½ï¿½Ê»ï¿½ï¿½ï¿½
 		if((CurSpeed == 0)&&(!PowerOn))
-		{//ËÙ¶ÈÎªÁãÊ±¶Ïµç£¬¼ÇÂ¼Ò»¸ö½áÊøµã
-			InRecordCycle &= ~(1<<BASEDATA);//±ê¼Ç¡°½áÊø¼ÇÂ¼Êý¾Ý¡±
-			//×¼±¸½áÊøÊý¾Ý
+		{//ï¿½Ù¶ï¿½Îªï¿½ï¿½Ê±ï¿½Ïµç£¬ï¿½ï¿½Â¼Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			InRecordCycle &= ~(1<<BASEDATA);//ï¿½ï¿½Ç¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ý¡ï¿½
+			//×¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			rec_end.dt.type = 0xaeae;
 			rec_end.dt.year = curTime.year;
 			rec_end.dt.month = curTime.month;
@@ -1267,8 +1234,8 @@ void BaseDataHandler()
 		else if((CurSpeed - DeltaSpeed==0)&&(CurSpeed>0)&&
 		(CurrentDriver.DriverCode!=RecordDriver.DriverCode)&&
 		(CurrentDriver.DriverCode!=0))
-		{//¸ü»»Ë¾»ú£¬¼ÇÂ¼Ò»¸ö½áÊøµã
-			//×¼±¸½áÊøÊý¾Ý
+		{//ï¿½ï¿½Ë¾ï¿½ï¿½ï¿½Â¼Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			//×¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			rec_end.dt.type = 0xaeae;
 			rec_end.dt.year = curTime.year;
 			rec_end.dt.month = curTime.month;
@@ -1280,10 +1247,10 @@ void BaseDataHandler()
 			rec_end.DriverCode = RecordDriver.DriverCode;
 			pTable.TotalDistance += PulseTotalNumber;
 			
-			//ÐÐÊ»¼ÇÂ¼½áÊøµãÐ´Èëdataflash
-			WriteBaseDataToFlash((u_short *)(&rec_end),(sizeof(RecordData_end))/2,END);
+			//ï¿½ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½dataflash
+			WriteBaseDataToFlash((unsigned short *)(&rec_end),(sizeof(RecordData_end))/2,END);
 			
-			//×¼±¸ÆðÊ¼Êý¾Ý
+			//×¼ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½
 			rec_start.dt.type = 0xFEFE;
 			rec_start.dt.year = curTime.year;
 			rec_start.dt.month = curTime.month;
@@ -1291,26 +1258,26 @@ void BaseDataHandler()
 			rec_start.dt.hour = curTime.hour;
 			rec_start.dt.minute = curTime.minute;
 			rec_start.dt.second = curTime.second;
-			PowerOnDT = rec_start.dt;//³õÊ¼»¯ÉÏµçÊ±¼äºÍ±êÖ¾
+			PowerOnDT = rec_start.dt;//ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½Ïµï¿½Ê±ï¿½ï¿½Í±ï¿½Ö¾
 			
-			//ÐÐÊ»¼ÇÂ¼ÆðµãÐ´Èëdataflash
-			WriteBaseDataToFlash((u_short *)(&rec_start),(sizeof(RecordData_start))/2,START);
+			//ï¿½ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ð´ï¿½ï¿½dataflash
+			WriteBaseDataToFlash((unsigned short *)(&rec_start),(sizeof(RecordData_start))/2,START);
 			RecordDriver = CurrentDriver;
 			PulseTotalNumber = 0;
 
 		}
 		else
-		{//1ÃëÖÓ¼ÇÂ¼Ò»×éËÙ¶È×´Ì¬Êý¾Ý
+		{//1ï¿½ï¿½ï¿½Ó¼ï¿½Â¼Ò»ï¿½ï¿½ï¿½Ù¶ï¿½×´Ì¬ï¿½ï¿½ï¿½
 			STATUS1min |= CurStatus;
-			if(TimeChange & (0x01<<SECOND_CHANGE))//µ½Ò»ÃëÖÓ
+			if(TimeChange & (0x01<<SECOND_CHANGE))//ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½
 			{
-				data = (u_char)CurSpeed;
+				data = (unsigned char)CurSpeed;
 				data = (STATUS1min<<8) + data;
 				STATUS1min = 0;
-				WriteBaseDataToFlash((u_short *)(&data),1,DATA_1min);
+				WriteBaseDataToFlash((unsigned short *)(&data),1,DATA_1min);
 				#if RPM_EN
-				data = (u_short)CurEngine;
-				WriteBaseDataToFlash((u_short *)(&data),1,DATA_1min);
+				data = (unsigned short)CurEngine;
+				WriteBaseDataToFlash((unsigned short *)(&data),1,DATA_1min);
 				#endif
 			}
 	
@@ -1320,119 +1287,119 @@ void BaseDataHandler()
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : FinishAllRecord
-//* Object              : ½áÊøËùÓÐ¼ÇÂ¼
+//* Object              : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½Â¼
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : PowerOnTime,STATUS1min,TimeChange,InRecordCycle,curTime
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : PowerOnTime,STATUS1min,InRecordCycle   
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : PowerOnTime,STATUS1min,TimeChange,InRecordCycle,curTime
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : PowerOnTime,STATUS1min,InRecordCycle   
 //*----------------------------------------------------------------------------
 void FinishAllRecord()
 {
 	if(FinishFlag)
 	{
-		//ÐÐÊ»¼ÇÂ¼½áÊøµãÐ´Èëdataflash
-		WriteBaseDataToFlash((u_short *)(&rec_end),(sizeof(RecordData_end))/2,END);
-		RecordDriver = CurrentDriver;//»Ö¸´¼ÇÂ¼Ë¾»ú
+		//ï¿½ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½dataflash
+		WriteBaseDataToFlash((unsigned short *)(&rec_end),(sizeof(RecordData_end))/2,END);
+		RecordDriver = CurrentDriver;//ï¿½Ö¸ï¿½ï¿½ï¿½Â¼Ë¾ï¿½ï¿½
 		FinishFlag = 0;
 	}
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : GetOTDRDataFromFlash
-//* Object              : ´Ó¸ø¶¨µÄµØÖ·»ñÈ¡inc³¤¶ÈµÄÆ£ÀÍ¼ÝÊ»Êý¾Ý
-//*                       ²¢´æ·Åµ½BUFÖÐ
-//* Input Parameters    : p¡ª¡ª¸ø¶¨µÄµØÖ·
-//*                       inc¡ª¡ªÊý¾Ý³¤¶È£¬¸ù¾Ý·ûºÅÈ·¶¨¶ÁÊý¾ÝµÄ·½Ïò
-//*                       ×¢Òâ£ºinc¿ÉÒÔÎªÆæÊý»òÅ¼Êý
-//*                       buf¡ª¡ª»º³åÇø
+//* Object              : ï¿½Ó¸ï¿½Äµï¿½Ö·ï¿½ï¿½È¡incï¿½ï¿½ï¿½Èµï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½ï¿½
+//*                       ï¿½ï¿½ï¿½ï¿½Åµï¿½BUFï¿½ï¿½
+//* Input Parameters    : pï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½Ö·
+//*                       incï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½È£ï¿½ï¿½ï¿½Ý·ï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ·ï¿½ï¿½ï¿½
+//*                       ×¢ï¿½â£ºincï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½Å¼ï¿½ï¿½
+//*                       bufï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-void GetOTDRDataFromFlash(u_short *p, int inc,u_char *buf)
+void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 {
 	int  i;
-	u_short data;
+	unsigned short data;
 
 	if(inc==0)
 		return;
 	if(inc<0){
 		StructPT temp;
 		temp = pTable.RunRecord360h;
-		temp.CurPoint = (u_int)p;
-		p = (u_short *)AddPointer(&temp, inc);
+		temp.CurPoint = (unsigned long)p;
+		p = (unsigned short *)AddPointer(&temp, inc);
 		inc=0-inc;
 	}
 
-	//Èç¹ûÖ¸ÕëÎªÅ¼Êý
-	if(((u_int)p&1)==0)
+	//ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ÎªÅ¼ï¿½ï¿½
+	if(((unsigned long)p&1)==0)
 	{
 		for(i=0;i<inc/2;i++){
-			buf[2*i] = (u_char)(*p);
-			buf[2*i+1] = (u_char)((*p)>>8);
+			buf[2*i] = (unsigned char)(*p);
+			buf[2*i+1] = (unsigned char)((*p)>>8);
 			p++;
-			if((u_int)p > pTable.RunRecord360h.EndAddr)
-				p = (u_short *)pTable.RunRecord360h.BaseAddr;
+			if((unsigned long)p > pTable.RunRecord360h.EndAddr)
+				p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
 		}
-		//Èç¹ûincÎªÆæÊý
+		//ï¿½ï¿½ï¿½incÎªï¿½ï¿½ï¿½ï¿½
 		if((inc&1)==1)
 		{
-//			p=(u_short *)((u_int)p-1);
+//			p=(unsigned short *)((unsigned long)p-1);
 			data = *p;
-			buf[inc-1] = (u_char)data;
-			if((u_int)p > pTable.RunRecord360h.EndAddr)
-				p = (u_short *)pTable.RunRecord360h.BaseAddr;
+			buf[inc-1] = (unsigned char)data;
+			if((unsigned long)p > pTable.RunRecord360h.EndAddr)
+				p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
 		}
 	}
-	//Èç¹ûÖ¸ÕëÎªÆæÊý
+	//ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½
 	else{
-		//Èç¹ûincÎªÅ¼Êý
+		//ï¿½ï¿½ï¿½incÎªÅ¼ï¿½ï¿½
 		if((inc&1)==0)
 		{
-			p=(u_short *)((u_int)p-1);
+			p=(unsigned short *)((unsigned long)p-1);
 			data = *p;
-			buf[0] = (u_char)(data>>8);
+			buf[0] = (unsigned char)(data>>8);
 			p++;
 			for(i=0;i<inc/2;i++)
 			{
 				data = *p;
 				buf[i*2+1]=data;
 				if(i!=(inc/2-1))
-					buf[i*2+2]=(u_char)(data>>8);
+					buf[i*2+2]=(unsigned char)(data>>8);
 				p++;
-				if((u_int)p > pTable.RunRecord360h.EndAddr)
-					p = (u_short *)pTable.RunRecord360h.BaseAddr;
+				if((unsigned long)p > pTable.RunRecord360h.EndAddr)
+					p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
 			}
 		}
-		//Èç¹ûincÎªÆæÊý
+		//ï¿½ï¿½ï¿½incÎªï¿½ï¿½ï¿½ï¿½
 		if((inc&1)==1)
 		{
-			p=(u_short *)((u_int)p-1);
+			p=(unsigned short *)((unsigned long)p-1);
 			data = *p;
-			buf[0] = (u_char)(data>>8);
+			buf[0] = (unsigned char)(data>>8);
 			p++;
 			for(i=0;i<inc/2;i++)
 			{
 				data = *p;
 				buf[i*2+1]=data;
-				buf[i*2+2]=(u_char)(data>>8);
+				buf[i*2+2]=(unsigned char)(data>>8);
 				p++;
-				if((u_int)p > pTable.RunRecord360h.EndAddr)
-					p = (u_short *)pTable.RunRecord360h.BaseAddr;
+				if((unsigned long)p > pTable.RunRecord360h.EndAddr)
+					p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
 			}		
 		}
 	}
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : IsCorrectCLOCK
-//* Object              : ÅÐ¶ÏÊ±¼äÊý¾ÝÊÇ·ñÕýÈ·
-//* Input Parameters    : Ê±ÖÓÖ¸Õë
-//* Output Parameters   : ÊÇ·ñÊÇÒ»¸öÕýÈ·µÄÊ±¼äÊý¾Ý
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½Ð¶ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È·
+//* Input Parameters    : Ê±ï¿½ï¿½Ö¸ï¿½ï¿½
+//* Output Parameters   : ï¿½Ç·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int IsCorrectCLOCK(CLOCK *dt)
 {
-	u_char data;
+	unsigned char data;
 	data = BCD2Char(dt->year);
 	if(data>99)
 		return(0);
@@ -1456,15 +1423,15 @@ int IsCorrectCLOCK(CLOCK *dt)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : IsCorrectClock
-//* Object              : ÅÐ¶ÏÊ±¼äÊý¾ÝÊÇ·ñÕýÈ·
-//* Input Parameters    : Ê±ÖÓÖ¸Õë
-//* Output Parameters   : ÊÇ·ñÊÇÒ»¸öÕýÈ·µÄÊ±¼äÊý¾Ý
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½Ð¶ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È·
+//* Input Parameters    : Ê±ï¿½ï¿½Ö¸ï¿½ï¿½
+//* Output Parameters   : ï¿½Ç·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
 int IsCorrectClock(Record_CLOCK *dt)
 {
-	u_char data;
+	unsigned char data;
 	data = BCD2Char(dt->year);
 	if(data>99)
 		return(0);
@@ -1488,19 +1455,19 @@ int IsCorrectClock(Record_CLOCK *dt)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : GetOTDR
-//* Object              : »ñÈ¡µ±Ç°µÄÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
-//* Input Parameters    : p¡ª¡ªµ±Ç°Ö¸Õë;
-//*                       s¡ª¡ªÆ£ÀÍ¼ÝÊ»¼ÇÂ¼ÆðÊ¼Êý¾Ý;
-//*                       e¡ª¡ªÆ£ÀÍ¼ÝÊ»¼ÇÂ¼½áÊøÊý¾Ý;
-//* Output Parameters   : ÊÇ·ñÊÇÒ»¸öÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      :
+//* Object              : ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
+//* Input Parameters    : pï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°Ö¸ï¿½ï¿½;
+//*                       sï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½;
+//*                       eï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½;
+//* Output Parameters   : ï¿½Ç·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
 //*----------------------------------------------------------------------------
-int GetOTDR( u_int p, OTDR_start *s, OTDR_end *e )
+int GetOTDR( unsigned long p, OTDR_start *s, OTDR_end *e )
 {
 	int offset;
 	offset = 0 - sizeof(OTDR_end);
-	GetOTDRDataFromFlash((u_short *)p, offset,(u_char *)e);
+	GetOTDRDataFromFlash((unsigned short *)p, offset,(unsigned char *)e);
 	if(e->dt.type!=0xeaea)
 		return (0);
 	if(!IsCorrectClock(&(e->dt)))
@@ -1508,11 +1475,11 @@ int GetOTDR( u_int p, OTDR_start *s, OTDR_end *e )
 	
 	StructPT temp;
 	temp = pTable.RunRecord360h;
-	temp.CurPoint = (u_int)p;
+	temp.CurPoint = (unsigned long)p;
 	offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+e->MinuteNb);
 	p = AddPointer(&temp, offset);
 	offset = sizeof(OTDR_start);
-	GetOTDRDataFromFlash((u_short *)p, offset,(u_char *)s);
+	GetOTDRDataFromFlash((unsigned short *)p, offset,(unsigned char *)s);
 	if(s->dt.type!=0xafaf)
 		return (0);
 	if(!IsCorrectClock(&(s->dt)))
@@ -1523,28 +1490,28 @@ int GetOTDR( u_int p, OTDR_start *s, OTDR_end *e )
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : GetOverTimeRecordIn2Days
-//* Object              : »ñÈ¡µ±Ç°Ë¾»úµÄÁ½¸öÈÕÀúÌìÄÚµÄÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
-//* Input Parameters    : ¼ÇÂ¼Æ£ÀÍ¼ÝÊ»¼ÇÂ¼µÄÊý×éÖ¸Õë£¨Êý×é´óÐ¡£½15¸ö£©
-//* Output Parameters   : Æ£ÀÍ¼ÝÊ»¼ÇÂ¼µÄ¸öÊý
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* Object              : ï¿½ï¿½È¡ï¿½ï¿½Ç°Ë¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
+//* Input Parameters    : ï¿½ï¿½Â¼Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ë£¨ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½15ï¿½ï¿½ï¿½ï¿½
+//* Output Parameters   : Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½Ä¸ï¿½ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
-u_char GetOverTimeRecordIn2Days(OTDR *record)
+unsigned char GetOverTimeRecordIn2Days(OTDR *record)
 {
 	OTDR_start CurOTDR_start;
 	OTDR_end CurOTDR_end;
 	StructPT spt;
-	u_char next=0;//=0¡ª¡ªÖØÐÂ¿ªÊ¼Ò»¸öÐÂ¼ÇÂ¼
-				  //=1¡ª¡ªµÈ´ýÏÂÒ»Ìõ¼ÇÂ¼
+	unsigned char next=0;//=0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¿ï¿½Ê¼Ò»ï¿½ï¿½ï¿½Â¼ï¿½Â¼
+				  //=1ï¿½ï¿½ï¿½ï¿½ï¿½È´ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Â¼
 	
-	u_int p;
+	unsigned long p;
 	int offset,i;
-	u_char number=0;
+	unsigned char number=0;
 	CLOCK time;
-	u_char timeflag=0;
+	unsigned char timeflag=0;
 	DateTime LastDT,CurDT;
 	int space;
-	u_int addup,bytes=0;
+	unsigned long addup,bytes=0;
 
 	spt = pTable.RunRecord360h;
 	p = pTable.RunRecord360h.CurPoint;
@@ -1557,7 +1524,7 @@ u_char GetOverTimeRecordIn2Days(OTDR *record)
 
 	do
 	{
-		//»ñÈ¡µ±Ç°µÄÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
+		//ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
 		if(!GetOTDR( p, &CurOTDR_start, &CurOTDR_end))
 		{
 			offset = -1;
@@ -1565,24 +1532,24 @@ u_char GetOverTimeRecordIn2Days(OTDR *record)
 			spt.CurPoint = p;
 			bytes++;
 			if((bytes>=4096)||(p == pTable.RunRecord360h.CurPoint))
-			{//ÔÙÒ²Ã»ÓÐ¼ÇÂ¼ÁË
+			{//ï¿½ï¿½Ò²Ã»ï¿½Ð¼ï¿½Â¼ï¿½ï¿½
 				if(record[number].end.MinuteNb>DriveMinuteLimit)
 					number++;
 				break;
 			}
 			continue;
 		}
-		//¼ÆËãÐÂµÄÖ¸ÕëÖµ
+		//ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½Ö¸ï¿½ï¿½Öµ
 		offset = 0 - (sizeof(CurOTDR_end)+sizeof(CurOTDR_start)+CurOTDR_end.MinuteNb);
 		p = AddPointer(&spt, offset);
 		spt.CurPoint = p;
 				
-		//±È½ÏË¾»ú´úºÅÊÇ·ñÏàµÈ
+		//ï¿½È½ï¿½Ë¾ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
 		if(PartitionTable_BASE->DriverCode!=CurOTDR_end.driver.DriverCode)
 			continue;
 			
 		if(timeflag == 0)
-		{//¼ÇÂ¼¼ÆËã2¸öÈÕÀúÌìµÄÆðµã
+		{//ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			time.year = CurOTDR_end.dt.year;
 			time.month = CurOTDR_end.dt.month;
 			time.day = CurOTDR_end.dt.day;
@@ -1593,10 +1560,10 @@ u_char GetOverTimeRecordIn2Days(OTDR *record)
 		}
 
 		
-		//±È½ÏÊ±¼äÊÇ·ñÂú×ãÒªÇóÒÔ¼°ÊÇ·ñÔÚÁ½¸öÈÕÀúÌìÄÚ
+		//ï¿½È½ï¿½Ê±ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ô¼ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		if((time.year!=CurOTDR_end.dt.year)||(time.month!=CurOTDR_end.dt.month)||(time.day!=CurOTDR_end.dt.day))
-		{//Èç¹û²»ÊÇÍ¬Ò»ÈÕÀúÌì
-			//ÅÐ¶ÏÊÇ·ñÊÇÇ°Ò»¸öÈÕÀúÌì£¿
+		{//ï¿½ï¿½ï¿½ï¿½ï¿½Í¬Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			//ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Ç°Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ì£¿
 			if(!IfOneAfterAotherDay(&time, &CurOTDR_end))
 			{
 				if(record[number].end.MinuteNb>DriveMinuteLimit)
@@ -1605,7 +1572,7 @@ u_char GetOverTimeRecordIn2Days(OTDR *record)
 			}
 		}
 		
-		//Í³¼ÆÆ£ÀÍ¼ÝÊ»
+		//Í³ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»
 		if(next == 0)
 		{
 			record[number].start = CurOTDR_start;
@@ -1614,8 +1581,8 @@ u_char GetOverTimeRecordIn2Days(OTDR *record)
 		}
 		else if(next == 1)
 		{
-			PrepareTime((u_char *)(&(CurOTDR_end.dt.year)),&LastDT);
-			PrepareTime((u_char *)(&(record[number].start.dt.year)),&CurDT);
+			PrepareTime((unsigned char *)(&(CurOTDR_end.dt.year)),&LastDT);
+			PrepareTime((unsigned char *)(&(record[number].start.dt.year)),&CurDT);
 			space=HaveTime(CurDT,LastDT);
 			if(space<0)
 			{
@@ -1624,7 +1591,7 @@ u_char GetOverTimeRecordIn2Days(OTDR *record)
 				break;
 			}
 			else if(space<RestMinuteLimit)
-			{//ºÏ²¢¼ÇÂ¼
+			{//ï¿½Ï²ï¿½ï¿½ï¿½Â¼
 				addup = record[number].end.MinuteNb+space+CurOTDR_end.MinuteNb;
 				record[number].end.MinuteNb = addup;
 				addup = record[number].end.TotalDistance+CurOTDR_end.TotalDistance;
@@ -1632,7 +1599,7 @@ u_char GetOverTimeRecordIn2Days(OTDR *record)
 				record[number].start = CurOTDR_start;
 			}
 			else
-			{//È·¶¨ÊÇ·ñÉÏÒ»ÌõÎªÆ£ÀÍ¼ÝÊ»¼ÇÂ¼£¬²¢¼ÇÂ¼±¾´Î¼ÇÂ¼
+			{//È·ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ÎªÆ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Î¼ï¿½Â¼
 				if(record[number].end.MinuteNb>DriveMinuteLimit)
 					number++;
 				record[number].start = CurOTDR_start;
@@ -1641,22 +1608,22 @@ u_char GetOverTimeRecordIn2Days(OTDR *record)
 		}
 		
 	
-	}while((bytes<4096)&&(p != pTable.RunRecord360h.CurPoint));//µ±Î´¶ÁÍêÆ£ÀÍ¼ÝÊ»¼ÇÂ¼
+	}while((bytes<4096)&&(p != pTable.RunRecord360h.CurPoint));//ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½Æ£ï¿½Í¼ï¿½Ê»ï¿½ï¿½Â¼
 
 	return (number);
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : ComputeDistance100m
-//* Object              : ¸ù¾ÝÂö³åÊýºÍ³µÂÖÏµÊý¼ÆËãÀï³ÌÊý£¬µ¥Î»Îª°ÙÃ×
-//* Input Parameters    : pulseNb¡ª¡ªÀï³ÌÂö³åÊý
-//* Output Parameters   : °ÙÃ×Êý£¨0-5804009£©
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* Object              : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í³ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»Îªï¿½ï¿½ï¿½ï¿½
+//* Input Parameters    : pulseNbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//* Output Parameters   : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½0-5804009ï¿½ï¿½
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
-u_int ComputeDistance100m(u_int pulseNb)
+unsigned long ComputeDistance100m(unsigned long pulseNb)
 {
-	u_int result;
-	u_char PP = PARAMETER_BASE->PulseNumber;
+	unsigned long result;
+	unsigned char PP = PARAMETER_BASE->PulseNumber;
 	if((PP==0)||(PP>24))
 		PP = 8;
 	result = (pulseNb/(PP*PARAMETER_BASE->CHCO/10));
@@ -1664,13 +1631,13 @@ u_int ComputeDistance100m(u_int pulseNb)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : CompareDateTime
-//* Object              : ±È½ÏÁ½¸öÊ±¼äµÄ´óÐ¡
-//* Input Parameters    : dt1¡ª¡ªÊ±¼ä1£»dt2¡ª¡ªÊ±¼ä2
-//* Output Parameters   : 1 ¡ª¡ª dt1 > dt2;
-//                       -1 ¡ª¡ª dt1 < dt2;
-//                        0 ¡ª¡ª dt1 = dt2;
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* Object              : ï¿½È½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ä´ï¿½Ð¡
+//* Input Parameters    : dt1ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½1ï¿½ï¿½dt2ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½2
+//* Output Parameters   : 1 ï¿½ï¿½ï¿½ï¿½ dt1 > dt2;
+//                       -1 ï¿½ï¿½ï¿½ï¿½ dt1 < dt2;
+//                        0 ï¿½ï¿½ï¿½ï¿½ dt1 = dt2;
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 int CompareDateTime(Record_CLOCK dt1,Record_CLOCK dt2)
 {
@@ -1724,90 +1691,90 @@ int CompareDateTime(Record_CLOCK dt1,Record_CLOCK dt2)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DataPointerSeek
-//* Object              : Êý¾ÝÖ¸Õë¶¨Î»
+//* Object              : ï¿½ï¿½ï¿½Ö¸ï¿½ë¶¨Î»
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒýÓÃµÄÈ«¾Ö±äÁ¿      : none
-//* ÐÞ¸ÄµÄÈ«¾Ö±äÁ¿      : none
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
+//* ï¿½Þ¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : none
 //*----------------------------------------------------------------------------
 void DataPointerSeek()
 {
-	u_int DataPoint;
-	u_short data;
-	u_char *p;
-	u_char temp,f1,f2;
-	u_char update = 0;
+	unsigned long DataPoint;
+	unsigned short data;
+	unsigned char *p;
+	unsigned char temp,f1,f2;
+	unsigned char update = 0;
 	int i;
 	DataPoint = pTable.BaseData.CurPoint;
-	p = (u_char *)DataPoint;
-	//²éÕÒµ±Ç°Ö¸ÕëÎ»ÖÃÊÇ·ñ´æÔÚ±êÖ¾
+	p = (unsigned char *)DataPoint;
+	//ï¿½ï¿½ï¿½Òµï¿½Ç°Ö¸ï¿½ï¿½Î»ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Ú±ï¿½Ö¾
 	for(i=0;i<RecordFlagByte;i++)
 	{
 		if(*p!=0xff)
 			break;
-		if((u_int)p==pTable.BaseData.EndAddr)
-			p=(u_char *)pTable.BaseData.BaseAddr;
+		if((unsigned long)p==pTable.BaseData.EndAddr)
+			p=(unsigned char *)pTable.BaseData.BaseAddr;
 		else
 			p++;
 	}
-	if(i==RecordFlagByte)//±êÖ¾´æÔÚ£¬½áÊøÖ¸Õë¶¨Î»¡£
+	if(i==RecordFlagByte)//ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ë¶¨Î»ï¿½ï¿½
 		return;
 		
-	//ÖØÐÂ¶¨Î»»ù±¾Êý¾ÝµÄÖ¸Õë
+	//ï¿½ï¿½ï¿½Â¶ï¿½Î»ï¿½ï¿½ï¿½ï¿½Ýµï¿½Ö¸ï¿½ï¿½
 	do 
 	{
-		if((*p == 0xff)&&(((u_int)p&1)==0))
-		{//¿ÉÄÜÕÒµ½±êÖ¾
+		if((*p == 0xff)&&(((unsigned long)p&1)==0))
+		{//ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½Ö¾
 			i=0;
 			do
 			{
-				if((u_int)p == pTable.BaseData.EndAddr)
-					p = (u_char *)pTable.BaseData.BaseAddr;
+				if((unsigned long)p == pTable.BaseData.EndAddr)
+					p = (unsigned char *)pTable.BaseData.BaseAddr;
 				else
 					p++;
 				i++;
 			}while((*p==0xff)&&(i<RecordFlagByte));
-			if(i == RecordFlagByte)//ÕÒµ½×îÐÂÖ¸ÕëÎ»ÖÃ
+			if(i == RecordFlagByte)//ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½Î»ï¿½ï¿½
 			{
-				//²é¿´±êÖ¾Ö®Ç°ÊÇ·ñÓÐ½áÊø±êÖ¾AEAE
-				//1)ÅÐ¶ÏÊÇ·ñ´æÔÚÒÑ¾­Ð´¹ýaeae±êÖ¾µÄ·ÇÕý³£¶Ïµç¼ÇÂ¼
-				DataPoint = (u_int)p;
+				//ï¿½é¿´ï¿½ï¿½Ö¾Ö®Ç°ï¿½Ç·ï¿½ï¿½Ð½ï¿½ï¿½ï¿½ï¿½Ö¾AEAE
+				//1)ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½Ð´ï¿½ï¿½aeaeï¿½ï¿½Ö¾ï¿½Ä·ï¿½ï¿½ï¿½Ïµï¿½ï¿½Â¼
+				DataPoint = (unsigned long)p;
 				DataPoint -= (RecordFlagByte+2);
 				if(DataPoint<pTable.BaseData.BaseAddr)
 					DataPoint = pTable.BaseData.EndAddr - (pTable.BaseData.BaseAddr - DataPoint)+1;
-				f1 = *((u_char *)DataPoint);
-				f2 = *((u_char *)(DataPoint+1));
+				f1 = *((unsigned char *)DataPoint);
+				f2 = *((unsigned char *)(DataPoint+1));
 				if((f1==0xae)&&(f2==0xae))
-				{//·ÇÕý³£¶Ïµç¼ÇÂ¼£¬µ«Ö¸Õëµ÷Õû
-					pTable.BaseData.CurPoint = (u_int)p;
+				{//ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½
+					pTable.BaseData.CurPoint = (unsigned long)p;
 					pTable.BaseData.CurPoint = AddPointer(&(pTable.BaseData),-2);
 					update = 1;
 					break;
 				}
 				
-				//2)ÅÐ¶ÏÊÇ·ñ´æÔÚÕý³£¶Ïµç¼ÇÂ¼
-				DataPoint = (u_int)p;
+				//2)ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½Â¼
+				DataPoint = (unsigned long)p;
 				DataPoint -= RecordFlagByte*2;
 				if(DataPoint<pTable.BaseData.BaseAddr)
 					DataPoint = pTable.BaseData.EndAddr - (pTable.BaseData.BaseAddr - DataPoint)+1;
-				f1 = *((u_char *)DataPoint);
-				f2 = *((u_char *)(DataPoint+1));
+				f1 = *((unsigned char *)DataPoint);
+				f2 = *((unsigned char *)(DataPoint+1));
 					
-				//¼ÆËã±êÖ¾ÆðÊ¼Î»ÖÃ
+				//ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½Ê¼Î»ï¿½ï¿½
 				/////////*******2003.10.06 panhui*********////////
-				DataPoint = (u_int)p;
+				DataPoint = (unsigned long)p;
 				DataPoint -= RecordFlagByte;
 				if(DataPoint<pTable.BaseData.BaseAddr)
 					DataPoint = pTable.BaseData.EndAddr - (pTable.BaseData.BaseAddr - DataPoint)+1;
-				if((f1==0xae)&&(f2==0xae))//Õý³£¼ÇÂ¼µÄÊý¾Ý£¬µ«Ö¸Õëµ÷Õû
+				if((f1==0xae)&&(f2==0xae))//ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½
 					pTable.BaseData.CurPoint = DataPoint;
 				else
-				{//·ÇÕý³£¶Ïµç,Î´À´µÃ¼°Ð´½áÊø±êÖ¾AEAE
-					//Ð´Êý¾Ý½áÊø±êÖ¾
+				{//ï¿½ï¿½ï¿½ï¿½Ïµï¿½,Î´ï¿½ï¿½ï¿½Ã¼ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾AEAE
+					//Ð´ï¿½ï¿½Ý½ï¿½ï¿½ï¿½ï¿½Ö¾
 					data = 0xaeae;
-					flash_sst39_write_flash((flash_word *)DATAFLASH_BASE,(flash_word *)DataPoint,data);
-					//¸üÐÂ·ÖÇø±í
-					pTable.BaseData.CurPoint = (u_int)p;
+					SPI_FLASH_BufferWrite(SPI1,(u8 *)(&data),(unsigned long )DataPoint,2);
+					//ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½
+					pTable.BaseData.CurPoint = (unsigned long)p;
 				}
 				/////////*******2003.10.06 panhui*********////////
 				update = 1;
@@ -1815,26 +1782,26 @@ void DataPointerSeek()
 			}
 		}
 		else
-		{//Î´ÕÒµ½±êÖ¾£¬ÏòÏÂÒÆ¶¯Ö¸Õë
-			if((u_int)p == pTable.BaseData.EndAddr)
-				p = (u_char *)pTable.BaseData.BaseAddr;
+		{//Î´ï¿½Òµï¿½ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½Ö¸ï¿½ï¿½
+			if((unsigned long)p == pTable.BaseData.EndAddr)
+				p = (unsigned char *)pTable.BaseData.BaseAddr;
 			else
 				p++;
 		}
-	}while((u_int)p != DataPoint);
+	}while((unsigned long)p != DataPoint);
 	
 	if(update)
 	{
-		//ÖØÐÂ¶¨Î»ÒÉµãÊý¾ÝµÄÖ¸Õë
+		//ï¿½ï¿½ï¿½Â¶ï¿½Î»ï¿½Éµï¿½ï¿½ï¿½Ýµï¿½Ö¸ï¿½ï¿½
 		Record_CLOCK LastDT,CurDT;
-		u_char *dp;
+		unsigned char *dp;
 		DataPoint = pTable.DoubtPointData.CurPoint;
 		int result;
 		
 		if(DataPoint == pTable.DoubtPointData.BaseAddr)
-			dp = (u_char *)(DataPoint+96*210+4);
+			dp = (unsigned char *)(DataPoint+96*210+4);
 		else
-			dp = (u_char *)(DataPoint-210+4);
+			dp = (unsigned char *)(DataPoint-210+4);
 		LastDT.year = *dp;dp++;
 		LastDT.month = *dp;dp++;
 		LastDT.day = *dp;dp++;
@@ -1843,7 +1810,7 @@ void DataPointerSeek()
 		LastDT.second = *dp;
 		do{
 		
-			dp = (u_char *)(DataPoint+4);
+			dp = (unsigned char *)(DataPoint+4);
 			CurDT.year = *dp;dp++;
 			CurDT.month = *dp;dp++;
 			CurDT.day = *dp;dp++;
@@ -1858,7 +1825,7 @@ void DataPointerSeek()
 			//////////modified by panhui 2003.10.20////////////
 			if(DataPoint > (pTable.DoubtPointData.EndAddr-110))
 				DataPoint = pTable.DoubtPointData.BaseAddr;
-			//////////ÇØ»Êµº3Ì¨³µ//////////////////////////////
+			//////////ï¿½Ø»Êµï¿½3Ì¨ï¿½ï¿½//////////////////////////////
 			LastDT = CurDT;
 				
 		}while(DataPoint != pTable.DoubtPointData.CurPoint);	
