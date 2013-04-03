@@ -20,9 +20,9 @@
 #ifndef FONT_MATRIX
 #define  FONT_MATRIX unsigned char
 #endif
-#define HAN_ZI 16
-#define NUM  8
-#define ZIMU 8
+#define HAN_ZI 12
+#define NUM  6
+#define ZIMU 7
 typedef enum
 {
 	line1 = 3,
