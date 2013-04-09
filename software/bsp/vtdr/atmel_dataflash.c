@@ -903,6 +903,6 @@ void rt_hw_dataflash_init()
 	{
 		rt_kprintf("dataflash init failed\n");
 	}
-	DATAFLASH_Init(SPI2);
+	//DATAFLASH_Init(SPI2);
 
 }

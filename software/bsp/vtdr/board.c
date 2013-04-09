@@ -166,7 +166,7 @@ void rt_hw_board_init()
 	rt_hw_gpio_init();
 	I2C_LowLevel_Init(I2C1);
 	rt_console_set_device(CONSOLE_DEVICE);
-	 DisplayProductVersion();
+	 //DisplayProductVersion();
 }
 
 /*@}*/

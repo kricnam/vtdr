@@ -7,7 +7,7 @@ unsigned char LargeDataBuffer[28*1024];
 
 extern CLOCK curTime;
 
-extern PartitionTable pTable;
+ PartitionTable pTable;
 
 extern unsigned long Distance;
 
@@ -18,7 +18,6 @@ extern char CardIn;
 extern unsigned long CurSpeed;
 extern char ClockVL;
 //#if OpenDoorDeal
-extern 	void JudgeDoorType(void);
 extern void DoorType();
 //#endif
 extern unsigned char AlarmFlag;
@@ -28,6 +27,11 @@ LCDTCB lcd_tcb;
 LCDTCB last_lcd_tcb;
 ACTION_TCB act_tcb;
 OTDR *OTDR_Array = (OTDR *)(&(LargeDataBuffer[24*1024]));
+
+void JudgeDoorType()
+{
+
+}
 
 const FONT_MATRIX * content00[] = {
 	display_xian,
@@ -206,7 +210,7 @@ const FONT_MATRIX * working_ok[] = {
 };
 
 
-const MENU_NODE list0[6]={
+const MENU_NODE list0[5]={
 	{
 		(FONT_MATRIX **)content00,
 		1,
@@ -242,15 +246,9 @@ const MENU_NODE list0[6]={
 		-1,
 		NULL
 	},
-	{
-		(FONT_MATRIX **)back,
-		-1,
-		-1,
-		-1,
-		NULL
-	}
+
 };
-const MENU_NODE list1[7]={
+const MENU_NODE list1[6]={
 	{
 		(FONT_MATRIX **)content10,
 		-1,
@@ -293,16 +291,8 @@ const MENU_NODE list1[7]={
 		0,
 		DisplayProductVersion
 	},
-	{
-		(FONT_MATRIX **)back,
-		-1,
-		0,
-		0,
-		NULL
-	}
-
 };
-const MENU_NODE list2[4]={
+const MENU_NODE list2[3]={
 	{
 		(FONT_MATRIX **)content20,
 		-1,
@@ -324,16 +314,9 @@ const MENU_NODE list2[4]={
 		1,
 		DisplayTotalDistance
 	},
-	{
-		(FONT_MATRIX **)back,
-		-1,
-		0,
-		1,
-		NULL
-	}
 };
 #if OpenDoorDeal
-const MENU_NODE list3[3]={
+const MENU_NODE list3[2]={
 	{
 		(FONT_MATRIX **)content30,
 		-1,
@@ -348,16 +331,9 @@ const MENU_NODE list3[3]={
 		3,
 		DoorType
 	},
-	{
-		(FONT_MATRIX **)back,
-		-1,
-		0,
-		3,
-		NULL
-	}
 };
 #else
-const MENU_NODE list3[3]={
+const MENU_NODE list3[2]={
 	{
 		(FONT_MATRIX **)content30,
 		-1,
@@ -372,31 +348,24 @@ const MENU_NODE list3[3]={
 		3,
 		NULL
 	},
-	{
-		(FONT_MATRIX **)back,
-		-1,
-		0,
-		3,
-		NULL
-	}
 };
 #endif
 NODE_LIST NodeListTable[4] = {
 	{
 		(MENU_NODE *)list0,
-		6
+		5
 	},
 	{
 		(MENU_NODE *)list1,
-		7
+		6
 	},
 	{
 		(MENU_NODE *)list2,
-		4
+		3
 	},
 	{
 		(MENU_NODE *)list3,
-		3
+		2
 	}
 };
 //*----------------------------------------------------------------------------
@@ -409,8 +378,8 @@ NODE_LIST NodeListTable[4] = {
 //*----------------------------------------------------------------------------
 void SaveDatatoUdisk()
 {
-   usb_host_init();
-   Udisk_handler();
+  // usb_host_init();
+   //Udisk_handler();
 
 }
 //*----------------------------------------------------------------------------
@@ -433,7 +402,7 @@ void PrintAllData()
 	PIO_SODR = SPEED;//ʹ�ܴ�ӡ���ͨѶ��
 	#endif
 	
-	Printer();//��ӡ
+	//Printer();//��ӡ
 	
 	#if GetSpeedStatusBy232
 	PIO_CODR = SPEED;//��ֹ��ӡ���ͨѶ��
@@ -1127,35 +1096,141 @@ void DisplayTotalDistance()
 //*----------------------------------------------------------------------------
 void DisplayCurrentNode()
 {
-	FONT_MATRIX ** p1;
-	FONT_MATRIX ** p2;
+	int i,j;
+	j=0;
+	FONT_MATRIX ** p1[4];
+	//FONT_MATRIX ** p2;
 
 	lcd_clear(lineall);
 
-	p1=NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].content;
-	if(lcd_tcb.NodeNb<NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
-		p2=NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb+1].content;
-	else if(lcd_tcb.NodeNb == NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
-		p2=NodeListTable[lcd_tcb.ListNb].ListPt[0].content;
-	else
-		p2=NULL;
-	int i=0;
-	do{
-		lcd_write_matrix(line2,i*HAN_ZI,p1[i],HAN_ZI);
-		i++;
-	}while(p1[i]!=NULL);
+	p1[0]=NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].content;
+if (NodeListTable[lcd_tcb.ListNb].NodeNumber<4)
+{
+	for (i = 0;i<NodeListTable[lcd_tcb.ListNb].NodeNumber-1;i++)
+	{
+		if(lcd_tcb.NodeNb+i<NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
+			p1[i+1]=NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb+1+i].content;
+		else if((lcd_tcb.NodeNb+i) == NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
+			p1[i+1]=NodeListTable[lcd_tcb.ListNb].ListPt[0].content;
+		else if ((lcd_tcb.NodeNb+i) >  NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
+			p1[i+1]=NodeListTable[lcd_tcb.ListNb].ListPt[((lcd_tcb.NodeNb+i+1)-NodeListTable[lcd_tcb.ListNb].NodeNumber)].content;
+	}
+}
+else
+{
+	for (i = 0;i<3;i++)
+	{
+		if(lcd_tcb.NodeNb+i<NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
+			p1[i+1]=NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb+1+i].content;
+		else if((lcd_tcb.NodeNb+i) == NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
+			p1[i+1]=NodeListTable[lcd_tcb.ListNb].ListPt[0].content;
+		else if ((lcd_tcb.NodeNb+i) >  NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
+			p1[i+1]=NodeListTable[lcd_tcb.ListNb].ListPt[((lcd_tcb.NodeNb+i+1)-NodeListTable[lcd_tcb.ListNb].NodeNumber)].content;
+	}
+}
+switch (i)
+{
+case 3:
+		do{
+			lcd_write_matrix(line4,j*HAN_ZI,p1[3][j],HAN_ZI);
+			j++;
+		}while(p1[3][j]!=NULL);
+		j= 0;
+case 2:
+		do{
+			lcd_write_matrix(line3,j*HAN_ZI,p1[2][j],HAN_ZI);
+				j++;
+			}while(p1[2][j]!=NULL);
+		j = 0;
+case 1:
+		do{
+			lcd_write_matrix(line2,j*HAN_ZI,p1[1][j],HAN_ZI);
+			j++;
+		}while(p1[1][j]!=NULL);
+		j =0;
+case 0:
+		do{
+			lcd_write_matrix(line1,j*HAN_ZI,p1[0][j],HAN_ZI);
+			j++;
+		}while(p1[0][j]!=NULL);
+		break;
+default:
+	break;
+
+
+}
 	
 	//��ʾָʾ��־
-	lcd_write_matrix(line2,18*NUM,(FONT_MATRIX *)charater_arrow1,NUM);
-	lcd_write_matrix(line2,19*NUM,(FONT_MATRIX *)charater_arrow2,NUM);
-	
-	i=0;
+	lcd_write_matrix(line1,18*NUM,(FONT_MATRIX *)charater_arrow1,NUM);
+	lcd_write_matrix(line1,19*NUM,(FONT_MATRIX *)charater_arrow2,NUM);
+	i = 0;
+#if 0
 	if(p2!=NULL)
 	{
 		do{
 			lcd_write_matrix(line2,i*HAN_ZI,p2[i],HAN_ZI);
 			i++;
 		}while(p2[i]!=NULL);
+
+	}
+#endif
+}
+//*----------------------------------------------------------------------------
+//* Function Name       : MenutKeyHandler
+//* Object              : ��ѡ�񡱼������
+//* Input Parameters    : none
+//* Output Parameters   : none
+//* ���õ�ȫ�ֱ���      :
+//* �޸ĵ�ȫ�ֱ���      :
+//*----------------------------------------------------------------------------
+void MenutKeyHandler()
+{
+	switch (lcd_tcb.mode )
+	{
+		case Normal://
+				last_lcd_tcb.mode = lcd_tcb.mode;
+				last_lcd_tcb.ListNb = lcd_tcb.ListNb;
+				last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
+				last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
+
+				lcd_tcb.mode = Node;
+				lcd_tcb.ListNb = 0;
+				lcd_tcb.NodeNb = 0;
+				DisplayCurrentNode();
+				break;
+		case Action:
+			lcd_tcb.mode = ActLeaf;
+			DisplayCurrentNode();
+			//go back to upper
+			break;
+		case Node:
+		case BackLeaf:
+		case ActLeaf:
+			last_lcd_tcb.mode = lcd_tcb.mode;
+			last_lcd_tcb.ListNb = lcd_tcb.ListNb;
+			last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
+			last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
+			if(lcd_tcb.ListNb == 0 )
+			{
+				lcd_tcb.mode = Normal;
+				DisplayNormalUI();
+			}
+			else
+			{
+				lcd_tcb.ListNb = NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].FatherList;
+				lcd_tcb.NodeNb = NodeListTable[last_lcd_tcb.ListNb].ListPt[last_lcd_tcb.NodeNb].FatherNB;;
+				lcd_tcb.mode = Node;
+				if(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList == -1)
+					lcd_tcb.mode = ActLeaf;
+				if((lcd_tcb.mode == ActLeaf)
+					&&(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].handler == NULL))
+				lcd_tcb.mode = BackLeaf;
+				DisplayCurrentNode();
+
+			}
+
+			break;
+
 
 	}
 }
@@ -1167,57 +1242,56 @@ void DisplayCurrentNode()
 //* ���õ�ȫ�ֱ���      :
 //* �޸ĵ�ȫ�ֱ���      :
 //*----------------------------------------------------------------------------
-void SelectKeyHandler()
+void SelectKeyHandler( unsigned char  dir)
 {
-	lcd_tcb.KeepTime = 0;
 
-	switch(lcd_tcb.mode)
-	{
-		case Normal://
-			last_lcd_tcb.mode = lcd_tcb.mode;
-			last_lcd_tcb.ListNb = lcd_tcb.ListNb;
-			last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
-			last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
+		lcd_tcb.KeepTime = 0;
 
-			lcd_tcb.mode = Node;
-			lcd_tcb.ListNb = 0;
-			lcd_tcb.NodeNb = 0;
-			break;
-		case Node://��ǰ����޸�Ϊͬ����һ�����
-		case BackLeaf:
-		case ActLeaf:
-			last_lcd_tcb.mode = lcd_tcb.mode;
-			last_lcd_tcb.ListNb = lcd_tcb.ListNb;
-			last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
-			last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
+		switch(lcd_tcb.mode)
+		{
 
-			if(lcd_tcb.NodeNb<NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
-				lcd_tcb.NodeNb++;
-			else if(lcd_tcb.NodeNb==NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
-				lcd_tcb.NodeNb = 0;
-			lcd_tcb.mode = Node;
-			if(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList == -1)
-				lcd_tcb.mode = ActLeaf;
-			if((lcd_tcb.mode == ActLeaf)
-				&&(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].handler == NULL))
-				lcd_tcb.mode = BackLeaf;
-			break;
-		case Action:
-			last_lcd_tcb.mode = lcd_tcb.mode;
-			last_lcd_tcb.ListNb = lcd_tcb.ListNb;
-			last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
-			last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
-			lcd_tcb.mode = ActLeaf;
-			break;
-		default:
-			last_lcd_tcb.mode = lcd_tcb.mode;
-			last_lcd_tcb.ListNb = lcd_tcb.ListNb;
-			last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
-			last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
-			lcd_tcb.mode = Normal;
-			break;
-	}
-	DisplayCurrentNode();
+			case Node:
+			case BackLeaf:
+			case ActLeaf:
+				last_lcd_tcb.mode = lcd_tcb.mode;
+				last_lcd_tcb.ListNb = lcd_tcb.ListNb;
+				last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
+				last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
+				last_lcd_tcb.enter = lcd_tcb.enter;
+
+				if(dir == 1)
+				{
+					if(lcd_tcb.NodeNb==0)
+						lcd_tcb.NodeNb=NodeListTable[lcd_tcb.ListNb].NodeNumber-1;
+					else
+						lcd_tcb.NodeNb--;
+					lcd_tcb.mode = Node;
+					if(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList == -1)
+						lcd_tcb.mode = ActLeaf;
+					if((lcd_tcb.mode == ActLeaf)
+						&&(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].handler == NULL))
+					lcd_tcb.mode = BackLeaf;
+				}
+				else
+				{
+
+					if(lcd_tcb.NodeNb<NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
+						lcd_tcb.NodeNb++;
+					else if(lcd_tcb.NodeNb==NodeListTable[lcd_tcb.ListNb].NodeNumber-1)
+						lcd_tcb.NodeNb = 0;
+					lcd_tcb.mode = Node;
+					if(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList == -1)
+						lcd_tcb.mode = ActLeaf;
+					if((lcd_tcb.mode == ActLeaf)
+						&&(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].handler == NULL))
+						lcd_tcb.mode = BackLeaf;
+				}
+				DisplayCurrentNode();
+				break;
+			default:
+
+				break;
+		}
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : OKKeyHandler
@@ -1234,7 +1308,7 @@ void OKKeyHandler()
 	lcd_tcb.KeepTime = 0;
 	switch(lcd_tcb.mode)
 	{
-		case Node://�л�����һ�����ӽ��
+		case Node://
 			last_lcd_tcb = lcd_tcb;
 			lcd_tcb.ListNb = NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList;	
 			lcd_tcb.NodeNb = 0;
@@ -1246,7 +1320,7 @@ void OKKeyHandler()
 				lcd_tcb.mode = BackLeaf;
 			DisplayCurrentNode();
 			break;
-		case BackLeaf://�л���������ͨ��ģʽ
+		case BackLeaf://
 			last_lcd_tcb = lcd_tcb;
 
 			if(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].FatherList==-1)
@@ -1261,7 +1335,7 @@ void OKKeyHandler()
 				DisplayCurrentNode();
 			}
 			break;
-		case ActLeaf://�л�������ģʽ
+		case ActLeaf://
 			last_lcd_tcb = lcd_tcb;
 			
 			lcd_tcb.mode = Action;
@@ -1283,6 +1357,7 @@ void OKKeyHandler()
 			last_lcd_tcb = lcd_tcb;
 			lcd_tcb.mode = Normal;
 			DisplayNormalUI();
+			break;
 	}
 }
 //*----------------------------------------------------------------------------
@@ -1850,7 +1925,7 @@ void DisplayNormalUI()
 	last_lcd_tcb.NodeNb = lcd_tcb.NodeNb;
 	last_lcd_tcb.KeepTime = lcd_tcb.KeepTime;
 	
-	//if((PIO_PDSR & USB_S_VCC) == USB_S_VCC)
+#if 0//if((PIO_PDSR & USB_S_VCC) == USB_S_VCC)
 	{
 		 if(last_lcd_tcb.mode != USBComm)
 		 {
@@ -1863,11 +1938,19 @@ void DisplayNormalUI()
 //			lcd_write_matrix(1,4,(LCD_ZM *)Letter_U);
 //			lcd_write_matrix(1,5,(LCD_ZM *)Letter_S);
 //			lcd_write_matrix(1,6,(LCD_ZM *)Letter_B);
-			lcd_write_matrix(line3,4*NUM,(FONT_MATRIX *)comm_tong,HAN_ZI);
-			lcd_write_matrix(line3,5*NUM,(FONT_MATRIX *)comm_xun,HAN_ZI);
+			lcd_write_matrix(line3,4*HAN_ZI,(FONT_MATRIX *)comm_tong,HAN_ZI);
+			lcd_write_matrix(line3,5*HAN_ZI,(FONT_MATRIX *)comm_xun,HAN_ZI);
 		 }
 		 return;
 	}
+#endif
+	lcd_clear(lineall);
+	//			lcd_write_matrix(1,4,(LCD_ZM *)Letter_U);
+	//			lcd_write_matrix(1,5,(LCD_ZM *)Letter_S);
+	//			lcd_write_matrix(1,6,(LCD_ZM *)Letter_B);
+				lcd_write_matrix(line3,4*HAN_ZI,(FONT_MATRIX *)comm_tong,HAN_ZI);
+				lcd_write_matrix(line3,5*HAN_ZI,(FONT_MATRIX *)comm_xun,HAN_ZI);
+	return;
 	if((LastPowerOn == 0)&&(PowerOn == 1))
 		lcm_initialize();
 	else
