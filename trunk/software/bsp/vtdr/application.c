@@ -21,6 +21,8 @@
 #include <board.h>
 #include <rtthread.h>
 
+#include<stm32f10x_gpio.h>
+
 #ifdef RT_USING_DFS
 /* dfs init */
 #include <dfs_init.h>
@@ -121,9 +123,24 @@ static void led_thread_entry(void* parameter)
         rt_hw_led_on(0);
         jonhbak = jonh;
 #endif
-        //I2C_Master_BufferRead(I2C1,OwnAddress1,0,1,&testreadbuff);
-        DisplayProductVersion();
+        if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_14) == 0)
+        {
+        	MenutKeyHandler();
+        }
+        else if(GPIO_ReadInputDataBit( GPIOD, GPIO_Pin_15) == 0 )
+		{
+        	SelectKeyHandler(1);
+		}
+        else if(GPIO_ReadInputDataBit( GPIOC, GPIO_Pin_6) == 0 )
+        {
+        	SelectKeyHandler(0);
+        }
+        else if(GPIO_ReadInputDataBit( GPIOC, GPIO_Pin_7) == 0 )
+		{
+        	OKKeyHandler();
+		}
 
+      //  DisplayNormalUI();
 
 
     }

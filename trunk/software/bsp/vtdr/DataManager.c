@@ -27,8 +27,8 @@ extern unsigned short STATUS;			/*16��״̬*/
 extern unsigned long PulseNB_In1Sec;     //ÿ0.2������ǰ��1�����ۼ��ٶ�������
 extern unsigned char PowerOn;
 extern unsigned long CurEngine;
-extern unsigned short DriveMinuteLimit;       //ƣ�ͼ�ʻ��ʻʱ������
-extern unsigned short RestMinuteLimit;        //ƣ�ͼ�ʻ������Ϣʱ������
+unsigned short DriveMinuteLimit;       //ƣ�ͼ�ʻ��ʻʱ������
+unsigned short RestMinuteLimit;        //ƣ�ͼ�ʻ������Ϣʱ������
 extern unsigned long CurPulse;
  
 DoubtDataBlock ddb;			//��ǰ�ɵ���ݿ�
