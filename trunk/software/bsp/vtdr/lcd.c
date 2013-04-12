@@ -162,7 +162,6 @@ const FONT_MATRIX charmapRadio[2][16]
 		0x16,0x12,0x10,0x20,0xa0,0x40,0x00,0x00
 	},
 };
-
 // delay us
 void lcd_delay(int n)
 {
@@ -313,7 +312,8 @@ void rt_hw_lcd_on(void)
 	    lcd_delay(100);
 	    //lcd_write_cmdordata(CMD,0xe0,0);
 		rt_hw_lcd_clear(lineall);
-		//lcd_write_cmdordata(CMD,0xee,0);
+
+
 }
 
 void rt_hw_lcd_off(void)

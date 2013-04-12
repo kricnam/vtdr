@@ -2422,9 +2422,9 @@ void Set_RealTime()
 		WriteParameterTable(&para);
 			
 		//��ʱ��оƬ����ʱ��
-#if 0
+
 		SetCurrentDateTime(&ClockSet);
-#endif
+
 //		SetTimeFlag = 1;
 			
 	}
@@ -2590,9 +2590,8 @@ void Set_ALL_PARA()
 		WriteParameterTable(&para);
 				
 		//��ʱ��оƬ����ʱ��
-#if 0
+
 		SetCurrentDateTime(&ClockSet);
-#endif
 
 		if(j < 12)	
 		{
@@ -2751,9 +2750,8 @@ int Write4kDataToFlash(unsigned char PageNb)
 	{
 	    CLOCK clockset;
 	    clockset=PARAMETER_BASE->time;
-#if 0
+
 		SetCurrentDateTime(&clockset);
-#endif
 		
 		new_para = *PARAMETER_BASE;
 		
