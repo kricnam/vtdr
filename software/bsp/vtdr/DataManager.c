@@ -452,6 +452,17 @@ unsigned char BCD2Char(unsigned char bcd)
 	ch = d1*10 + d0;
 	return(ch);
 }
+#if 0
+unsigned Char2BCD(unsigned char ch)
+{
+	unsigned char bcd;
+	if(ch >99)
+		return (0xff);
+	bcd = (((ch/10)<< 4)&0xf0)+(ch%10);
+	return (bcd);
+
+}
+#endif
 //*----------------------------------------------------------------------------
 //* Function Name       : IfOneAfterAotherDay
 //* Object              : �ж��Ƿ������������
@@ -1415,9 +1426,9 @@ int IsCorrectCLOCK(CLOCK *dt)
 	data = BCD2Char(dt->minute);
 	if(data>59)
 		return(0);
-//	data = BCD2Char(dt->second);
-//	if(data>59)
-//		return(0);
+	data = BCD2Char(dt->second);
+	if(data>59)
+		return(0);
 		
 	return (1);
 }
