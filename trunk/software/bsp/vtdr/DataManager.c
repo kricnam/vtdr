@@ -1,8 +1,8 @@
 //*----------------------------------------------------------------------------
-//*      ��ݴ����ӳ���
+//*      锟斤拷荽锟斤拷锟斤拷映锟斤拷锟�
 //*----------------------------------------------------------------------------
 //* File Name           : DataManager.c
-//* Object              : ��¼�ǲɼ����ٶ�״̬��ݵĴ���ͱ���
+//* Object              : 锟斤拷录锟角采硷拷锟斤拷锟劫讹拷状态锟斤拷莸拇锟斤拷锟酵憋拷锟斤拷
 //*
 //* 1.0 24/02/03 PANHUI : Creation
 //*----------------------------------------------------------------------------
@@ -11,40 +11,66 @@
 #include   "atmel_dataflash.h"
 #include "application.h"
 #include    "lcd.h" 
+#include <sys/types.h>
+#include  <time.h>
+#include <stm32f10x.h>
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_gpio.h>
+
 
 extern unsigned long CurSpeed;
+extern unsigned long RsSpeed;
 extern int DeltaSpeed;
 extern CLOCK curTime;
 extern unsigned char CurStatus;
 extern unsigned long LastSPE;
-extern unsigned char TimeChange;	//ʱ��仯��־
+extern unsigned char TimeChange;	//时锟斤拷浠拷锟街�
 extern unsigned long AddupSpeed;
 extern unsigned short SpeedNb;
-extern PartitionTable pTable;
-extern StructPara Parameter;
-extern unsigned long PulseTotalNumber;	/*������ʻ��������*/
-extern unsigned short STATUS;			/*16��״̬*/
-extern unsigned long PulseNB_In1Sec;     //ÿ0.2������ǰ��1�����ۼ��ٶ�������
+PartitionTable pTable;
+StructPara Parameter;
+extern unsigned long PulseTotalNumber;	/*锟斤拷锟斤拷锟斤拷驶锟斤拷锟斤拷锟斤拷锟斤拷*/
+extern unsigned short STATUS;			/*16锟斤拷状态*/
+extern unsigned long PulseNB_In1Sec;     //每0.2锟斤拷锟斤拷锟斤拷前锟斤拷1锟斤拷锟斤拷锟桔硷拷锟劫讹拷锟斤拷锟斤拷锟斤拷
 extern unsigned char PowerOn;
 extern unsigned long CurEngine;
-unsigned short DriveMinuteLimit;       //ƣ�ͼ�ʻ��ʻʱ������
-unsigned short RestMinuteLimit;        //ƣ�ͼ�ʻ������Ϣʱ������
+unsigned short DriveMinuteLimit;       //疲锟酵硷拷驶锟斤拷驶时锟斤拷锟斤拷锟斤拷
+unsigned short RestMinuteLimit;        //疲锟酵硷拷驶锟斤拷锟斤拷锟斤拷息时锟斤拷锟斤拷锟斤拷
 extern unsigned long CurPulse;
+unsigned long SpeedOf1min;
  
-DoubtDataBlock ddb;			//��ǰ�ɵ���ݿ�
-unsigned char InRecordCycle=0;		//�Ƿ��ڼ�¼��ݹ����
-unsigned char InFlashWriting=0;	//��FLASHд������
-unsigned long Tick02NB;				//����ͣ��֮��0.2s�ĸ���
-OTDR_end otdrEND;			//ƣ�ͼ�ʻ��¼��������
-unsigned long AddupSpeed = 0;		//1�����ٶ��ۼ�
-unsigned short SpeedNb = 0;		//1�����ٶ�ֵ����
-unsigned char PowerOnTime=0;		//�ϵ����ʱ��
-unsigned char OTRecordType=0;		//����ƣ�ͼ�ʻ��¼����
-unsigned long LastDistance;			//�ϴ�ƣ�ͼ�ʻ��¼�ۼ����
-unsigned char STATUS1min;			//1����״̬��
-DRIVER CurrentDriver;		//��ǰ˾��
-DRIVER RecordDriver;		//��¼˾��
-Record_CLOCK PowerOnDT;     //�ϵ�����ʱ��
+DoubtDataBlock ddb;			//锟斤拷前锟缴碉拷锟斤拷菘锟�
+BaseDataBlock basedata;
+SizeData location;
+OverDriverBlock overdriverdata;
+DriverRegisterBlock driverregisterdata;
+PowerBlock powerdata;
+ParaModifyBlock modifydata;
+JournalBlock journaldata;
+CLOCK startdriverclk;
+CLOCK enddriverclk;
+
+unsigned char InRecordCycle=0;		//锟角凤拷锟节硷拷录锟斤拷莨锟斤拷锟斤拷
+unsigned char speeddel;
+Datastatus Datastatusdata;
+unsigned char InFlashWriting=0;	//锟斤拷FLASH写锟斤拷锟斤拷锟斤拷
+unsigned long Tick02NB;				//锟斤拷锟斤拷停锟斤拷之锟斤拷0.2s锟侥革拷锟斤拷
+OTDR_end otdrEND;			//疲锟酵硷拷驶锟斤拷录锟斤拷锟斤拷锟斤拷锟斤拷
+unsigned long AddupSpeed = 0;		//1锟斤拷锟斤拷锟劫讹拷锟桔硷拷
+unsigned short SpeedNb = 0;		//1锟斤拷锟斤拷锟劫讹拷值锟斤拷锟斤拷
+unsigned char PowerOnTime=0;		//锟较碉拷锟斤拷锟绞憋拷锟�
+unsigned char OTRecordType=0;		//锟斤拷锟斤拷疲锟酵硷拷驶锟斤拷录锟斤拷锟斤拷
+unsigned long LastDistance;			//锟较达拷疲锟酵硷拷驶锟斤拷录锟桔硷拷锟斤拷锟�
+unsigned char STATUS1min;			//1锟斤拷锟斤拷状态锟斤拷
+unsigned char DriverStatus = 0;
+unsigned char DriverRegstatus = 0;
+unsigned char powerstatus = 0;
+unsigned char paramodifystatus = 0;
+unsigned char JournalRecordstatus = 0;
+unsigned char DoubltPointstatus = 0;
+DRIVER CurrentDriver;		//锟斤拷前司锟斤拷
+DRIVER RecordDriver;		//锟斤拷录司锟斤拷
+Record_CLOCK PowerOnDT;     //锟较碉拷锟斤拷锟斤拷时锟斤拷
 RecordData_end rec_end;
 unsigned char FinishFlag=0;
 
@@ -52,14 +78,15 @@ extern unsigned char LargeDataBuffer[];
 unsigned short *DoubtData_4k = (unsigned short *)(&(LargeDataBuffer[12*1024]));//[2*1024];
 unsigned char *OTDR_4k = &(LargeDataBuffer[16*1024]);//[4*1024];
 unsigned short *BaseData_4k = (unsigned short *)(&(LargeDataBuffer[20*1024]));//[2*1024];
+unsigned char *Location_4k = &(LargeDataBuffer[28*1024]);
 
 //*----------------------------------------------------------------------------
 //* Function Name       : Task_GetData
-//* Object              : �Լ����
+//* Object              : 锟皆硷拷锟斤拷锟�
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 void SelfCheck()
 {
@@ -79,11 +106,11 @@ void SelfCheck()
 
 //*----------------------------------------------------------------------------
 //* Function Name       : StrCmp
-//* Object              : �Ƚ������ַ��Ƿ���ͬ
-//* Input Parameters    : ��Ƚϵ������ַ�str1,str2,����length
-//* Output Parameters   : 1�����ַ���ͬ��0�����ַ�ͬ
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* Object              : 锟饺斤拷锟斤拷锟斤拷锟街凤拷锟角凤拷锟斤拷同
+//* Input Parameters    : 锟斤拷冉系锟斤拷锟斤拷锟斤拷址锟絪tr1,str2,锟斤拷锟斤拷length
+//* Output Parameters   : 1锟斤拷锟斤拷锟街凤拷锟斤拷同锟斤拷0锟斤拷锟斤拷锟街凤拷同
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 char StrCmp(unsigned char *str1, unsigned char *str2, short length)
 {
@@ -100,344 +127,12 @@ char StrCmp(unsigned char *str1, unsigned char *str2, short length)
 	return(ret);
 }
 //*----------------------------------------------------------------------------
-//* Function Name       : WriteParameterTable
-//* Object              : д�����
-//* Input Parameters    : none
-//* Output Parameters   : �Ƿ�ɹ�
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int WriteParameterTable(StructPara *para)
-{
-	unsigned long *data;
-	unsigned long *p;
-	int i,size;
-
-	//����4k
-	p = (unsigned long *)PARAMETER_BASE;
-	SPI_FLASH_Sector4kErase(SPI1,*p);
-	
-	
-	//�������д��FLASH
-	data = (unsigned long *)(para);
-	size=sizeof(StructPara);
-
-	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
-
-	
-	return ( TRUE ) ;
-}
-//*----------------------------------------------------------------------------
-//* Function Name       : WritePartitionTable
-//* Object              : д�����
-//* Input Parameters    : none
-//* Output Parameters   : �Ƿ�ɹ�
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int WritePartitionTable(PartitionTable *ptt)
-{
-	unsigned long *data;
-	unsigned long *p;
-	int i,size;
-
-	//����4k
-	p = (unsigned long *)PartitionTable_BASE;
-	SPI_FLASH_Sector4kErase(SPI1,*p);
-	
-	//�������д��FLASH
-	if(ptt->TotalDistance==0xffffffff)
-		ptt->TotalDistance = 0;
-	data = (unsigned long *)(ptt);
-	size=sizeof(PartitionTable);
-	
-	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
-		
-	return ( TRUE ) ;
-}
-//*----------------------------------------------------------------------------
-//* Function Name       : IsPartitionTableCorrect
-//* Object              : ��ʼ�������
-//* Input Parameters    : none
-//* Output Parameters   : д������Ƿ�ɹ�
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int IsPartitionTableCorrect()
-{
-	unsigned long *data;
-	unsigned long *p;
-	int i,size;
-	
-	pTable = *PartitionTable_BASE;
-	/////////*******2003.10.06 panhui*********////////
-	unsigned short temp = PartitionTableFlag;
-	if( pTable.Available != temp)
-		return(0);
-	/////////*******2003.10.06 panhui*********////////
-	if(	pTable.DoubtPointData.BaseAddr != DPD_BASE)
-		return(0);
-	if(	pTable.DoubtPointData.EndAddr != DPD_END)
-		return(0);
-	if(	pTable.RunRecord360h.BaseAddr != RR360H_BASE)
-		return(0);
-	if(	pTable.RunRecord360h.EndAddr != RR360H_END)
-		return(0);
-	if(	pTable.BaseData.BaseAddr != BASEDATA_BASE)
-		return(0);
-	if(	pTable.BaseData.EndAddr != BASEDATA_END)
-		return(0);
-
-	/////////////modified by panhui 2003.10.20////////////
-	if((pTable.DoubtPointData.CurPoint < DPD_BASE)||(pTable.DoubtPointData.CurPoint > DPD_END-110))
-		return(-1);
-	if((pTable.RunRecord360h.CurPoint < RR360H_BASE)||(pTable.RunRecord360h.CurPoint > RR360H_END))
-		return(-2);
-	if((pTable.BaseData.CurPoint < BASEDATA_BASE)||(pTable.BaseData.CurPoint > BASEDATA_END))
-		return(-3);
-	/////////////��ָֹ���ܷ�/////////////////////////////
-
-	//�������д��FLASH
-	return (1);
-	
-
-}
-//*----------------------------------------------------------------------------
-//* Function Name       : InitializeTable
-//* Object              : ��ʼ�������
-//* Input Parameters    : unsigned char parti�����Ƿ����»ָ������
-//                        unsigned char para�����Ƿ����»ָ������
-//                        unsigned char change_set�����Ƿ��������ó��ƺţ�
-//                                             �����ۼ����������
-//* Output Parameters   : ��ʼ�������Ͳ�����Ƿ�ɹ�
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int InitializeTable(unsigned char parti,unsigned char para,unsigned char change_set)
-{
-	int i;
-
-	//��ȡ�����	
-	Parameter = *PARAMETER_BASE;
-	if(para)
-	{
-		Parameter.mark=0x30aa;//*�����֡���2
-		Parameter.IBBType=0x3000;//��¼�Ǵ��롪��2
-		if( !WriteParameterTable(&Parameter) )
-			return (0);
-	}
-	
-	pTable = *PartitionTable_BASE;
-	if(parti == 1){
-		pTable.Available = PartitionTableFlag;
-		pTable.DoubtPointData.BaseAddr = DPD_BASE;
-		pTable.DoubtPointData.EndAddr = DPD_END;
-		pTable.DoubtPointData.CurPoint = DPD_BASE;
-		pTable.RunRecord360h.BaseAddr = RR360H_BASE;
-		pTable.RunRecord360h.EndAddr = RR360H_END;
-		pTable.RunRecord360h.CurPoint = RR360H_BASE;
-		pTable.BaseData.BaseAddr = BASEDATA_BASE;
-		pTable.BaseData.EndAddr = BASEDATA_END;
-		pTable.BaseData.CurPoint = BASEDATA_BASE;
-		if(change_set)
-		{
-			pTable.TotalDistance = 0;
-			pTable.DriverCode = 0;//��ʻԱ����
-			for( i = 0; i < 20; i++)
-				pTable.DriverLisenseCode[i] = 0;//��ʻ֤����
-			pTable.InOSAlarmCycle = 0;//���ڷ�·�α��������С���־
-			pTable.OSAlarmAddupDistance = 0;//��·�α���·���ۼ�
-		}
-		if( !WritePartitionTable(&pTable) )
-			return(0);
-	}
-	else if(parti == 2)
-	{
-		/////////////modified by panhui 2003.10.20////////////
-		if((pTable.DoubtPointData.CurPoint < DPD_BASE)||(pTable.DoubtPointData.CurPoint > DPD_END-110))
-			pTable.DoubtPointData.CurPoint = DPD_BASE;
-		if((pTable.RunRecord360h.CurPoint < RR360H_BASE)||(pTable.RunRecord360h.CurPoint > RR360H_END))
-			pTable.RunRecord360h.CurPoint = RR360H_BASE;
-		if((pTable.BaseData.CurPoint < BASEDATA_BASE)||(pTable.BaseData.CurPoint > BASEDATA_END))
-			pTable.BaseData.CurPoint = BASEDATA_BASE;
-		/////////////��ָֹ���ܷ�/////////////////////////////
-		if(change_set)
-		{
-			pTable.TotalDistance = 0;
-			pTable.DriverCode = 0;//��ʻԱ����
-			for( i = 0; i < 20; i++)
-				pTable.DriverLisenseCode[i] = 0;//��ʻ֤����
-			pTable.InOSAlarmCycle = 0;//���ڷ�·�α��������С���־
-			pTable.OSAlarmAddupDistance = 0;//��·�α���·���ۼ�
-		}
-		if( !WritePartitionTable(&pTable) )
-			return(0);
-	
-	}
-	
-	return (1);
-}
-//*----------------------------------------------------------------------------
-//* Function Name       : UpdateParameterPartition
-//* Object              : ���²��������
-//* Input Parameters    : none
-//* Output Parameters   : �²���������Ƿ�ɹ�
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int UpdateParameterPartition()
-{
-	unsigned long sector_addr;
-	sector_addr = 0;
-	unsigned long *data;
-	unsigned long *p;
-	int i,size;
-	
-	//����FLASH
-	SPI_FLASH_Sector4kErase(SPI1,*p);
-	//ˢ�²����
-	p = (unsigned long *)PARAMETER_BASE;
-	data = (unsigned long *)(&Parameter);
-	size=sizeof(StructPara);
-	
-	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
-	
-	//ˢ�·����
-	p = (unsigned long *)PartitionTable_BASE;
-	data = (unsigned long *)(&pTable);
-	size=sizeof(PartitionTable);
-	
-	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
-	return(1);
-}
-//*----------------------------------------------------------------------------
-//* Function Name       : Update4k
-//* Object              : FLASH��4K�����ڴ棬����ǰ4k�����������ȷ���Ƿ�
-//                        ��ָ��֮ǰ�����д��FLASH
-//* Input Parameters    : p������ǰ���ָ��
-//*                       Buffer�����ڴ��д���µ�4k������׵�ַ
-//*                       type��������
-//* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int Update4k(unsigned short *p,unsigned short *Buffer,unsigned char type)
-{
-	unsigned short i;
-	unsigned long *sector_addr;
-	sector_addr = (unsigned long *)((unsigned long)p & 0xfffff000);
-	//4k�����ڴ�
-	for(i=0;i<2*1024;i++)
-		Buffer[i] = sector_addr[i];
-
-	if(type == UpdateFlashOnce)
-		return(1); 
-		
-	//����FLASH
-	SPI_FLASH_Sector4kErase(SPI1,*sector_addr);
-	//ָ��֮ǰ���������д��FLASH
-	if(type == UpdateFlashTimes)
-	{
-		i=0;
-		while(sector_addr<(unsigned long *)p)
-		{
-			SPI_FLASH_BufferWrite( SPI1 ,(u8 *)(&Buffer[i]), *sector_addr, 2);
-			sector_addr++;
-			i++;
-		}
-	}
-	return(1);
-}		
-//*----------------------------------------------------------------------------
-//* Function Name       : WriteDoubtDataToFlash
-//* Object              : дһ���ɵ���ݵ�FLASH��
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : curTime
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int WriteDoubtDataToFlash()
-{
-	unsigned short i;
-	unsigned short *p4k;
-	p4k = (unsigned short *)(pTable.DoubtPointData.CurPoint);
-	if((InFlashWriting&(1<<DOUBTPOINTDATA))==0)
-	{//���û�п�ʼFLASHд�����ȶ��뵱ǰ���ɵ�4K��ݳ�פ�ڴ�
-		InFlashWriting |= 1<<DOUBTPOINTDATA;//����ɵ����Ϊ����дFLASH��
-		if(!Update4k(p4k,DoubtData_4k,UpdateFlashTimes))
-			return (0);
-	}
-	
-	//д��ǰ��ͣ���ɵ㵽FLASH��
-	p4k = (unsigned short *)((unsigned long)p4k&0xff000);
-	if(RecordDriver.DriverCode != 0) 
-		ddb.DriverCode = RecordDriver.DriverCode;
-	else
-		ddb.DriverCode = 0xffffffff;
-	ddb.StopTime = curTime;
-	unsigned short *p,*data;
-	p = (unsigned short *)(pTable.DoubtPointData.CurPoint);
-	/////////////2003.10.20 modified by panhui/////////
-	if( (unsigned long)p > (pTable.DoubtPointData.EndAddr-110))
-	{
-		pTable.DoubtPointData.CurPoint = pTable.DoubtPointData.BaseAddr;
-		p=(unsigned short *)(pTable.DoubtPointData.BaseAddr);
-	}
-	///////////////////////////////////////////////////
-	data = (unsigned short *)(&ddb);
-	for(i=0;i<10;i+=2)
-	{
-		SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, 2);
-		p++;
-		data++;
-		//�鿴ָ���Ƿ�Ҫת������һ��4k�����
-		if(p4k != (unsigned short *)((unsigned long)p&0xff000))
-		{
-			if(!Update4k(p,DoubtData_4k,UpdateFlashTimes))
-				return (0);
-			p4k = (unsigned short *)((unsigned long)p&0xff000);
-		}
-	}
-	unsigned short vs;
-	unsigned char j;
-	for(i=0;i<100;i++)
-	{
-		j = ddb.pt + i;
-		if(j>=100)
-			j=j-100;
-		vs =((ddb.data[j].status)<<8) + ddb.data[j].speed;
-		SPI_FLASH_BufferWrite( SPI1 ,(u8 *)&vs, *p, 2);
-		p++;
-		
-		//�鿴ָ���Ƿ�Ҫת������һ��4k�����
-		if(p4k != (unsigned short *)((unsigned long)p&0xff000))
-		{
-			if(!Update4k(p,DoubtData_4k, UpdateFlashTimes))
-				return (0);
-			p4k = (unsigned short *)((unsigned long)p&0xff000);
-		}
-	}
-	
-	//�����ɵ����ָ��
-	if((unsigned long)p > pTable.DoubtPointData.EndAddr-110)
-	{
-		pTable.DoubtPointData.CurPoint = pTable.DoubtPointData.BaseAddr;
-		p=(unsigned short *)(pTable.DoubtPointData.BaseAddr);
-		if(!Update4k(p, DoubtData_4k, UpdateFlashTimes))
-			return (0);
-	}
-	else
-		pTable.DoubtPointData.CurPoint = (unsigned long)p;
-		
-	return(1);
-}
-//*----------------------------------------------------------------------------
 //* Function Name       : BCD2Char
-//* Object              : BCD��ת��Ϊʮ������
-//* Input Parameters    : bcd������дת����BCD��
-//* Output Parameters   : ת�����ʮ������
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* Object              : BCD锟斤拷转锟斤拷为十锟斤拷锟斤拷锟斤拷
+//* Input Parameters    : bcd锟斤拷锟斤拷锟斤拷写转锟斤拷锟斤拷BCD锟斤拷
+//* Output Parameters   : 转锟斤拷锟斤拷锟绞拷锟斤拷锟斤拷锟�
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 unsigned char BCD2Char(unsigned char bcd)
 {
@@ -452,6 +147,280 @@ unsigned char BCD2Char(unsigned char bcd)
 	ch = d1*10 + d0;
 	return(ch);
 }
+time_t timechange(CLOCK time)
+{
+	time_t now;
+	struct tm ti;
+	ti.tm_year =   BCD2Char(time.year) +100;
+	ti.tm_mon 	= BCD2Char(time.month )- 1; /* ti->tm_mon 	= month; 0~11 */
+	ti.tm_mday = BCD2Char(time.day);
+	ti.tm_hour = BCD2Char(time.hour);
+	ti.tm_min 	= BCD2Char(time.minute);
+	ti.tm_sec 	= 0;
+    now = mktime(&ti);
+    return now;
+}
+//*----------------------------------------------------------------------------
+//* Function Name       : WriteParameterTable
+//* Object              : 写锟斤拷锟斤拷锟�
+//* Input Parameters    : none
+//* Output Parameters   : 锟角凤拷晒锟�
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
+//*----------------------------------------------------------------------------
+int WriteParameterTable(StructPara *para)
+{
+	unsigned long *data;
+	unsigned long *p;
+	int i,size;
+
+	//锟斤拷锟斤拷4k
+	p = (unsigned long *)PARAMETER_BASE;
+	SPI_FLASH_Sector4kErase(SPI1,*p);
+	
+	
+	//锟斤拷锟斤拷锟斤拷锟叫达拷锟紽LASH
+	data = (unsigned long *)(para);
+	size=sizeof(StructPara);
+
+	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
+
+	
+	return ( TRUE ) ;
+}
+//*----------------------------------------------------------------------------
+//* Function Name       : WritePartitionTable
+//* Object              : 写锟斤拷锟斤拷锟�
+//* Input Parameters    : none
+//* Output Parameters   : 锟角凤拷晒锟�
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
+//*----------------------------------------------------------------------------
+int WritePartitionTable(PartitionTable *ptt)
+{
+	unsigned long *data;
+	unsigned long *p;
+	int i,size;
+
+	//锟斤拷锟斤拷4k
+	p = (unsigned long *)PartitionTable_BASE;
+	SPI_FLASH_Sector4kErase(SPI1,*p);
+	
+	//锟斤拷锟斤拷锟斤拷锟叫达拷锟紽LASH
+	if(ptt->TotalDistance==0xffffffff)
+		ptt->TotalDistance = 0;
+	data = (unsigned long *)(ptt);
+	size=sizeof(PartitionTable);
+	
+	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
+		
+	return ( TRUE ) ;
+}
+//*----------------------------------------------------------------------------
+//* Function Name       : IsPartitionTableCorrect
+//* Object              : 锟斤拷始锟斤拷锟斤拷锟斤拷锟�
+//* Input Parameters    : none
+//* Output Parameters   : 写锟斤拷锟斤拷锟斤拷欠锟缴癸拷
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
+//*----------------------------------------------------------------------------
+int IsPartitionTableCorrect()
+{
+	unsigned long *data;
+	unsigned long *p;
+	int i,size;
+	
+	/////////*******2003.10.06 panhui*********////////
+	unsigned short temp = PartitionTableFlag;
+	if( pTable.Available != temp)
+		return(0);
+	/////////*******2003.10.06 panhui*********////////
+	if(	pTable.DoubtPointData.BaseAddr != DPD_BASE)
+		return(0);
+	if(	pTable.DoubtPointData.EndAddr != DPD_END)
+		return(0);
+
+	if(	pTable.BaseData.BaseAddr != BASEDATA_BASE)
+		return(0);
+	if(	pTable.BaseData.EndAddr != BASEDATA_END)
+		return(0);
+
+	/////////////modified by panhui 2003.10.20////////////
+	if((pTable.DoubtPointData.CurPoint < DPD_BASE)||(pTable.DoubtPointData.CurPoint > DPD_END-110))
+		return(-1);
+
+	if((pTable.BaseData.CurPoint < BASEDATA_BASE)||(pTable.BaseData.CurPoint > BASEDATA_END))
+		return(-3);
+	/////////////锟斤拷止指锟斤拷锟杰凤拷/////////////////////////////
+
+	//锟斤拷锟斤拷锟斤拷锟叫达拷锟紽LASH
+	return (1);
+	
+
+}
+//*----------------------------------------------------------------------------
+//* Function Name       : InitializeTable
+//* Object              : 锟斤拷始锟斤拷锟斤拷锟斤拷锟�
+//* Input Parameters    : unsigned char parti锟斤拷锟斤拷锟角凤拷锟斤拷锟铰恢革拷锟斤拷锟斤拷锟�
+//                        unsigned char para锟斤拷锟斤拷锟角凤拷锟斤拷锟铰恢革拷锟斤拷锟斤拷锟�
+//                        unsigned char change_set锟斤拷锟斤拷锟角凤拷锟斤拷锟斤拷锟斤拷锟矫筹拷锟狡号ｏ拷
+//                                             锟斤拷锟斤拷锟桔硷拷锟斤拷锟斤拷锟斤拷锟斤拷锟�
+//* Output Parameters   : 锟斤拷始锟斤拷锟斤拷锟斤拷锟酵诧拷锟斤拷锟斤拷欠锟缴癸拷
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
+//*----------------------------------------------------------------------------
+int InitializeTable()
+{
+	int i;
+	SPI_FLASH_BufferRead(SPI1,(unsigned char *)&pTable,PartitionTable_BASE,sizeof(pTable));
+	SPI_FLASH_BufferRead(SPI1,(unsigned char *)&Parameter,PartitionTable_BASE,sizeof(pTable));
+	if(Parameter.mark != 0xaeae)
+	{
+		//
+		Parameter.mark = 0xaeae;
+		if( !WriteParameterTable(&Parameter) )
+			return (0);
+	}
+	
+	if(pTable.Available !=PartitionTableFlag)
+	{
+		//初始化pTable
+		pTable.Available = PartitionTableFlag;
+		pTable.DoubtPointData.BaseAddr = DPD_BASE;
+		pTable.DoubtPointData.EndAddr = DPD_END;
+		pTable.DoubtPointData.CurPoint = DPD_BASE;
+
+		pTable.BaseData.BaseAddr = BASEDATA_BASE;
+		pTable.BaseData.EndAddr = BASEDATA_END;
+		pTable.BaseData.CurPoint = BASEDATA_BASE;
+
+		pTable.DriverReRecord.BaseAddr = DRVRG_BASE;
+		pTable.DriverReRecord.EndAddr = DRVRG_END;
+		pTable.DriverReRecord.CurPoint = DRVRG_BASE;
+
+		pTable.LocationData.BaseAddr = LOCATION_BASE;
+		pTable.LocationData.EndAddr = LOCATION_END;
+		pTable.LocationData.CurPoint = LOCATION_BASE;
+
+		pTable.OverSpeedRecord.BaseAddr = OVERDRV_BASE;
+		pTable.OverSpeedRecord.EndAddr = OVERDRV_END;
+		pTable.OverSpeedRecord.CurPoint = OVERDRV_BASE;
+
+		pTable.ModifyRecord.BaseAddr = PARA_BASE;
+		pTable.ModifyRecord.EndAddr = PARA_END;
+		pTable.ModifyRecord.CurPoint = PARA_BASE;
+
+		pTable.PowerOffRunRecord.BaseAddr = POWER_BASE;
+		pTable.PowerOffRunRecord.EndAddr = POWER_END;
+		pTable.PowerOffRunRecord.CurPoint = POWER_BASE;
+
+		pTable.journalRecord.BaseAddr = JN_BASE;
+		pTable.journalRecord.EndAddr = JN_END;
+		pTable.journalRecord.CurPoint = JN_BASE;
+
+		if( !WritePartitionTable(&pTable) )
+			return(0);
+	}
+	
+	return (1);
+}
+//*----------------------------------------------------------------------------
+//* Function Name       : UpdateParameterPartition
+//* Object              : 锟斤拷锟铰诧拷锟斤拷锟斤拷锟斤拷锟�
+//* Input Parameters    : none
+//* Output Parameters   : 锟铰诧拷锟斤拷锟斤拷锟斤拷锟斤拷欠锟缴癸拷
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
+//*----------------------------------------------------------------------------
+int UpdateParameterPartition()
+{
+	unsigned long sector_addr;
+	sector_addr = 0;
+	unsigned long *data;
+	unsigned long *p;
+	int i,size;
+	
+	//锟斤拷锟斤拷FLASH
+	SPI_FLASH_Sector4kErase(SPI1,*p);
+	//刷锟铰诧拷锟斤拷锟�
+	p = (unsigned long *)PARAMETER_BASE;
+	data = (unsigned long *)(&Parameter);
+	size=sizeof(StructPara);
+	
+	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
+	
+	//刷锟铰凤拷锟斤拷锟�
+	p = (unsigned long *)PartitionTable_BASE;
+	data = (unsigned long *)(&pTable);
+	size=sizeof(PartitionTable);
+	
+	SPI_FLASH_BufferWrite( SPI1 ,(u8 *)data, *p, size);
+	return(1);
+}
+//*----------------------------------------------------------------------------
+//* Function Name       : Update4k
+//* Object              : FLASH锟斤拷4K锟斤拷锟斤拷锟节存，锟斤拷锟斤拷前4k锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟饺凤拷锟斤拷欠锟�
+//                        锟斤拷指锟斤拷之前锟斤拷锟斤拷锟叫达拷锟紽LASH
+//* Input Parameters    : p锟斤拷锟斤拷锟斤拷前锟斤拷锟街革拷锟�
+//*                       Buffer锟斤拷锟斤拷锟节达拷锟叫达拷锟斤拷碌锟�k锟斤拷锟斤拷锟斤拷椎锟街�
+//*                       type锟斤拷锟斤拷锟斤拷锟斤拷
+//* Output Parameters   : none
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
+//*----------------------------------------------------------------------------
+int Update4k(unsigned long p,unsigned char *Buffer,unsigned char type)
+{
+	unsigned short i;
+	unsigned long sector_addr;
+	sector_addr = (p & 0xfffff000);
+	SPI_FLASH_BufferRead(SPI1,Buffer,sector_addr,4096);
+	if(type == UpdateFlashOnce)
+		return(1); 
+		
+	//锟斤拷锟斤拷FLASH
+	SPI_FLASH_Sector4kErase(SPI1,sector_addr);
+	//指锟斤拷之前锟斤拷锟斤拷锟斤拷锟斤拷锟叫达拷锟紽LASH
+	if(type == UpdateFlashTimes)
+	{
+		i=0;
+		while(sector_addr<p)
+		{
+			SPI_FLASH_BufferWrite( SPI1 ,(u8 *)(&Buffer[i]), sector_addr, 2);
+			sector_addr++;
+			i++;
+		}
+	}
+	return(1);
+}
+int erase4kflash(unsigned long p ,unsigned long num)
+{
+	if (num == 0)
+		return 0;
+	if((p &0x00000fff)== 0)
+	{			//Update4k( p,&Location_4k,UpdateFlashTimes);
+		SPI_FLASH_Sector4kErase(SPI1,p);
+
+	}
+	else if(((p+num)&0x00000fff)<num)
+	{
+		p = (p+num)&0xfffff000;
+		SPI_FLASH_Sector4kErase(SPI1,p+6);
+	}
+	return 1;
+}
+//*----------------------------------------------------------------------------
+//* Function Name       : WriteDoubtDataToFlash
+//* Object              : 写一锟斤拷锟缴碉拷锟斤拷莸锟紽LASH锟斤拷
+//* Input Parameters    : none
+//* Output Parameters   : none
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      : curTime
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
+//*----------------------------------------------------------------------------
+int WriteDoubtDataToFlash()
+{
+	
+}
+
 #if 0
 unsigned Char2BCD(unsigned char ch)
 {
@@ -465,12 +434,12 @@ unsigned Char2BCD(unsigned char ch)
 #endif
 //*----------------------------------------------------------------------------
 //* Function Name       : IfOneAfterAotherDay
-//* Object              : �ж��Ƿ������������
-//* Input Parameters    : time��������µ�ʱ��ָ��
-//*                       end������һ��ƣ�ͼ�¼��������ָ��
-//* Output Parameters   : 0�������ǣ�1������
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* Object              : 锟叫讹拷锟角凤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟�
+//* Input Parameters    : time锟斤拷锟斤拷锟斤拷锟斤拷碌锟绞憋拷锟街革拷锟�
+//*                       end锟斤拷锟斤拷锟斤拷一锟斤拷疲锟酵硷拷录锟斤拷锟斤拷锟斤拷锟斤拷指锟斤拷
+//* Output Parameters   : 0锟斤拷锟斤拷锟斤拷锟角ｏ拷1锟斤拷锟斤拷锟斤拷
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 int IfOneAfterAotherDay(CLOCK *time,OTDR_end *end)
 {
@@ -531,12 +500,12 @@ int IfOneAfterAotherDay(CLOCK *time,OTDR_end *end)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : JudgeTimeSpace
-//* Object              : �ж�ʱ����
-//* Input Parameters    : time��������µ�ʱ��ָ��
-//*                       end������һ��ƣ�ͼ�¼��������ָ��
-//* Output Parameters   : ʱ����ֵ�����ӣ���������20����ʱ����FF
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* Object              : 锟叫讹拷时锟斤拷锟斤拷
+//* Input Parameters    : time锟斤拷锟斤拷锟斤拷锟斤拷碌锟绞憋拷锟街革拷锟�
+//*                       end锟斤拷锟斤拷锟斤拷一锟斤拷疲锟酵硷拷录锟斤拷锟斤拷锟斤拷锟斤拷指锟斤拷
+//* Output Parameters   : 时锟斤拷锟斤拷值锟斤拷锟斤拷锟接ｏ拷锟斤拷锟斤拷锟斤拷锟斤拷20锟斤拷锟斤拷时锟斤拷锟斤拷FF
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 unsigned char JudgeTimeSpace(CLOCK *time,OTDR_end *end)
 {
@@ -568,12 +537,12 @@ unsigned char JudgeTimeSpace(CLOCK *time,OTDR_end *end)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : AddPointer
-//* Object              : ����ָ������ƫ����
-//* Input Parameters    : pt�����������ṹ
-//*                       inc�����ۼ�ֵ
-//* Output Parameters   : �����Ľ��
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* Object              : 锟斤拷锟斤拷指锟斤拷锟斤拷锟斤拷偏锟斤拷锟斤拷
+//* Input Parameters    : pt锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟结构
+//*                       inc锟斤拷锟斤拷锟桔硷拷值
+//* Output Parameters   : 锟斤拷锟斤拷锟侥斤拷锟�
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 unsigned long AddPointer(StructPT *pt, int inc)
 {
@@ -594,35 +563,31 @@ unsigned long AddPointer(StructPT *pt, int inc)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Get_otdrEND
-//* Object              : ��ȡƣ�ͼ�ʻ�������ݲ��Ҹ�����ݻ�����
+//* Object              : 锟斤拷取疲锟酵硷拷驶锟斤拷锟斤拷锟斤拷锟捷诧拷锟揭革拷锟斤拷锟斤拷莼锟斤拷锟斤拷锟�
 //* Input Parameters    : none
 //* Output Parameters   : none
 //* Global Parameters   : otdrEND,InFlashWriting
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 int Get_otdrEND(OTDR_start *start,OTDR_end *end)
 {
-	if((InFlashWriting&(1<<RUNRECORD360h))==0)
-	{//���û�п�ʼдFLASH�����ȶ������һ����ݵĽ�������
-		return(GetOTDR( pTable.RunRecord360h.CurPoint, start, end ));
-	}
-	else{
+
 		return(2);
-	}
+
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Write4kToFlashOTDR
-//* Object              : �Ȳ�����д4k�ڴ���ݵ�FLASH��
-//* Input Parameters    : p������ǰ���ָ��
-//*                       Buffer�����ڴ��д���µ�4k������׵�ַ
+//* Object              : 锟饺诧拷锟斤拷锟斤拷写4k锟节达拷锟斤拷莸锟紽LASH锟斤拷
+//* Input Parameters    : p锟斤拷锟斤拷锟斤拷前锟斤拷锟街革拷锟�
+//*                       Buffer锟斤拷锟斤拷锟节达拷锟叫达拷锟斤拷碌锟�k锟斤拷锟斤拷锟斤拷椎锟街�
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 int Write4kToFlashOTDR(unsigned short *p,unsigned short *Buffer)
 {
-	//����FLASH
+	//锟斤拷锟斤拷FLASH
 	if(!flash_sst39_erase_sector((unsigned long *)DATAFLASH_BASE,(unsigned long *)p))
 		return (0);
 
@@ -630,18 +595,18 @@ int Write4kToFlashOTDR(unsigned short *p,unsigned short *Buffer)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Write4kToFlash
-//* Object              : д4k�ڴ���ݵ�FLASH��
-//* Input Parameters    : p������ǰ���ָ��
-//*                       Buffer�����ڴ��д���µ�4k������׵�ַ
+//* Object              : 写4k锟节达拷锟斤拷莸锟紽LASH锟斤拷
+//* Input Parameters    : p锟斤拷锟斤拷锟斤拷前锟斤拷锟街革拷锟�
+//*                       Buffer锟斤拷锟斤拷锟节达拷锟叫达拷锟斤拷碌锟�k锟斤拷锟斤拷锟斤拷椎锟街�
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 int Write4kToFlash(unsigned short *p,unsigned short *Buffer)
 {
 	unsigned short *inside_p,*flash_p;
 	unsigned short data;
-	inside_p = (unsigned short *)((unsigned long)p & 0x00fff);//4k�ڵ�ַָ��
+	inside_p = (unsigned short *)((unsigned long)p & 0x00fff);//4k锟节碉拷址指锟斤拷
 	flash_p = p;
 	while((unsigned long)inside_p<0x01000)
 	{
@@ -652,102 +617,28 @@ int Write4kToFlash(unsigned short *p,unsigned short *Buffer)
 	}
 	return ( 1 );
 }
-//*----------------------------------------------------------------------------
-//* Function Name       : WriteOTDRData
-//* Object              : дOTDR��ݵ�OTDR�ڴ��������Ҫ������һ4k
-//* Input Parameters    : buf������д�������׵�ַ
-//*                       len������ݳ���
-//* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int WriteOTDRData(unsigned char *buf,unsigned char len)
-{
-	unsigned char *p;
-	unsigned long pos,pt,last_pos;
-	unsigned char i;
-	
-	pos = 0x00fff & pTable.RunRecord360h.CurPoint;
-	p = (unsigned char *)((unsigned long)(OTDR_4k) + pos);
-	
-	for(i=0;i<len;i++)
-	{
-		*p=buf[i];
-		p++;
-		pos++;
-		if(pos==0x01000)
-		{//�л�����һ��4k
-			//���µ�ַָ��
-			p=(unsigned char *)(OTDR_4k);
-			last_pos = pTable.RunRecord360h.CurPoint&0xfffff000;
-			pos = (pTable.RunRecord360h.CurPoint&0xff000) + 0x01000;
-			if(pos>(pTable.RunRecord360h.EndAddr&0xff000))
-				pos = pTable.RunRecord360h.BaseAddr;
-			else
-				pos += (unsigned long)DATAFLASH_BASE;
-			pTable.RunRecord360h.CurPoint = pos;
-		
-			//д��ǰ4k������FLASH��
-			Write4kToFlashOTDR((unsigned short *)last_pos,(unsigned short *)OTDR_4k);
-			//���»�����
-			Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce);
-			pos=0;
-		}
-	}
-	pTable.RunRecord360h.CurPoint &= 0xfffff000;
-	pTable.RunRecord360h.CurPoint += pos;
-	return(1);
-}
 
 //*----------------------------------------------------------------------------
-//* Function Name       : WriteZeroToOTDREndData
-//* Object              : ����
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int WriteZeroToOTDREndData(unsigned char zeroNB)
-{
-	unsigned long pt;
-	unsigned char i,buf[20];
-	int inc;
-	
-	if((InFlashWriting&(1<<RUNRECORD360h))==0)
-	{//���û�п�ʼдFLASH�����ȶ������һ����ݵĽ�������
-		InFlashWriting |= 1<<RUNRECORD360h;//������Ϊ����дFLASH��
-		inc = 0 - sizeof(OTDR_end);
-		pt = AddPointer(&(pTable.RunRecord360h), inc);
-		if(!Update4k((unsigned short *)pt,(unsigned short *)OTDR_4k,UpdateFlashOnce))
-			return(0);
-		pTable.RunRecord360h.CurPoint=pt;
-	}
-	
-	for(i=0;i<20;i++)
-		buf[i] = 0;
-	WriteOTDRData(buf,zeroNB);
-	
-	return(1);
-}
-//*----------------------------------------------------------------------------
 //* Function Name       : WriteAverageSpeed
-//* Object              : дһ��ƽ���ٶ���ݵ�FLASH��
-//* Input Parameters    : V������д���ƽ���ٶ�ֵ
+//* Object              : 写一锟斤拷平锟斤拷锟劫讹拷锟斤拷莸锟紽LASH锟斤拷
+//* Input Parameters    : V锟斤拷锟斤拷锟斤拷写锟斤拷锟狡斤拷锟斤拷俣锟街�
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 void WriteAverageSpeed(unsigned char v)
 {
 	unsigned char *p;
 	unsigned long pos,pt,last_pos;
+#if 0
 	pos = 0x00fff & pTable.RunRecord360h.CurPoint;
 	p = (unsigned char *)((unsigned long)(OTDR_4k) + pos);
 	*p = v;
 	pos++;	
+
 	if(pos==0x01000)
-	{//�л�����һ��4k
-		//���µ�ַָ��
+	{//锟叫伙拷锟斤拷锟斤拷一锟斤拷4k
+		//锟斤拷锟铰碉拷址指锟斤拷
 		p=(unsigned char *)(OTDR_4k);
 		last_pos = pTable.RunRecord360h.CurPoint&0xfffff000;
 		pos = (pTable.RunRecord360h.CurPoint&0xff000) + 0x01000;
@@ -757,241 +648,32 @@ void WriteAverageSpeed(unsigned char v)
 			pos += (unsigned long)DATAFLASH_BASE;
 		pTable.RunRecord360h.CurPoint = pos;
 	
-		//д��ǰ4k������FLASH��
+		//写锟斤拷前4k锟斤拷锟斤拷锟斤拷FLASH锟斤拷
 		Write4kToFlashOTDR((unsigned short *)last_pos,(unsigned short *)OTDR_4k);
-		//���»�����
-		Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce);
+		//锟斤拷锟铰伙拷锟斤拷锟斤拷
+		//Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce);
 	}
 	else
 		pTable.RunRecord360h.CurPoint++;	 
+#endif
 
 }
-//*----------------------------------------------------------------------------
-//* Function Name       : WriteOTDRStartData
-//* Object              : 360Сʱƣ�ͼ�ʻ�����ʼ�����
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : curTime
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int WriteOTDRStartData()
-{
-	unsigned char *p;
-	unsigned long pos;
-	unsigned char i,buf[8];
-	int inc;
-	
-	if((InFlashWriting&(1<<RUNRECORD360h))==0)
-	{//���û�п�ʼдFLASH�����ȶ������һ����ݵĽ�������
-		InFlashWriting |= 1<<RUNRECORD360h;//������Ϊ����дFLASH��
-		pos = pTable.RunRecord360h.CurPoint;
-		if(!Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce))
-			return(0);
-	}
-	else
-		WriteOTDREndData(&otdrEND);	
-	
-	buf[0]=0xaf;
-	buf[1]=0xaf;
-	p=(unsigned char *)(&curTime);
-	for(i=0;i<6;i++)
-		buf[2+i]=p[i];
-	
-	WriteOTDRData(buf,sizeof(OTDR_start));
-	return(1);
-}
-//*----------------------------------------------------------------------------
-//* Function Name       : WriteOTDREndData
-//* Object              : 360Сʱƣ�ͼ�ʻ�����ʼ�����
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : curTime
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-
-int WriteOTDREndData(OTDR_end *end)
-{
-	unsigned long pos;
-
-	if(end->MinuteNb==0)
-	{
-		pos = AddPointer(&(pTable.RunRecord360h), 0 - sizeof(OTDR_start));
-		if((pos&0xff000)!=(pTable.RunRecord360h.CurPoint&0xff000))
-		{
-			if(!Update4k((unsigned short *)pos,(unsigned short *)OTDR_4k,UpdateFlashOnce))
-				return(0);
-		}
-		pTable.RunRecord360h.CurPoint = pos;
-	}
-	else
-		WriteOTDRData((unsigned char *)end,sizeof(OTDR_end));
-}
-
-//*----------------------------------------------------------------------------
-//* Function Name       : IsDoubtPointData
-//* Object              : �ж��Ƿ���һ���ɵ����
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : Tick02NB,ddb
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-int IsDoubtPointData()
-{
-    int i;
-	if(Tick02NB>=25)
-		return TRUE;
-	else
-	{
-		i=ddb.pt-1;
-		if(i<0)
-			i=99;
-		do{
-			if(ddb.data[i].speed>4)
-				return TRUE;
-			i--;
-			if(i<0)
-				i=99;
-		}while(ddb.data[i].speed!=0);
-		return FALSE;
-	}
-
-}
-//*----------------------------------------------------------------------------
-//* Function Name       : RunRecord360Handler
-//* Object              :360Сʱƽ���ٶ���ʻ��¼��ͳ��ƣ�ͼ�ʻ
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : CurSpeed,curTime
-//* �޸ĵ�ȫ�ֱ���      :
-//*----------------------------------------------------------------------------
-void RunRecord360Handler()
-{
-	unsigned char AverageV;
-	unsigned char flag=InRecordCycle&(1<<RUNRECORD360h);
-	unsigned char space=0xff;
-	int succ;
-	
-	
-	//��¼��ǰ�ɵ����
-	ddb.data[ddb.pt].speed = (unsigned char)CurSpeed;
-	ddb.data[ddb.pt].status = CurStatus;
-	ddb.pt++;
-	if(ddb.pt>99)
-		ddb.pt = 0;
-		
-	if(flag==0)//û�м�¼����У�speed==0��
-	{
-//		if((CurSpeed > 0)&&(LastSPE > 0))
-		if((CurSpeed - DeltaSpeed==0)&&(CurSpeed>0))
-		{//��¼��ʼ��
-			InRecordCycle |= 1<<RUNRECORD360h;//�޸ļ�¼��ݱ�־
-			
-			Tick02NB = 0;
-
-			//�ж��Ƿ�������һ����¼�������ʱ���Ƿ񲻳���20����
-			OTDR_start CurOTDR_start;
-			OTDR_end CurOTDR_end;
-			succ=Get_otdrEND(&CurOTDR_start,&CurOTDR_end);
-			if(succ==1)//��FLASH�ж�����һ����¼
-				otdrEND = CurOTDR_end;
-				
-			//����������¼��˾������ȣ��Ҳ���δ֪˾��	
-			if(succ && (otdrEND.driver.DriverCode != 0) && 
-				(otdrEND.driver.DriverCode==RecordDriver.DriverCode))	
-				space = JudgeTimeSpace(&curTime,&otdrEND);
-				
-			//һ����¼�ڣ�һ���ϵ磩���������ٶ����ߵ�˾����Ϊδ֪˾��
-			if((succ == 2) && (otdrEND.driver.DriverCode == 0)&&
-				(RecordDriver.DriverCode ==0 ))
-				space = JudgeTimeSpace(&curTime,&otdrEND);
-				
-			//һ����¼�ڣ�һ���ϵ磩���������ٶ�����,ǰ��Ϊδ֪˾����Ϊ��֪
-			if((succ == 2) && (otdrEND.driver.DriverCode == 0)&&
-			(RecordDriver.DriverCode !=0 )&&(PowerOnDT.type==0xefef))
-				space = JudgeTimeSpace(&curTime,&otdrEND);
-				
-			//ʱ�������޶�ʱ���ڣ��ϲ���һ����¼
-			if((space<=RestMinuteLimit)&&(PowerOnDT.type!=0))
-			{
-				OTRecordType = MergeLastData;
-				LastDistance = otdrEND.TotalDistance;
-				//��space���㵽endָ��λ��
-				WriteZeroToOTDREndData(space);
-				otdrEND.MinuteNb += space; 
-			}
-			else//�¼�¼
-			{
-				if((succ == 2) && (otdrEND.driver.DriverCode == 0)&&
-					(RecordDriver.DriverCode !=0 )&&(PowerOnDT.type==0xefef))
-				{
-					//�޸�ǰһ����¼��˾��
-					//ModifyDriverToLastOTDR();
-					otdrEND.driver = RecordDriver;
-					 
-				}
-				//��ʼдһ���¼�¼
-				WriteOTDRStartData();
-				OTRecordType = NewOTData;
-				otdrEND.MinuteNb = 0;
-			}
-			//��otdrEND��ݽṹ��ֵ
-			otdrEND.TotalDistance = PulseTotalNumber;
-			
-		}
-	}
-	else//���ڼ�¼��ݣ�speed>0��
-	{
-		//*��¼1����ƽ���ٶ�
-		AddupSpeed +=CurSpeed;
-		SpeedNb ++;
-		if(TimeChange & (0x01<<MINUTE_CHANGE))//��һ����
-		{
-			AverageV=AddupSpeed/SpeedNb;
-			AddupSpeed = 0;
-			SpeedNb = 0;
-			otdrEND.MinuteNb ++;
-			WriteAverageSpeed(AverageV);
-		}
-		
-		Tick02NB ++;
-		
-		//*��¼ͣ�������
-		if(((CurSpeed == 0)&&(PulseNB_In1Sec == 0))||((CurSpeed == 0)&&(!PowerOn)))
-		{
-			if(IsDoubtPointData())
-				WriteDoubtDataToFlash();//дһ��ͣ���ɵ���ݵ����flash��
-			InRecordCycle &= ~(1<<RUNRECORD360h);//�޸ļ�¼��ݱ�־
-			//��¼������ݵ�
-			otdrEND.dt.type = 0xeaea;
-			otdrEND.dt.year = curTime.year;
-			otdrEND.dt.month = curTime.month;
-			otdrEND.dt.day = curTime.day;
-			otdrEND.dt.hour = curTime.hour;
-			otdrEND.dt.minute = curTime.minute;
-			otdrEND.dt.second = curTime.second;
-			otdrEND.TotalDistance = PulseTotalNumber - otdrEND.TotalDistance;
-			otdrEND.driver = RecordDriver;
-			if(OTRecordType == MergeLastData)
-				otdrEND.TotalDistance += LastDistance;
-		}
-	}
-}		
 //*----------------------------------------------------------------------------
 //* Function Name       : FinishOTDRToFlash
-//* Object              :����ǰ��¼360Сʱƽ���ٶ���ʻ��¼��ͳ��ƣ�ͼ�ʻ�ڴ�
-//                       ���浽FLASH��
+//* Object              :锟斤拷锟斤拷前锟斤拷录360小时平锟斤拷锟劫讹拷锟斤拷驶锟斤拷录锟斤拷统锟斤拷疲锟酵硷拷驶锟节达拷
+//                       锟斤拷锟芥到FLASH锟斤拷
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 void FinishOTDRToFlash()
 {
 	unsigned long p;
 	otdrEND.driver = RecordDriver;
-	if((InRecordCycle&(1<<RUNRECORD360h))!=0)
+	if((InRecordCycle&(1<<DOUBLTPOINT))!=0)
 	{
-		//��¼������ݵ�
+		//锟斤拷录锟斤拷锟斤拷锟斤拷莸锟�
 		otdrEND.dt.type = 0xeaea;
 		otdrEND.dt.year = curTime.year;
 		otdrEND.dt.month = curTime.month;
@@ -1005,21 +687,23 @@ void FinishOTDRToFlash()
 	}
 	
 	WriteOTDREndData(&otdrEND);
-	if(pTable.RunRecord360h.CurPoint!=PartitionTable_BASE->RunRecord360h.CurPoint)
+#if 0
+	if(pTable.RunRecord360h.CurPoint!=pTable.RunRecord360h.CurPoint)
 	{
 		p = pTable.RunRecord360h.CurPoint;
 		p &= 0xfffff000;
 		Write4kToFlashOTDR((unsigned short *)p,(unsigned short *)OTDR_4k);
 	}
+#endif
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : ModifyUnknownDriver
-//* Object              : ÿ����ʻ��¼����ʱ����¼�м�¼��δ֪˾�������忨��
-//						  �����֪˾��ļ�¼�޸���˾����
+//* Object              : 每锟斤拷锟斤拷驶锟斤拷录锟斤拷锟斤拷时锟斤拷锟斤拷录锟叫硷拷录锟斤拷未知司锟斤拷锟斤拷锟斤拷锟藉卡锟斤拷
+//						  锟斤拷锟斤拷锟街撅拷锟侥硷拷录锟睫革拷锟斤拷司锟斤拷锟斤拷
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : none
-//* �޸ĵ�ȫ�ֱ���      : none
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      : none
+//* 锟睫改碉拷全锟街憋拷锟斤拷      : none
 //*----------------------------------------------------------------------------
 void ModifyUnknownDriver()
 {
@@ -1037,7 +721,7 @@ void ModifyUnknownDriver()
 	PowerOffDT.minute = curTime.minute;
 	PowerOffDT.second = curTime.second;
 	
-	//�ɵ��¼
+	//锟缴碉拷锟铰�
 	dpp=pTable.DoubtPointData.CurPoint;
 	do
 	{
@@ -1064,20 +748,20 @@ void ModifyUnknownDriver()
 			data = (unsigned short)(RecordDriver.DriverCode>>16);
 			SPI_FLASH_BufferWrite( SPI1 ,(u8 *)&data, dpp+2, 2);
 		}
-		i++;//2003.11.11,panhui(��������)
+		i++;//2003.11.11,panhui(锟斤拷锟斤拷锟斤拷锟斤拷)
 	}while((cmp1>0)&&(cmp2>=0)&&(i<97));
 	
-	//360Сʱƽ���ٶȼ�¼
+	//360小时平锟斤拷锟劫度硷拷录
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : WriteBaseDataToFlash
-//* Object              : ����ʻ��¼д�����FLASH
-//* Input Parameters    : buf������ݻ�����ָ��
-//                        len����unsigned short����ݳ���
-//						  type�����������
+//* Object              : 锟斤拷锟斤拷驶锟斤拷录写锟斤拷锟斤拷锟紽LASH
+//* Input Parameters    : buf锟斤拷锟斤拷锟斤拷莼锟斤拷锟斤拷锟街革拷锟�
+//                        len锟斤拷锟斤拷unsigned short锟斤拷锟斤拷莩锟斤拷锟�
+//						  type锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟�
 //* Output Parameters   : if data write TRUE or FALSE
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 int WriteBaseDataToFlash(unsigned short *buf,unsigned char len,unsigned char type)
 {
@@ -1085,29 +769,7 @@ int WriteBaseDataToFlash(unsigned short *buf,unsigned char len,unsigned char typ
 	unsigned char i;
 	unsigned long pos,UpdatePos;
 	
-	if((InFlashWriting&(1<<BASEDATA))==0)
-	{//���û�п�ʼдFLASH
-		if(type!=START)
-			return(0);
-		InFlashWriting |= 1<<BASEDATA;//������Ϊ����дFLASH��
-		pos = pTable.BaseData.CurPoint;
-		if(!Update4k((unsigned short *)pos,BaseData_4k,UpdateFlashTimes))
-			return(0);
-
-		/////////*******2003.10.06 panhui*********////////
-		UpdatePos = pos + RecordFlagByte*2;
-		if(UpdatePos > pTable.BaseData.EndAddr)
-			UpdatePos = pTable.BaseData.BaseAddr + (UpdatePos-pTable.BaseData.EndAddr)-1;
-		if((pos&0xff000)!=(UpdatePos&0xff000))
-		{//��ҳ
-			if(!Update4k((unsigned short *)UpdatePos,BaseData_4k,UpdateFlashAll))
-				return(0);
-		}
-		/////////*******2003.10.06 panhui*********////////
-		
-	}
-	else
-		pos = pTable.BaseData.CurPoint;
+	pos = pTable.BaseData.CurPoint;
 	
 	for(i=0;i<len;i++)
 	{
@@ -1120,211 +782,493 @@ int WriteBaseDataToFlash(unsigned short *buf,unsigned char len,unsigned char typ
 		UpdatePos = pos + RecordFlagByte*2;
 		if(UpdatePos > pTable.BaseData.EndAddr)
 			UpdatePos = pTable.BaseData.BaseAddr + (UpdatePos-pTable.BaseData.EndAddr)-1;
-/*		if((pos&0x00fff)==0)
-		{//��Ҫ����һ4k
-			if(pos>pTable.BaseData.EndAddr)
-				pos = pTable.BaseData.BaseAddr;
-			if(!Update4k((unsigned short *)pos,BaseData_4k,UpdateFlashTimes))
-				return(0);
-			
-		}*/
+
 		if(((pos&0xff000)!=(UpdatePos&0xff000))&&((UpdatePos&0x00fff)==0))
-		{//��Ҫ����һ4k
-			if(!Update4k((unsigned short *)UpdatePos,BaseData_4k,UpdateFlashAll))
+		{
+			if(!Update4k(UpdatePos,(unsigned char *)BaseData_4k,UpdateFlashAll))
 				return(0);
 		}
 		
 	}
 	pTable.BaseData.CurPoint = pos;
-	
-	if(type==END)
-	{
-		Write4kToFlash((unsigned short *)UpdatePos,BaseData_4k);
-		if(pTable.DoubtPointData.CurPoint!=PartitionTable_BASE->DoubtPointData.CurPoint)
-		{
-			Write4kToFlash((unsigned short *)pTable.DoubtPointData.CurPoint,DoubtData_4k);
-			FinishOTDRToFlash();
-		}
-		else if(pTable.RunRecord360h.CurPoint!=PartitionTable_BASE->RunRecord360h.CurPoint)
-			FinishOTDRToFlash();
-
-		InFlashWriting = 0;
-		WritePartitionTable(&pTable);
-		
-		//�޸Ŀ��ܵġ�δ֪˾���ɵ��360ƽ���ٶȼ�¼
-		if(PowerOnDT.type==0xefef)
-			ModifyUnknownDriver();
-		
-		PowerOnDT.type = 0;
-
-	}
 	return(1);
 
 }
+
+void WritelocationData2Flash(CMD_LOCATION type)
+{
+	unsigned long p,i;
+	p = pTable.LocationData.BakPoint;
+	if(type == TIME)
+	{
+		erase4kflash(p,6);
+		for(i= 0;i++;i<6)
+		{
+			Location_4k[i] = (unsigned char )*((unsigned char * )(&curTime+i));
+		}
+		SPI_FLASH_BufferWrite(SPI1,Location_4k , p, 6);
+		pTable.LocationData.BakPoint =6 ;
+
+	}
+	else if(type == DATA)
+	{
+		erase4kflash(p,11);
+		for(i = 0;i++;i<10)
+		{
+			Location_4k[i] = (unsigned char )*((unsigned char * )(&location+i));
+		}
+		Location_4k[i] = SpeedOf1min;
+		SPI_FLASH_BufferWrite(SPI1,Location_4k , p, 6);
+		pTable.LocationData.BakPoint = p+11;
+	}
+
+}
+
+#if 0
+void WriteOverDriverData2Flash()
+{
+	unsigned long p,i;
+	p = pTable.OverSpeedRecord.CurPoint;
+
+		erase4kflash(p,50);
+		SPI_FLASH_BufferWrite(SPI1,(unsigned char *)overdriverdata , p, 50);
+
+}
+
+void WriteDriverRegData2Flash()
+{
+	unsigned long p,i;
+	p = pTable.DriverReRecord.CurPoint;
+	DataManager.c:822:4:
+	erase4kflash(p,50);
+	SPI_FLASH_BufferWrite(SPI1,(unsigned char *)driverregisterdata , p, 50);
+
+}
+#endif
+void WriteRecordData2Flash(unsigned long p ,unsigned char *buff,unsigned long num)
+{
+	erase4kflash(p,num);
+	SPI_FLASH_BufferWrite(SPI1,(unsigned char *)buff , p, 50);
+}
+
 //*----------------------------------------------------------------------------
 //* Function Name       : BaseDataHandler
-//* Object              : ����ϸ��ݴ��?���¼
+//* Object              : 锟斤拷锟斤拷细锟斤拷荽锟斤拷?锟斤拷锟铰�
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : PowerOnTime,STATUS1min,TimeChange,InRecordCycle,curTime
-//* �޸ĵ�ȫ�ֱ���      : PowerOnTime,STATUS1min,InRecordCycle   
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      : PowerOnTime,STATUS1min,TimeChange,InRecordCycle,curTime
+//* 锟睫改碉拷全锟街憋拷锟斤拷      : PowerOnTime,STATUS1min,InRecordCycle
 //*----------------------------------------------------------------------------
+void ValueStatusHandler()
+{
+	//驾驶状态变化处理
+	if((CurSpeed >0)&&(Datastatusdata.keepstart10s == 1))
+	{
+		DriverStatus |= DRIVING_STAR;
+		DriverStatus &= ~DRIVING_STAR;
+		if(Datastatusdata.Over4hour)//并且同一个驾驶人
+		{
+			DriverStatus |= DRIVING_OVERTIME;
+		}
+		//Ifshijianchaoguo
+
+	}
+	else if ((CurSpeed == 0)&&(Datastatusdata.keepstop10s == 1))
+	{
+		DriverStatus |= DRIVING_STOP;
+		DriverStatus &= ~DRIVING_STAR;
+		if( Datastatusdata.Over20min == 1)//并且同一个驾驶人
+		{
+			DriverStatus |= DRIVING_STOP_DRIVER;
+		}
+
+	}
+	//疑点数据判断处理状态变化
+	if((Datastatusdata.locationchagestatus == 1)&&(DriverStatus & DRIVING_STAR ))//或者记录仪断电
+	{
+		DoubltPointstatus = DBRECORD_END;
+	}
+	else if((DriverStatus & DRIVING_STAR ))
+	{
+		DoubltPointstatus = DBRECORD_START;
+	}
+	else
+	{
+		DoubltPointstatus= NONE_DB;
+	}
+	//司机登记状态变化
+	if((GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4))&& (Datastatusdata.keeprestatus == 0))
+	{
+		Datastatusdata.keeprestatus = 1;
+		DriverRegstatus = DRIVER_REG_IN;
+	}
+	else if((GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4)== 0)&&Datastatusdata.keeprestatus == 0)
+	{
+		DriverRegstatus = DRIVER_REG_OUT;
+		Datastatusdata.keeprestatus = 1;
+	}
+
+	//日志状态转换
+	if(CurSpeed >40 )
+	{
+		if(Datastatusdata.keepthespeed == 0)
+		{
+			Datastatusdata.keepthespeed =1;
+			JournalRecordstatus = RECORD_STARTTIME;
+		}
+		else if((Datastatusdata.keepthespeed == 1)&&(Datastatusdata.keepspeed5min))
+		{
+			if(speeddel <11)
+				JournalRecordstatus = NORMAL;
+			else
+				JournalRecordstatus = ABORT;
+		}
+	}
+
+
+}
 void BaseDataHandler()
 {
 	int i,pt;
-	unsigned short data;
-	RecordData_start rec_start;
+	if(DriverStatus & DRIVING_STAR )
+	{
 
-	if((InRecordCycle&(1<<BASEDATA))==0)
-	{//���û�п�ʼ��¼����ʻ���
-		
-//		if((PowerOn&&(PowerOnTime>=5))||((CurSpeed - DeltaSpeed==0)&&(CurSpeed>0)))
-		if(CurSpeed>0)
-		{//�ϵ�ʱ�̣���¼һ�����
-			PowerOnTime = 0;
-			PulseTotalNumber = 0;//���	����
-			
-			InRecordCycle |= 1<<BASEDATA;//��ǡ���ʼ��¼��ݡ�
-			STATUS1min = 0;//2003.10.23,panhui
-			
-			//׼����ʼ���
-			rec_start.dt.type = 0xFEFE;
-			rec_start.dt.year = curTime.year;
-			rec_start.dt.month = curTime.month;
-			rec_start.dt.day = curTime.day;
-			rec_start.dt.hour = curTime.hour;
-			rec_start.dt.minute = curTime.minute;
-			rec_start.dt.second = curTime.second;
-			
-			PowerOnDT = rec_start.dt;//��ʼ���ϵ�ʱ��ͱ�־
-			if(CurrentDriver.DriverCode == 0)
-				PowerOnDT.type = 0xefef;
-			
-			//�жϵ�ǰָ���Ƿ�Ϊż����Ϊ�����һ���ֽ�
+		STATUS1min = 0;//2003.10.23,panhui
+		if((pTable.BaseData.CurPoint&1)!=0)
+		{
+			pTable.BaseData.CurPoint++;
+			if(pTable.BaseData.CurPoint>pTable.BaseData.EndAddr)
+				pTable.BaseData.CurPoint=pTable.BaseData.BaseAddr;
+		}
+		STATUS1min |= CurStatus;
+		if(TimeChange & (0x01<<SECOND_CHANGE))//锟斤拷一锟斤拷锟斤拷
+		{
+			if (curTime.second == 0)
+			{
+				basedata.basedataclk.year = curTime.year;
+				basedata.basedataclk.month = curTime.month;
+				basedata.basedataclk.day = curTime.day;
+				basedata.basedataclk.hour = curTime.hour;
+				basedata.basedataclk.minute = curTime.minute;
+				basedata.basedataclk.second = curTime.second;
+				InRecordCycle |= 1<<BASEDATA;
+				InRecordCycle &= ~(1<<BASEDATA);
+			}
+			else if(curTime.second == 0x59)
+			{
+				basedata.speed[curTime.second] = (unsigned char)CurSpeed;
+				basedata.status[curTime.second] = (unsigned char)CurStatus;
+				WriteBaseDataToFlash((unsigned short *)(&basedata),sizeof(BaseDataBlock),DATA_1min);
+				#if RPM_EN
+				data = (unsigned short)CurEngine;
+				WriteBaseDataToFlash((unsigned short *)(&basedata),1,DATA_1min);
+				#endif
+			}
+			basedata.speed[curTime.second] = (unsigned char)CurSpeed;
+			basedata.status[curTime.second] = (unsigned char)CurStatus;
+			STATUS1min = 0;
+		}
+	}
+	else
+	{
+		if(( InRecordCycle&(1<<BASEDATA))==BASEDATA)
+		{
+			if(TimeChange & (0x01<<SECOND_CHANGE))
+			{
+				if (curTime.second != 0)
+				{
+					basedata.speed[curTime.second] = 0xff;
+					basedata.status[curTime.second] = 0xff;
+				}
+				else
+				{
+					WriteBaseDataToFlash((unsigned short *)(&basedata),sizeof(BaseDataBlock),DATA_1min);
+					InRecordCycle &= ~(1<<BASEDATA);
+				}
+
+			}
+
+		}
+
+	}
+	
+}
+
+void LocationHandler()
+{
+	int i,pt;
+	if((DriverStatus & DRIVING_STAR ))
+	{
+
+		if((pTable.BaseData.CurPoint&1)!=0)
+		{
+			pTable.BaseData.CurPoint++;
+			if(pTable.BaseData.CurPoint>pTable.BaseData.EndAddr)
+				pTable.BaseData.CurPoint=pTable.BaseData.BaseAddr;
+		}
+
+		if(TimeChange & (0x01<<MINUTE_CHANGE))//锟斤拷一锟斤拷锟斤拷
+		{
+			if (curTime.minute == 0)
+			{
+				WritelocationData2Flash(TIME);//write the time
+				InRecordCycle |= 1<<LOCATIONDATA;
+			}
+			else if(curTime.minute == 0x59)
+			{
+				//update the location pt
+				InRecordCycle &= ~(1<<LOCATIONDATA);
+			}
+			//jisuan sudu
+			WritelocationData2Flash(DATA);//write the data
+
+		}
+	}
+	else
+	{
+		if(( InRecordCycle&(1<<LOCATIONDATA))==LOCATIONDATA)
+		{
+			if(TimeChange & (0x01<<SECOND_CHANGE))
+			{
+				if (curTime.minute == 0)
+				{
+					WritelocationData2Flash(DATA);//write the data
+					InRecordCycle &= ~(1<<LOCATIONDATA);
+				}
+
+
+
+			}
+
+		}
+
+	}
+
+}
+void OverDriverHandler()
+{
+	int i,pt;
+	if((DriverStatus & DRIVING_OVERTIME ))
+	{
+		overdriverdata.startdrivertime.year =startdriverclk.year;
+		overdriverdata.startdrivertime.month =startdriverclk.month;
+		overdriverdata.startdrivertime.day =startdriverclk.day;
+		overdriverdata.startdrivertime.hour =startdriverclk.hour;
+		overdriverdata.startdrivertime.minute =startdriverclk.minute;
+		overdriverdata.startdrivertime.second =startdriverclk.second;
+
+	    if (DriverStatus & DRIVING_STOP_DRIVER )
+		{
+			overdriverdata.enddrivertime.year =enddriverclk.year;
+			overdriverdata.enddrivertime.month =enddriverclk.month;
+			overdriverdata.enddrivertime.day =enddriverclk.day;
+			overdriverdata.enddrivertime.hour =enddriverclk.hour;
+			overdriverdata.enddrivertime.minute =enddriverclk.minute;
+			overdriverdata.enddrivertime.second =enddriverclk.second;
+
 			if((pTable.BaseData.CurPoint&1)!=0)
 			{
 				pTable.BaseData.CurPoint++;
 				if(pTable.BaseData.CurPoint>pTable.BaseData.EndAddr)
 					pTable.BaseData.CurPoint=pTable.BaseData.BaseAddr;
 			}
-			
-			//��ʻ��¼���д��dataflash
-			WriteBaseDataToFlash((unsigned short *)(&rec_start),(sizeof(RecordData_start))/2,START);
-			
+			WriteRecordData2Flash(pTable.OverSpeedRecord.CurPoint,(unsigned char *)&overdriverdata,50);//write the data
 		}
-		else if(PowerOn&&(PowerOnTime<5))
-//		{
-//			if(PowerOnTime==0)
-//				PulseTotalNumber = 0;
-			PowerOnTime ++;
-//		}
-		else
-			PowerOnTime = 0;
+
 	}
-	else
-	{//���ڼ�¼��ʻ���
-		if((CurSpeed == 0)&&(!PowerOn))
-		{//�ٶ�Ϊ��ʱ�ϵ磬��¼һ�������
-			InRecordCycle &= ~(1<<BASEDATA);//��ǡ������¼��ݡ�
-			//׼���������
-			rec_end.dt.type = 0xaeae;
-			rec_end.dt.year = curTime.year;
-			rec_end.dt.month = curTime.month;
-			rec_end.dt.day = curTime.day;
-			rec_end.dt.hour = curTime.hour;
-			rec_end.dt.minute = curTime.minute;
-			rec_end.dt.second = curTime.second;
-			rec_end.DistancePulse = PulseTotalNumber;//DistancePulse
-			rec_end.DriverCode = RecordDriver.DriverCode;
+}
 
-			pTable.TotalDistance += PulseTotalNumber;
-			
-			FinishFlag = 1;
-
-		}
-		else if((CurSpeed - DeltaSpeed==0)&&(CurSpeed>0)&&
-		(CurrentDriver.DriverCode!=RecordDriver.DriverCode)&&
-		(CurrentDriver.DriverCode!=0))
-		{//��˾���¼һ�������
-			//׼���������
-			rec_end.dt.type = 0xaeae;
-			rec_end.dt.year = curTime.year;
-			rec_end.dt.month = curTime.month;
-			rec_end.dt.day = curTime.day;
-			rec_end.dt.hour = curTime.hour;
-			rec_end.dt.minute = curTime.minute;
-			rec_end.dt.second = curTime.second;
-			rec_end.DistancePulse = PulseTotalNumber;//DistancePulse
-			rec_end.DriverCode = RecordDriver.DriverCode;
-			pTable.TotalDistance += PulseTotalNumber;
-			
-			//��ʻ��¼�����д��dataflash
-			WriteBaseDataToFlash((unsigned short *)(&rec_end),(sizeof(RecordData_end))/2,END);
-			
-			//׼����ʼ���
-			rec_start.dt.type = 0xFEFE;
-			rec_start.dt.year = curTime.year;
-			rec_start.dt.month = curTime.month;
-			rec_start.dt.day = curTime.day;
-			rec_start.dt.hour = curTime.hour;
-			rec_start.dt.minute = curTime.minute;
-			rec_start.dt.second = curTime.second;
-			PowerOnDT = rec_start.dt;//��ʼ���ϵ�ʱ��ͱ�־
-			
-			//��ʻ��¼���д��dataflash
-			WriteBaseDataToFlash((unsigned short *)(&rec_start),(sizeof(RecordData_start))/2,START);
-			RecordDriver = CurrentDriver;
-			PulseTotalNumber = 0;
-
-		}
-		else
-		{//1���Ӽ�¼һ���ٶ�״̬���
-			STATUS1min |= CurStatus;
-			if(TimeChange & (0x01<<SECOND_CHANGE))//��һ����
+//*----------------------------------------------------------------------------
+//* Function Name       : RunRecord360Handler
+//* Object              :360小时平锟斤拷锟劫讹拷锟斤拷驶锟斤拷录锟斤拷统锟斤拷疲锟酵硷拷驶
+//* Input Parameters    : none
+//* Output Parameters   : none
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      : CurSpeed,curTime
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
+//*----------------------------------------------------------------------------
+//0.2秒跑一遍
+void DoubltPointHandler()
+{
+	unsigned char i,cnt;
+	static unsigned DBcnt = 0;
+	unsigned char *ptr ;
+	switch(DoubltPointstatus)
+	{
+		case DBRECORD_START:
+			ddb.data[DBcnt].speed = CurSpeed;
+			ddb.data[DBcnt].status = CurStatus;
+			DBcnt++;
+			if(DBcnt == 100)
+				DBcnt = 0;
+			break;
+		case DBRECORD_END:
+			for(i= 0;i++;i<100)
 			{
-				data = (unsigned char)CurSpeed;
-				data = (STATUS1min<<8) + data;
-				STATUS1min = 0;
-				WriteBaseDataToFlash((unsigned short *)(&data),1,DATA_1min);
-				#if RPM_EN
-				data = (unsigned short)CurEngine;
-				WriteBaseDataToFlash((unsigned short *)(&data),1,DATA_1min);
-				#endif
+				cnt = DBcnt+i;
+				if(cnt>99)
+				{
+					cnt = cnt-100;
+				}
+				ddb.data[i].speed= ddb.data[cnt].speed;
+				ddb.data[i].status= ddb.data[cnt].status;
 			}
-	
+			ptr = (unsigned char *)&ddb.StopTime;
+			for(i = 0;i++;i<6)
+			{
+				ptr[i] = (unsigned char )*((unsigned char * )(&curTime+i));
+			}
+			ptr = (unsigned char *)&ddb.vaildlocation;
+			for(i = 0;i++;i<10)
+			{
+				ptr[i]= (unsigned char )*((unsigned char * )&location+i);
+			}
+			WriteRecordData2Flash(pTable.DoubtPointData.CurPoint,(unsigned char *)&ddb,234);
+		break;
+		default:
+			break;
+
+
+
+}
+void DrvierRegisterHandler()
+{
+	unsigned char i;
+	unsigned char *ptr;
+		if((DriverRegstatus & DRIVER_REG_IN)||(DriverRegstatus & DRIVER_REG_OUT))
+		{
+			ptr = (unsigned char *)&driverregisterdata.happentime;
+			for(i=0;i++;i<18)
+			{
+				driverregisterdata.DriverLisenseCode[i] = CurrentDriver.DriverLisenseCode[i];
+			}
+			if(DriverRegstatus &DRIVER_REG_IN)
+			{
+
+				for(i=0;i++;i<6)
+				{
+					ptr[i] = (unsigned char )*((unsigned char * )(&startdriverclk+i));
+				}
+				driverregisterdata.registerstatus = 0x01;
+			}
+			else
+			{
+				for(i=0;i++;i<6)
+				{
+					ptr[i] = (unsigned char )*((unsigned char * )&enddriverclk+i);
+				}
+				driverregisterdata.registerstatus = 0x02;
+
+			}
+			WriteRecordData2Flash(pTable.DriverReRecord.CurPoint,(unsigned char *)&driverregisterdata,25);
 		}
+}
+
+void PowerHandle()
+{
+	unsigned char i;
+	unsigned char *ptr = (unsigned char *)&powerdata.powertime;
+
+	if((powerstatus & POWER_ON)||(DriverRegstatus & POWER_OFF))
+	{
+		for(i=0;i++;i<6)
+		{
+			ptr[i] = (unsigned char )*((unsigned char * )(&curTime+i));
+		}
+		powerdata.powerstatus = paramodifystatus;
+		WriteRecordData2Flash(pTable.PowerOffRunRecord.CurPoint,(unsigned char *)&modifydata,7);
+	}
+
+}
+
+void ModifyHandle()
+{
+	unsigned char i;
+	unsigned char *ptr = (unsigned char *)&modifydata.modifytime;
+	if(paramodifystatus)
+	{
+		for(i=0;i++;i<6)
+		{
+			ptr[i] = (unsigned char )*((unsigned char * )(&curTime+i));
+		}
+		modifydata.modifystatus = powerstatus;
+		WriteRecordData2Flash(pTable.ModifyRecord.CurPoint,(unsigned char *)&modifydata,7);
+	}
+
+}
+
+//此函数一秒钟执行一次
+void JournalHandle()
+{
+	unsigned char i;
+	static unsigned JNcnt;
+	unsigned char *ptr;
+	switch(JournalRecordstatus)
+	{
+		case NORMAL://记录正常数据
+		case ABORT://记录异常数据
+			journaldata.speedstatus = JournalRecordstatus;
+			JournalRecordstatus = NONE_OPR;
+			ptr = (unsigned char *)&journaldata.jouranlendtime;
+			for(i = 0;i++;i<6)
+			{
+				ptr[i]= (unsigned char )*((unsigned char * )(&curTime+i));
+			}
+			WriteRecordData2Flash(pTable.journalRecord.CurPoint,(unsigned char *)&journaldata,133);
+		break;
+		case RECORD_STARTTIME://满足速度>40,并且异常与正常交替
+			ptr = (unsigned char *)&journaldata.journalstartime;
+			for(i = 0;i++;i<6)
+			{
+				ptr[i] = (unsigned char )*((unsigned char * )(&curTime+i));
+			}
+			journaldata.rspeed[0] = RsSpeed;
+			journaldata.speed[0]  = CurSpeed;
+			JNcnt = 1;
+			JournalRecordstatus = RECORD_DATA;
+			break;
+		case RECORD_DATA://满足速度>40,并且误差率限数值保持在一个水平
+			journaldata.rspeed[JNcnt] = RsSpeed;
+			journaldata.speed[JNcnt]  = CurSpeed;
+			if(JNcnt== 59)
+			{
+				JNcnt = 0;
+				JournalRecordstatus = NONE_OPR;
+			}
+			break;
+		default:
+			break;
 	}
 
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : FinishAllRecord
-//* Object              : �������м�¼
+//* Object              : 锟斤拷锟斤拷锟斤拷锟叫硷拷录
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : PowerOnTime,STATUS1min,TimeChange,InRecordCycle,curTime
-//* �޸ĵ�ȫ�ֱ���      : PowerOnTime,STATUS1min,InRecordCycle   
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      : PowerOnTime,STATUS1min,TimeChange,InRecordCycle,curTime
+//* 锟睫改碉拷全锟街憋拷锟斤拷      : PowerOnTime,STATUS1min,InRecordCycle
 //*----------------------------------------------------------------------------
 void FinishAllRecord()
 {
 	if(FinishFlag)
 	{
-		//��ʻ��¼�����д��dataflash
+		//锟斤拷驶锟斤拷录锟斤拷锟斤拷锟叫达拷锟絛ataflash
 		WriteBaseDataToFlash((unsigned short *)(&rec_end),(sizeof(RecordData_end))/2,END);
-		RecordDriver = CurrentDriver;//�ָ���¼˾��
+		RecordDriver = CurrentDriver;//锟街革拷锟斤拷录司锟斤拷
 		FinishFlag = 0;
 	}
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : GetOTDRDataFromFlash
-//* Object              : �Ӹ�ĵ�ַ��ȡinc���ȵ�ƣ�ͼ�ʻ���
-//*                       ����ŵ�BUF��
-//* Input Parameters    : p������ĵ�ַ
-//*                       inc������ݳ��ȣ���ݷ��ȷ������ݵķ���
-//*                       ע�⣺inc����Ϊ�����ż��
-//*                       buf����������
+//* Object              : 锟接革拷牡锟街凤拷锟饺nc锟斤拷锟饺碉拷疲锟酵硷拷驶锟斤拷锟�
+//*                       锟斤拷锟斤拷诺锟紹UF锟斤拷
+//* Input Parameters    : p锟斤拷锟斤拷锟斤拷牡锟街�
+//*                       inc锟斤拷锟斤拷锟斤拷莩锟斤拷龋锟斤拷锟捷凤拷锟饺凤拷锟斤拷锟斤拷锟捷的凤拷锟斤拷
+//*                       注锟解：inc锟斤拷锟斤拷为锟斤拷锟斤拷锟脚硷拷锟�
+//*                       buf锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 {
@@ -1333,6 +1277,7 @@ void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 
 	if(inc==0)
 		return;
+#if 0
 	if(inc<0){
 		StructPT temp;
 		temp = pTable.RunRecord360h;
@@ -1341,7 +1286,7 @@ void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 		inc=0-inc;
 	}
 
-	//���ָ��Ϊż��
+	//锟斤拷锟街革拷锟轿硷拷锟�
 	if(((unsigned long)p&1)==0)
 	{
 		for(i=0;i<inc/2;i++){
@@ -1351,7 +1296,7 @@ void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 			if((unsigned long)p > pTable.RunRecord360h.EndAddr)
 				p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
 		}
-		//���incΪ����
+		//锟斤拷锟絠nc为锟斤拷锟斤拷
 		if((inc&1)==1)
 		{
 //			p=(unsigned short *)((unsigned long)p-1);
@@ -1361,9 +1306,9 @@ void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 				p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
 		}
 	}
-	//���ָ��Ϊ����
+	//锟斤拷锟街革拷锟轿拷锟斤拷锟�
 	else{
-		//���incΪż��
+		//锟斤拷锟絠nc为偶锟斤拷
 		if((inc&1)==0)
 		{
 			p=(unsigned short *)((unsigned long)p-1);
@@ -1381,7 +1326,7 @@ void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 					p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
 			}
 		}
-		//���incΪ����
+		//锟斤拷锟絠nc为锟斤拷锟斤拷
 		if((inc&1)==1)
 		{
 			p=(unsigned short *)((unsigned long)p-1);
@@ -1399,14 +1344,15 @@ void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 			}		
 		}
 	}
+#endif
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : IsCorrectCLOCK
-//* Object              : �ж�ʱ������Ƿ���ȷ
-//* Input Parameters    : ʱ��ָ��
-//* Output Parameters   : �Ƿ���һ����ȷ��ʱ�����
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* Object              : 锟叫讹拷时锟斤拷锟斤拷锟斤拷欠锟斤拷锟饺�
+//* Input Parameters    : 时锟斤拷指锟斤拷
+//* Output Parameters   : 锟角凤拷锟斤拷一锟斤拷锟斤拷确锟斤拷时锟斤拷锟斤拷锟�
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 int IsCorrectCLOCK(CLOCK *dt)
 {
@@ -1434,11 +1380,11 @@ int IsCorrectCLOCK(CLOCK *dt)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : IsCorrectClock
-//* Object              : �ж�ʱ������Ƿ���ȷ
-//* Input Parameters    : ʱ��ָ��
-//* Output Parameters   : �Ƿ���һ����ȷ��ʱ�����
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* Object              : 锟叫讹拷时锟斤拷锟斤拷锟斤拷欠锟斤拷锟饺�
+//* Input Parameters    : 时锟斤拷指锟斤拷
+//* Output Parameters   : 锟角凤拷锟斤拷一锟斤拷锟斤拷确锟斤拷时锟斤拷锟斤拷锟�
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 int IsCorrectClock(Record_CLOCK *dt)
 {
@@ -1466,13 +1412,13 @@ int IsCorrectClock(Record_CLOCK *dt)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : GetOTDR
-//* Object              : ��ȡ��ǰ��ƣ�ͼ�ʻ��¼
-//* Input Parameters    : p������ǰָ��;
-//*                       s����ƣ�ͼ�ʻ��¼��ʼ���;
-//*                       e����ƣ�ͼ�ʻ��¼�������;
-//* Output Parameters   : �Ƿ���һ��ƣ�ͼ�ʻ��¼
-//* ���õ�ȫ�ֱ���      :
-//* �޸ĵ�ȫ�ֱ���      :
+//* Object              : 锟斤拷取锟斤拷前锟斤拷疲锟酵硷拷驶锟斤拷录
+//* Input Parameters    : p锟斤拷锟斤拷锟斤拷前指锟斤拷;
+//*                       s锟斤拷锟斤拷疲锟酵硷拷驶锟斤拷录锟斤拷始锟斤拷锟�
+//*                       e锟斤拷锟斤拷疲锟酵硷拷驶锟斤拷录锟斤拷锟斤拷锟斤拷锟�
+//* Output Parameters   : 锟角凤拷锟斤拷一锟斤拷疲锟酵硷拷驶锟斤拷录
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      :
+//* 锟睫改碉拷全锟街憋拷锟斤拷      :
 //*----------------------------------------------------------------------------
 int GetOTDR( unsigned long p, OTDR_start *s, OTDR_end *e )
 {
@@ -1485,7 +1431,6 @@ int GetOTDR( unsigned long p, OTDR_start *s, OTDR_end *e )
 		return (0);
 	
 	StructPT temp;
-	temp = pTable.RunRecord360h;
 	temp.CurPoint = (unsigned long)p;
 	offset = 0 - (sizeof(OTDR_start)+sizeof(OTDR_end)+e->MinuteNb);
 	p = AddPointer(&temp, offset);
@@ -1500,155 +1445,29 @@ int GetOTDR( unsigned long p, OTDR_start *s, OTDR_end *e )
 	
 }
 //*----------------------------------------------------------------------------
-//* Function Name       : GetOverTimeRecordIn2Days
-//* Object              : ��ȡ��ǰ˾��������������ڵ�ƣ�ͼ�ʻ��¼
-//* Input Parameters    : ��¼ƣ�ͼ�ʻ��¼������ָ�루�����С��15����
-//* Output Parameters   : ƣ�ͼ�ʻ��¼�ĸ���
-//* ���õ�ȫ�ֱ���      : none
-//* �޸ĵ�ȫ�ֱ���      : none
-//*----------------------------------------------------------------------------
-unsigned char GetOverTimeRecordIn2Days(OTDR *record)
-{
-	OTDR_start CurOTDR_start;
-	OTDR_end CurOTDR_end;
-	StructPT spt;
-	unsigned char next=0;//=0�������¿�ʼһ���¼�¼
-				  //=1�����ȴ���һ����¼
-	
-	unsigned long p;
-	int offset,i;
-	unsigned char number=0;
-	CLOCK time;
-	unsigned char timeflag=0;
-	DateTime LastDT,CurDT;
-	int space;
-	unsigned long addup,bytes=0;
-
-	spt = pTable.RunRecord360h;
-	p = pTable.RunRecord360h.CurPoint;
-
-	for(i=0;i<15;i++)
-	{
-		record[i].end.MinuteNb = 0;
-		record[i].end.driver.DriverCode = 0;
-	}
-
-	do
-	{
-		//��ȡ��ǰ��ƣ�ͼ�ʻ��¼
-		if(!GetOTDR( p, &CurOTDR_start, &CurOTDR_end))
-		{
-			offset = -1;
-			p = AddPointer(&spt, offset);
-			spt.CurPoint = p;
-			bytes++;
-			if((bytes>=4096)||(p == pTable.RunRecord360h.CurPoint))
-			{//��Ҳû�м�¼��
-				if(record[number].end.MinuteNb>DriveMinuteLimit)
-					number++;
-				break;
-			}
-			continue;
-		}
-		//�����µ�ָ��ֵ
-		offset = 0 - (sizeof(CurOTDR_end)+sizeof(CurOTDR_start)+CurOTDR_end.MinuteNb);
-		p = AddPointer(&spt, offset);
-		spt.CurPoint = p;
-				
-		//�Ƚ�˾�����Ƿ����
-		if(PartitionTable_BASE->DriverCode!=CurOTDR_end.driver.DriverCode)
-			continue;
-			
-		if(timeflag == 0)
-		{//��¼����2������������
-			time.year = CurOTDR_end.dt.year;
-			time.month = CurOTDR_end.dt.month;
-			time.day = CurOTDR_end.dt.day;
-			time.hour = CurOTDR_end.dt.hour;
-			time.minute = CurOTDR_end.dt.minute;
-			time.second = CurOTDR_end.dt.second;
-			timeflag = 1;
-		}
-
-		
-		//�Ƚ�ʱ���Ƿ�����Ҫ���Լ��Ƿ���������������
-		if((time.year!=CurOTDR_end.dt.year)||(time.month!=CurOTDR_end.dt.month)||(time.day!=CurOTDR_end.dt.day))
-		{//�����ͬһ������
-			//�ж��Ƿ���ǰһ�������죿
-			if(!IfOneAfterAotherDay(&time, &CurOTDR_end))
-			{
-				if(record[number].end.MinuteNb>DriveMinuteLimit)
-					number++;
-				break;
-			}
-		}
-		
-		//ͳ��ƣ�ͼ�ʻ
-		if(next == 0)
-		{
-			record[number].start = CurOTDR_start;
-			record[number].end = CurOTDR_end;
-			next = 1;
-		}
-		else if(next == 1)
-		{
-			PrepareTime((unsigned char *)(&(CurOTDR_end.dt.year)),&LastDT);
-			PrepareTime((unsigned char *)(&(record[number].start.dt.year)),&CurDT);
-			space=HaveTime(CurDT,LastDT);
-			if(space<0)
-			{
-				if(record[number].end.MinuteNb>DriveMinuteLimit)
-					number++;
-				break;
-			}
-			else if(space<RestMinuteLimit)
-			{//�ϲ���¼
-				addup = record[number].end.MinuteNb+space+CurOTDR_end.MinuteNb;
-				record[number].end.MinuteNb = addup;
-				addup = record[number].end.TotalDistance+CurOTDR_end.TotalDistance;
-				record[number].end.TotalDistance = addup;
-				record[number].start = CurOTDR_start;
-			}
-			else
-			{//ȷ���Ƿ���һ��Ϊƣ�ͼ�ʻ��¼������¼���μ�¼
-				if(record[number].end.MinuteNb>DriveMinuteLimit)
-					number++;
-				record[number].start = CurOTDR_start;
-				record[number].end = CurOTDR_end;
-			}
-		}
-		
-	
-	}while((bytes<4096)&&(p != pTable.RunRecord360h.CurPoint));//��δ����ƣ�ͼ�ʻ��¼
-
-	return (number);
-}
-//*----------------------------------------------------------------------------
 //* Function Name       : ComputeDistance100m
-//* Object              : ���������ͳ���ϵ����������λΪ����
-//* Input Parameters    : pulseNb�������������
-//* Output Parameters   : ������0-5804009��
-//* ���õ�ȫ�ֱ���      : none
-//* �޸ĵ�ȫ�ֱ���      : none
+//* Object              : 锟斤拷锟斤拷锟斤拷锟斤拷锟酵筹拷锟斤拷系锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷位为锟斤拷锟斤拷
+//* Input Parameters    : pulseNb锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟�
+//* Output Parameters   : 锟斤拷锟斤拷锟斤拷0-5804009锟斤拷
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      : none
+//* 锟睫改碉拷全锟街憋拷锟斤拷      : none
 //*----------------------------------------------------------------------------
 unsigned long ComputeDistance100m(unsigned long pulseNb)
 {
 	unsigned long result;
-	unsigned char PP = PARAMETER_BASE->PulseNumber;
-	if((PP==0)||(PP>24))
-		PP = 8;
-	result = (pulseNb/(PP*PARAMETER_BASE->CHCO/10));
+	unsigned char PP =8;
+	result = (pulseNb/(PP*Parameter.PulseCoff/10));
 	return result;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : CompareDateTime
-//* Object              : �Ƚ�����ʱ��Ĵ�С
-//* Input Parameters    : dt1����ʱ��1��dt2����ʱ��2
-//* Output Parameters   : 1 ���� dt1 > dt2;
-//                       -1 ���� dt1 < dt2;
-//                        0 ���� dt1 = dt2;
-//* ���õ�ȫ�ֱ���      : none
-//* �޸ĵ�ȫ�ֱ���      : none
+//* Object              : 锟饺斤拷锟斤拷锟斤拷时锟斤拷拇锟叫�
+//* Input Parameters    : dt1锟斤拷锟斤拷时锟斤拷1锟斤拷dt2锟斤拷锟斤拷时锟斤拷2
+//* Output Parameters   : 1 锟斤拷锟斤拷 dt1 > dt2;
+//                       -1 锟斤拷锟斤拷 dt1 < dt2;
+//                        0 锟斤拷锟斤拷 dt1 = dt2;
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      : none
+//* 锟睫改碉拷全锟街憋拷锟斤拷      : none
 //*----------------------------------------------------------------------------
 int CompareDateTime(Record_CLOCK dt1,Record_CLOCK dt2)
 {
@@ -1702,11 +1521,11 @@ int CompareDateTime(Record_CLOCK dt1,Record_CLOCK dt2)
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DataPointerSeek
-//* Object              : ���ָ�붨λ
+//* Object              : 锟斤拷锟街革拷攵ㄎ�
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ���õ�ȫ�ֱ���      : none
-//* �޸ĵ�ȫ�ֱ���      : none
+//* 锟斤拷锟矫碉拷全锟街憋拷锟斤拷      : none
+//* 锟睫改碉拷全锟街憋拷锟斤拷      : none
 //*----------------------------------------------------------------------------
 void DataPointerSeek()
 {
@@ -1718,7 +1537,7 @@ void DataPointerSeek()
 	int i;
 	DataPoint = pTable.BaseData.CurPoint;
 	p = (unsigned char *)DataPoint;
-	//���ҵ�ǰָ��λ���Ƿ���ڱ�־
+	//锟斤拷锟揭碉拷前指锟斤拷位锟斤拷锟角凤拷锟斤拷诒锟街�
 	for(i=0;i<RecordFlagByte;i++)
 	{
 		if(*p!=0xff)
@@ -1728,14 +1547,14 @@ void DataPointerSeek()
 		else
 			p++;
 	}
-	if(i==RecordFlagByte)//��־���ڣ�����ָ�붨λ��
+	if(i==RecordFlagByte)//锟斤拷志锟斤拷锟节ｏ拷锟斤拷锟斤拷指锟诫定位锟斤拷
 		return;
 		
-	//���¶�λ����ݵ�ָ��
+	//锟斤拷锟铰讹拷位锟斤拷锟斤拷莸锟街革拷锟�
 	do 
 	{
 		if((*p == 0xff)&&(((unsigned long)p&1)==0))
-		{//�����ҵ���־
+		{//锟斤拷锟斤拷锟揭碉拷锟斤拷志
 			i=0;
 			do
 			{
@@ -1745,10 +1564,10 @@ void DataPointerSeek()
 					p++;
 				i++;
 			}while((*p==0xff)&&(i<RecordFlagByte));
-			if(i == RecordFlagByte)//�ҵ�����ָ��λ��
+			if(i == RecordFlagByte)//锟揭碉拷锟斤拷锟斤拷指锟斤拷位锟斤拷
 			{
-				//�鿴��־֮ǰ�Ƿ��н����־AEAE
-				//1)�ж��Ƿ�����Ѿ�д��aeae��־�ķ���ϵ��¼
+				//锟介看锟斤拷志之前锟角凤拷锟叫斤拷锟斤拷锟街続EAE
+				//1)锟叫讹拷锟角凤拷锟斤拷锟斤拷丫锟叫达拷锟絘eae锟斤拷志锟侥凤拷锟斤拷系锟斤拷录
 				DataPoint = (unsigned long)p;
 				DataPoint -= (RecordFlagByte+2);
 				if(DataPoint<pTable.BaseData.BaseAddr)
@@ -1756,14 +1575,14 @@ void DataPointerSeek()
 				f1 = *((unsigned char *)DataPoint);
 				f2 = *((unsigned char *)(DataPoint+1));
 				if((f1==0xae)&&(f2==0xae))
-				{//����ϵ��¼����ָ�����
+				{//锟斤拷锟斤拷系锟斤拷录锟斤拷锟斤拷指锟斤拷锟斤拷锟�
 					pTable.BaseData.CurPoint = (unsigned long)p;
 					pTable.BaseData.CurPoint = AddPointer(&(pTable.BaseData),-2);
 					update = 1;
 					break;
 				}
 				
-				//2)�ж��Ƿ������ϵ��¼
+				//2)锟叫讹拷锟角凤拷锟斤拷锟斤拷锟较碉拷锟铰�
 				DataPoint = (unsigned long)p;
 				DataPoint -= RecordFlagByte*2;
 				if(DataPoint<pTable.BaseData.BaseAddr)
@@ -1771,20 +1590,20 @@ void DataPointerSeek()
 				f1 = *((unsigned char *)DataPoint);
 				f2 = *((unsigned char *)(DataPoint+1));
 					
-				//�����־��ʼλ��
+				//锟斤拷锟斤拷锟街撅拷锟绞嘉伙拷锟�
 				/////////*******2003.10.06 panhui*********////////
 				DataPoint = (unsigned long)p;
 				DataPoint -= RecordFlagByte;
 				if(DataPoint<pTable.BaseData.BaseAddr)
 					DataPoint = pTable.BaseData.EndAddr - (pTable.BaseData.BaseAddr - DataPoint)+1;
-				if((f1==0xae)&&(f2==0xae))//���¼����ݣ���ָ�����
+				if((f1==0xae)&&(f2==0xae))//锟斤拷锟铰硷拷锟斤拷锟捷ｏ拷锟斤拷指锟斤拷锟斤拷锟�
 					pTable.BaseData.CurPoint = DataPoint;
 				else
-				{//����ϵ�,δ���ü�д�����־AEAE
-					//д��ݽ����־
+				{//锟斤拷锟斤拷系锟�未锟斤拷锟矫硷拷写锟斤拷锟斤拷锟街続EAE
+					//写锟斤拷萁锟斤拷锟斤拷志
 					data = 0xaeae;
 					SPI_FLASH_BufferWrite(SPI1,(u8 *)(&data),(unsigned long )DataPoint,2);
-					//���·����
+					//锟斤拷锟铰凤拷锟斤拷锟�
 					pTable.BaseData.CurPoint = (unsigned long)p;
 				}
 				/////////*******2003.10.06 panhui*********////////
@@ -1793,7 +1612,7 @@ void DataPointerSeek()
 			}
 		}
 		else
-		{//δ�ҵ���־�������ƶ�ָ��
+		{//未锟揭碉拷锟斤拷志锟斤拷锟斤拷锟斤拷锟狡讹拷指锟斤拷
 			if((unsigned long)p == pTable.BaseData.EndAddr)
 				p = (unsigned char *)pTable.BaseData.BaseAddr;
 			else
@@ -1803,7 +1622,7 @@ void DataPointerSeek()
 	
 	if(update)
 	{
-		//���¶�λ�ɵ���ݵ�ָ��
+		//锟斤拷锟铰讹拷位锟缴碉拷锟斤拷莸锟街革拷锟�
 		Record_CLOCK LastDT,CurDT;
 		unsigned char *dp;
 		DataPoint = pTable.DoubtPointData.CurPoint;
@@ -1836,7 +1655,7 @@ void DataPointerSeek()
 			//////////modified by panhui 2003.10.20////////////
 			if(DataPoint > (pTable.DoubtPointData.EndAddr-110))
 				DataPoint = pTable.DoubtPointData.BaseAddr;
-			//////////�ػʵ�3̨��//////////////////////////////
+			//////////锟截皇碉拷3台锟斤拷//////////////////////////////
 			LastDT = CurDT;
 				
 		}while(DataPoint != pTable.DoubtPointData.CurPoint);	
@@ -1846,3 +1665,8 @@ void DataPointerSeek()
 		WritePartitionTable(&pTable);
 	}
 }
+}
+
+
+
+

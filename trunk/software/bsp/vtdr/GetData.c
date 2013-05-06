@@ -1,1101 +1,178 @@
-#include "includes.h"
-#include    "parts/r40807/lib_r40807.h"
-#include    "parts/r40807/reg_r40807.h"
-#include    "ibb3.h"
 
+#include <stm32f10x.h>
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_gpio.h>
+#include<stm32f10x_tim.h>
+#include<application.h>
+
+
+unsigned char CurStatus;
 #define SpeedSpace 4
 
-extern u_char USB_Communicate_Flag;
-extern PartitionTable pTable;
-extern u_char InRecordCycle;		//ÊÇ·ñÔÚ¼ÇÂ¼Êı¾İ¹ı³ÌÖĞ
+extern StructPara Parameter;
 
-UsartDesc *RS2320;
-u_int CurPulse = 0;
+unsigned long CurPulse = 0;
 
-u_int CurPN = 0;						//±¾´Î0.2Âö³åÊı
-u_int LastPN[SpeedSpace] = {0,0,0,0};   //ÉÏ´Î0.2ÃëÂö³åÊı
-u_int CurTN = 0;						//±¾´Î0.1msµÄ¸öÊı
-//u_int LastTN[SpeedSpace] = {0,0,0,0};   //ÉÏ´Î0.1msµÄ¸öÊı
-u_int CurSpeed = 0;						//µ±Ç°ËÙ¶ÈÖµ£¨1ÃëÆ½¾ù£©
-u_int LastSPE = 0;      				//0.2ÃëË²Ê±ËÙ¶ÈÖµ
-u_int AverageV = 0;						//ÏÔÊ¾ÓÃËÙ¶ÈÖµ
-u_int PulseNB_In1Sec = 0;
-u_int TimerNB_In1Sec = 0;
+unsigned long CurPN = 0;
+unsigned long LastPN20ms = 0;
+unsigned long LastPN1s = 0;
+unsigned long LastPN1min = 0;
+unsigned long CurSpeed = 0;	//å½“å‰é€Ÿåº¦ï¼ˆ0.2ç§’å¹³å‡é€Ÿåº¦ï¼‰
+unsigned long Curspeed1s = 0;//1så¹³å‡é€Ÿåº¦
+unsigned long Curspeed1min = 0;//1åˆ†é’Ÿå¹³å‡é€Ÿåº¦
 
-u_int IntervalTN = 0;
 
-int DeltaSpeed = 0;		//±¾´ÎËÙ¶ÈÓëÇ°Ò»´ÎµÄ²îÖµ = V1 - V0
-u_int PulseTotalNumber = 0;		//±¾´ÎĞĞÊ»×ÜÂö³åÊı
-u_int Distance = 0;         	//±¾´ÎĞĞÊ»Àï³Ì
+int DeltaSpeed = 0;
 
-u_int CurEngine =0;     		//µ±Ç°·¢¶¯»ú×ªËÙÖµ
-u_int RPM_PN=0;					//·¢¶¯»ú×ªËÙÂö³å¸öÊı
-u_int LastRPM[SpeedSpace] = {0,0,0,0};
-
-u_short STATUS = 0;				//16ÖÖ×´Ì¬
-u_short STATUS0 = 0;        	//Ç°Ò»×é×´Ì¬
-u_char CurStatus = 0;       	//¼ÇÂ¼µÄ8ÖÖ×´Ì¬
-u_char LastStatus = 0;
-
-u_char LastDoorStatus =0;
-extern u_char CurDoorStatus;
-u_char OpenFlag1=0;
-u_char OpenFlag2=0;
-
-u_char PowerOn = 0;
-u_char LastPowerOn = 0;
-u_char PowerOnT = 255;
-u_char PowerOffT = 0;
-u_char buff[32][4];
-#if RPM_EN
-//*----------------------------------------------------------------------------
-//* Function Name       : ComputeRPM
-//* Object              : ·¢¶¯»ú×ªËÙĞÅºÅµÄ¼ÆËã
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      :
-//*----------------------------------------------------------------------------
-void ComputeRPM()
+unsigned long Distance = 0;
+typedef struct
 {
-	u_int engine;
-	engine = RPM_PN;
-	RPM_PN = 0;
-	CurEngine = engine;
-	int i;
-	for(i=0;i<SpeedSpace;i++)
-	{
-		engine += LastRPM[i];
-		LastRPM[i]=LastRPM[i+1];
-	}
-	LastRPM[SpeedSpace-1] = CurEngine;
-	CurEngine = engine*60;
-}
-#endif
-
-#if OpenDoorDeal
-//*----------------------------------------------------------------------------
-//* Function Name       : DoubleLineLevel
-//* Object              : ¿ª¹ØÃÅ×´Ì¬ÎªË«ÏßµçÆ½
-//* Input Parameters    : DoorNB£¬ÃÅºÅ
-//* Output Parameters   : ±¾´Î¿ª¹ØÃÅ×´Ì¬
-//*                     : 0x80±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬Îª¸ß
-//*                     : 0x00±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬ÎªµÍ,»òÕß¿ª¹ØÃÅÎ´½Ó»òÎ´¼ì²âµ½¿ª¹ØÃÅ
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      : CurDoorStatus
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : 
-//*----------------------------------------------------------------------------
-u_char DoubleLineLevel(u_char DoorNB)
+	unsigned char Time200msflag:1;
+	unsigned char Time1sflag:1;
+	unsigned char Time1minflag:1;
+}Timeflag;
+typedef struct
 {
-	u_char doorstatus=0;
-	u_char door1Ostatus=0;
-	u_char door1Cstatus=0;
-	u_char door2Ostatus=0;
-	u_char door2Cstatus=0;
-	//È¡³ö¿ª¹ØÃÅµÄ×´Ì¬¼«ĞÔ
-	u_char pol=(PARAMETER_BASE->status_polarity)>>15;
-	
-	//Door1
-	if(DoorNB==1)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-		{
-			door1Ostatus = ((~(CurDoorStatus>>3))<<7)&0x80;
-			if(door1Ostatus)
-				OpenFlag1=1;
-			door1Cstatus = ((~(CurDoorStatus>>2))<<7)&0x80;
-			if(door1Cstatus)
-				OpenFlag1=0;
-		}
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-		{
-			door1Ostatus = (CurDoorStatus<<4)&0x80;
-			if(door1Ostatus)
-				OpenFlag1=1;
-			door1Cstatus = (CurDoorStatus<<5)&0x80;
-			if(door1Cstatus)
-				OpenFlag1=0;		
-		}
-		//2003.10.23 myw
-		doorstatus = (OpenFlag1<<7);
-	}
-	//Door2
-	if(DoorNB==2)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-		{
-			door1Ostatus = ((~(CurDoorStatus>>1))<<7)&0x80;
-			if(door1Ostatus)
-				OpenFlag2=1;
-			door1Cstatus = ((~(CurDoorStatus>>0))<<7)&0x80;
-			if(door1Cstatus)
-				OpenFlag2=0;
-		}
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-		{
-			door1Ostatus = (CurDoorStatus<<6)&0x80;
-			if(door1Ostatus)
-				OpenFlag2=1;
-			door1Cstatus = (CurDoorStatus<<7)&0x80;
-			if(door1Cstatus)
-				OpenFlag2=0;		
-		}
-		//2003.10.23 myw
-		doorstatus =(OpenFlag2<<7);
-	}
-	//doorstatus = (OpenFlag1<<7)|(OpenFlag2<<7);//2003.10.23  myw
-	return(doorstatus);	
-}
+	unsigned char Time200msCnt;
+	unsigned char Time1sCnt:3;
+	unsigned char Time1minCnt:5;
+}TimeCnt;
+Timeflag timeflag;
+TimeCnt  timecnt;
 
-//*----------------------------------------------------------------------------
-//* Function Name       : SingleLineLevelOpen
-//* Object              : ¿ª¹ØÃÅ×´Ì¬Îª¿ªÃÅÏßµçÆ½
-//* Input Parameters    : DoorNB£¬ÃÅºÅ
-//* Output Parameters   : ±¾´Î¿ª¹ØÃÅ×´Ì¬
-//*                     : 0x80±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬Îª¸ß
-//*                     : 0x00±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬ÎªµÍ,»òÕß¿ª¹ØÃÅÎ´½Ó»òÎ´¼ì²âµ½¿ª¹ØÃÅ
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      : CurDoorStatus
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : 
-//*----------------------------------------------------------------------------
-u_char SingleLineLevelOpen(u_char DoorNB)
+void Getthepluse()
 {
-	u_char doorstatus=0;
-	u_char door1status=0;
-	u_char door2status=0;
-	//È¡³ö¿ª¹ØÃÅµÄ×´Ì¬¼«ĞÔ
-	u_char pol=(PARAMETER_BASE->status_polarity)>>15;
-	
-	//Door1
-	if(DoorNB==1)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-			door1status = ((~(CurDoorStatus>>3))<<7)&0x80;
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-			door1status = (CurDoorStatus<<4)&0x80;
-		
-		//2003.10.23  myw
-		doorstatus = door1status;
-	}
-	//Door2
-	if(DoorNB==2)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-			door2status = ((~(CurDoorStatus>>1))<<7)&0x80;
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-			door2status = (CurDoorStatus<<6)&0x80;
-			
-		//2003.10.23  myw
-		doorstatus = door2status;
-	}
-	//doorstatus = door1status|door2status;
-	return(doorstatus);	
-}
-
-//*----------------------------------------------------------------------------
-//* Function Name       : SingleLineLevelClose
-//* Object              : ¿ª¹ØÃÅ×´Ì¬Îª¿ªÃÅÏßµçÆ½
-//* Input Parameters    : DoorNB£¬ÃÅºÅ
-//* Output Parameters   : ±¾´Î¿ª¹ØÃÅ×´Ì¬
-//*                     : 0x80±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬Îª¸ß
-//*                     : 0x00±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬ÎªµÍ,»òÕß¿ª¹ØÃÅÎ´½Ó»òÎ´¼ì²âµ½¿ª¹ØÃÅ
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      : CurDoorStatus
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : 
-//*----------------------------------------------------------------------------
-u_char SingleLineLevelClose(u_char DoorNB)
-{
-	u_char doorstatus=0;
-	u_char door1status=0;
-	u_char door2status=0;
-	//È¡³ö¿ª¹ØÃÅµÄ×´Ì¬¼«ĞÔ
-	u_char pol=(PARAMETER_BASE->status_polarity)>>15;
-	
-	//Door1
-	if(DoorNB==1)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-			door1status = ((~(CurDoorStatus>>2))<<7)&0x80;
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-			door1status = (CurDoorStatus<<5)&0x80;
-		//2003.10.23 myw
-		doorstatus = door1status;
-	}
-	//Door2
-	if(DoorNB==2)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-			door2status = ((~(CurDoorStatus>>0))<<7)&0x80;
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-			door2status = (CurDoorStatus<<7)&0x80;
-		//2003.10.23 myw
-		doorstatus = door2status;
-	}
-	//doorstatus = door1status|door2status;
-	return(doorstatus);	
-}
-
-//*----------------------------------------------------------------------------
-//* Function Name       : DoubleLinePulse
-//* Object              : ¿ª¹ØÃÅ×´Ì¬ÎªË«ÏßÂö³å
-//* Input Parameters    : DoorNB£¬ÃÅºÅ
-//* Output Parameters   : ±¾´Î¿ª¹ØÃÅ×´Ì¬
-//*                     : 0x80±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬Îª¸ß
-//*                     : 0x00±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬ÎªµÍ,»òÕß¿ª¹ØÃÅÎ´½Ó»òÎ´¼ì²âµ½¿ª¹ØÃÅ
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      : CurDoorStatus
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : 
-//*----------------------------------------------------------------------------
-u_char DoubleLinePulse(u_char DoorNB)
-{
-	u_char doorstatus=0;
-	u_char door1Ostatus=0;
-	u_char door1Cstatus=0;
-	u_char door2Ostatus=0;
-	u_char door2Cstatus=0;	
-	//È¡³ö¿ª¹ØÃÅµÄ×´Ì¬¼«ĞÔ
-	u_char pol=(PARAMETER_BASE->status_polarity)>>15;
-	
-	//Door1
-	if(DoorNB==1)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-		{
-			door1Ostatus = ((~(CurDoorStatus>>3))<<7)&0x80;
-			if(door1Ostatus)
-				OpenFlag1=1;
-			door1Cstatus = ((~(CurDoorStatus>>2))<<7)&0x80;
-			if(door1Cstatus)
-				OpenFlag1=0;
-		}
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-		{
-			door1Ostatus = (CurDoorStatus<<4)&0x80;
-			if(door1Ostatus)
-				OpenFlag1=1;
-			door1Cstatus = (CurDoorStatus<<5)&0x80;
-			if(door1Cstatus)
-				OpenFlag1=0;		
-		}
-		//2003.10.23 myw
-		doorstatus = (OpenFlag1<<7);
-	}
-	//Door2
-	if(DoorNB==2)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-		{
-			door1Ostatus = ((~(CurDoorStatus>>1))<<7)&0x80;
-			if(door1Ostatus)
-				OpenFlag2=1;
-			door1Cstatus = ((~(CurDoorStatus>>0))<<7)&0x80;
-			if(door1Cstatus)
-				OpenFlag2=0;
-		}
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-		{
-			door1Ostatus = (CurDoorStatus<<6)&0x80;
-			if(door1Ostatus)
-				OpenFlag2=1;
-			door1Cstatus = (CurDoorStatus<<7)&0x80;
-			if(door1Cstatus)
-				OpenFlag2=0;		
-		}
-		//2003.10.23 myw
-		doorstatus = (OpenFlag2<<7);
-	}
-	//doorstatus = (OpenFlag1<<7)|(OpenFlag2<<7);//2003.10.23  myw
-	return(doorstatus);	
-}
-
-//*----------------------------------------------------------------------------
-//* Function Name       : SingleLinePulseOpen
-//* Object              : ¿ª¹ØÃÅ×´Ì¬Îª¿ªÃÅÏßµ¥ÏßÂö³å
-//* Input Parameters    : DoorNB£¬ÃÅºÅ
-//* Output Parameters   : ±¾´Î¿ª¹ØÃÅ×´Ì¬
-//*                     : 0x80±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬Îª¸ß
-//*                     : 0x00±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬ÎªµÍ,»òÕß¿ª¹ØÃÅÎ´½Ó»òÎ´¼ì²âµ½¿ª¹ØÃÅ
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      : CurDoorStatus
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : 
-//*----------------------------------------------------------------------------
-u_char SingleLinePulseOpen(u_char DoorNB)
-{
-
-	u_char doorstatus=0;
-	u_char door1status=0;
-	u_char door2status=0;
-	//È¡³ö¿ª¹ØÃÅµÄ×´Ì¬¼«ĞÔ
-	u_char pol=(PARAMETER_BASE->status_polarity)>>15;
-	
-	//Door1
-	if(DoorNB==1)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-			door1status = ((~(CurDoorStatus>>3))<<7)&0x80;
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-			door1status = (CurDoorStatus<<4)&0x80;
-		//2003.10.23 myw
-		doorstatus = door1status;
-	}
-	//Door2
-	if(DoorNB==2)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-			door2status = ((~(CurDoorStatus>>1))<<7)&0x80;
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-			door2status = (CurDoorStatus<<6)&0x80;
-		//2003.10.23 myw
-		doorstatus = door2status;
-	}
-	//doorstatus = door1status|door2status;
-	return(doorstatus);	
-}
-
-//*----------------------------------------------------------------------------
-//* Function Name       : SingleLinePulseClose
-//* Object              : ¿ª¹ØÃÅ×´Ì¬ÎªË«ÏßÂö³å
-//* Input Parameters    : DoorNB£¬ÃÅºÅ
-//* Output Parameters   : ±¾´Î¿ª¹ØÃÅ×´Ì¬
-//*                     : 0x80±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬Îª¸ß
-//*                     : 0x00±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬ÎªµÍ,»òÕß¿ª¹ØÃÅÎ´½Ó»òÎ´¼ì²âµ½¿ª¹ØÃÅ
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      : CurDoorStatus
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : 
-//*----------------------------------------------------------------------------
-u_char SingleLinePulseClose(u_char DoorNB)
-{
-	u_char doorstatus=0;
-	u_char door1status=0;
-	u_char door2status=0;
-	//È¡³ö¿ª¹ØÃÅµÄ×´Ì¬¼«ĞÔ
-	u_char pol=(PARAMETER_BASE->status_polarity)>>15;
-	
-	//Door1
-	if(DoorNB==1)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-			door1status = ((~(CurDoorStatus>>2))<<7)&0x80;
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-			door1status = (CurDoorStatus<<5)&0x80;
-		//2003.10.23 myw
-		doorstatus = door1status;
-	}
-	//Door2
-	if(DoorNB==2)
-	{
-		//×´Ì¬¼«ĞÔÎª¸º
-		if(pol)
-			door2status = ((~(CurDoorStatus>>0))<<7)&0x80;
-		//×´Ì¬¼«ĞÔÎªÕı
-		else
-			door2status = (CurDoorStatus<<7)&0x80;
-		//2003.10.23 myw
-		doorstatus = door2status;
-	}
-	//doorstatus = door1status|door2status;
-	return(doorstatus);	
+	CurPN++;
+	Parameter.PulseNumber++;
 
 }
-
-//*----------------------------------------------------------------------------
-//* Function Name       : JudgeDoorStatus
-//* Object              : ÅĞ¶Ï±¾ÖÜÆÚµÄ¿ª¹ØÃÅ×´Ì¬
-//* Input Parameters    : none
-//* Output Parameters   : ±¾´Î¿ª¹ØÃÅ×´Ì¬
-//*                     : 0x80±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬Îª¸ß
-//*                     : 0x00±íÊ¾´ËÊ±¿ª¹ØÃÅ×´Ì¬ÎªµÍ,»òÕß¿ª¹ØÃÅÎ´½Ó»òÎ´¼ì²âµ½¿ª¹ØÃÅ
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      : CurDoorStatus,Door1Type,Door2Type
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : 
-//*----------------------------------------------------------------------------
-u_char JudgeDoorStatus()
-{
-	u_char door1type;
-	u_char door2type;
-	u_char curdoorstatus = 0x0;
-	u_char door1status=0;
-	u_char door2status=0;
-	
-	door1type = PARAMETER_BASE->Door1Type;
-	door2type = PARAMETER_BASE->Door2Type;
-	
-	//¼ì²âµ½Door1
-	if(door1type!=0xff)
-	{
-		switch(door1type)
-		{
-			case 0x0b : door1status=DoubleLineLevel(1);       break;
-			case 0x0a : door1status=SingleLineLevelOpen(1);   break;
-			case 0x09 : door1status=SingleLineLevelClose(1);  break;
-			case 0x07 : door1status=DoubleLinePulse(1);       break;
-			case 0x06 : door1status=SingleLinePulseOpen(1);   break;
-			case 0x05 : door1status=SingleLinePulseClose(1);  break;
-			default   : break;
-		}
-	}
-	
-	//¼ì²âµ½Door2
-	if(door2type!=0xff)
-	{
-		switch(door2type)
-		{
-			case 0x0b : door2status=DoubleLineLevel(2);       break;
-			case 0x0a : door2status=SingleLineLevelOpen(2);   break;
-			case 0x09 : door2status=SingleLineLevelClose(2);  break;
-			case 0x07 : door2status=DoubleLinePulse(2);       break;
-			case 0x06 : door2status=SingleLinePulseOpen(2);   break;
-			case 0x05 : door2status=SingleLinePulseClose(2);  break;
-			default   : break;
-		}
-	}
-	curdoorstatus = door1status|door2status;
-	return(curdoorstatus);
-
-}
-#endif
 //*----------------------------------------------------------------------------
 //* Function Name       : GetStatus
-//* Object              : »ñÈ¡×´Ì¬
+//* Object              : ï¿½ï¿½È¡×´Ì¬
 //* Input Parameters    : none
 //* Output Parameters   : none
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : ×´Ì¬
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Ş¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : ×´Ì¬
 //*----------------------------------------------------------------------------
 void GetStatus()
 {
-	u_short bit_val;
-	u_int loop_count;
-	u_char doorstatus=0;
-
-	STATUS0 = STATUS;
-	STATUS = 0;
-	u_char i;
-
-	//È·¶¨ÉÏµçĞÅºÅ
-	LastPowerOn = PowerOn;
-#if POWERON_LINE_EN
-	if((PIO_PDSR & POWERON_LINE) != POWERON_LINE)
-    	PowerOn = 0;
-	else
-    	PowerOn = 1;    	
-#else    
-    if((STATUS & (1<<POWERON)) != 0)
-    	PowerOn = 1;
-    else
-    	PowerOn = 0;
-#endif
-
-	//×´Ì¬Êı¾İÓë×´Ì¬¼«ĞÔºÏ²¢
-	u_short cs;
-	u_short pol=(PARAMETER_BASE->status_polarity)>>7;
-	if(PowerOn)
-	{
-		for(i=1;i<9;i++)
-		{
-			cs = 1<<i;
-			if((pol&cs)==cs)
-			{
-				if((STATUS&cs)==cs)
-					STATUS&=~cs;//ÖÃ0
-				else
-					STATUS|=cs;//ÖÃ1
-			}
-		}
-
-	}
-    #if SectionAlarm_EN
-    if(pTable.InOSAlarmCycle&&(pTable.OSAlarmAddupDistance>200))
-   		STATUS |= (1<<STATION);
-    else
-    	STATUS &= ~(1<<STATION);
-    #endif
-    
-	//ºöÂÔ¡°ÉÏµç¡±×´Ì¬	
-    CurStatus = (u_char)(STATUS>>1); 
-
-    //¿ª¹ØÃÅ
-    #if OpenDoorDeal
-   	doorstatus = JudgeDoorStatus();
-    CurStatus=(CurStatus&0x7f)|doorstatus;
-//    CurStatus = (CurStatus&0xf0)|CurDoorStatus;
-    #endif
-
+	//PA0:ç‚¹ç«ä¿¡å·ï¼›
+	CurStatus |= (7<<GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_12));//åˆ¶åŠ¨
+	CurStatus |= (6<<GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_8));//turn left
+	CurStatus |= (5<<GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_10));//turn right
+	CurStatus |= (4<<GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_11));//high beam
+	CurStatus |= (3<<(~GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_11)));//low beam
+	CurStatus |= (2<<GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_9));//door
+	CurStatus |= (1<<GPIO_ReadInputDataBit(GPIOC,GPIO_Pin_13));//é¸£ç¬›
+	CurStatus |= (0<<GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_0));//ç‚¹ç«
 }
 
-#if OpenDoorDeal
-//*----------------------------------------------------------------------------
-//* Function Name       : JudgeChecksum
-//* Object              : ÅĞ¶ÏĞ£ÑéÎ»
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : Âö³åÊı¡¢ËÙ¶ÈÖµ¡¢
-//*----------------------------------------------------------------------------
-int JudgeChecksum(u_int data)
-{
-	u_char checksum = 0;
-	u_int temp;
-	u_char k;
-	//ÅĞ¶ÏĞ£ÑéÎ»
-	temp = (data>>3);
-	for(k=0;k<28;k++)
-	{
-		if(((temp>>k)&1)==1)
-			checksum++;
-	}
-	if((checksum&1) != ((data>>1)&1))
-		return 0;
-	return 1;
-}
-#else
-//*----------------------------------------------------------------------------
-//* Function Name       : JudgeChecksum
-//* Object              : ÅĞ¶ÏĞ£ÑéÎ»
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : Âö³åÊı¡¢ËÙ¶ÈÖµ¡¢
-//*----------------------------------------------------------------------------
-int JudgeChecksum(u_short data)
-{
-	u_char checksum = 0;
-	u_char temp;
-	u_char k;
-	//ÅĞ¶ÏĞ£ÑéÎ»
-	temp = (u_char)(data>>2);
-	for(k=0;k<8;k++)
-	{
-		if(((temp>>k)&1)==1)
-			checksum++;
-	}
-	if((checksum&1) != ((data>>1)&1))
-		return 0;
-	return 1;
-}
-#endif
+
 //*----------------------------------------------------------------------------
 //* Function Name       : ComputeSpeed
-//* Object              : ¼ÆËãËÙ¶ÈÖµ
-//* Input Parameters    : Âö³åÊı
+//* Object              : ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½Öµ
+//* Input Parameters    : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 //* Output Parameters   : none
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : Âö³åÊı¡¢ËÙ¶ÈÖµ¡¢
+//* ï¿½ï¿½ï¿½Ãµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      :
+//* ï¿½Ş¸Äµï¿½È«ï¿½Ö±ï¿½ï¿½ï¿½      : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½Öµï¿½ï¿½
 //*----------------------------------------------------------------------------
-void ComputeSpeed(u_int pulse)
+unsigned long ComputeSpeed(unsigned long pulse)
 {
-	u_int p,t,temp_pulse;
+	unsigned long p,t,temp_pulse;
 	int i;
-	u_int spe;
-	u_int T;
-	u_char NotZeroNB,ContinueNZ,temp;
-
-//	CurPulse = pulse;	
-/*	LastPowerOn = PowerOn;
-////////////////////////////////////////////////////////
-//	at91_pio_open ( &PIO_DESC,POWERON_LINE, PIO_INPUT );
-////////////////////////////////////////////////////////
-#if POWERON_LINE_EN
-	if((PIO_PDSR & POWERON_LINE) != POWERON_LINE)
-    	PowerOn = 0;
-	else
-    	PowerOn = 1;
-#endif
-
-	if((LastPowerOn==0)&&(PowerOn == 1))
-		PowerOnT = 0;
-	else if(PowerOn&&(PowerOnT<10))
-		PowerOnT ++;
-	
-	if((LastPowerOn==1)&&(PowerOn == 0))
-		PowerOffT = 0;
-	else if((PowerOn==0)&&(PowerOffT<15))
-		PowerOffT++;	
-*/	
-	// ¼ÆËãµ±Ç°ËÙ¶ÈÖµ 
-	u_char PP = PARAMETER_BASE->PulseNumber;
-	if((PP==0)||(PP>24))
-		PP = 8;
-	T = 7200000 / PARAMETER_BASE->CHCO;
+	unsigned long spe;
+	unsigned long T;
+	unsigned char PP = 8;
+	T = 7200000 / Parameter.PulseCoff;
 	T = (T * 10)/ PP;
-	p=0;//t=0;
-	NotZeroNB = 0;
-	ContinueNZ = 0;
-	temp = 0;
-	for(i=0;i<SpeedSpace;i++)
-	{
-		p += LastPN[i];
-		if(LastPN[i]>0)
-		{
-			NotZeroNB++;
-			temp++;
-		}
-		else//==0
-		{
-			if(temp>ContinueNZ)
-				ContinueNZ = temp;
-			temp = 0;
-		}	
-	}
-	if(pulse>0)
-	{
-		NotZeroNB++;
-		temp++;
-	}
-	if(temp>ContinueNZ)
-		ContinueNZ = temp;
-	
 
-	PulseNB_In1Sec = pulse+p;
 	
-	spe = T*PulseNB_In1Sec/(2000);
-	LastSPE = T * pulse / 400;
-	//ËÄÉáÎåÈë
-	if((LastSPE % 10) >= 5)
-		LastSPE = LastSPE/10 + 1;
-	else
-		LastSPE = LastSPE/10;
-	
-	
-	//ËÄÉáÎåÈë
+	spe = T*pulse/(2000);
+
 	if((spe % 10) >= 5)
 		spe = spe/10 + 1;
 	else
 		spe = spe/10;
 		
-/////////////////2003.5.9//////////////////	
-	if((PulseNB_In1Sec>0)&&(spe==0))
-		spe = 1;
-//////////////////////////////////////////
-
-	if((CurSpeed==0)&&((NotZeroNB<4)||(ContinueNZ<3)))
-		spe = 0;
-		
 	if(spe>255)
 		spe = 255;
-/*	
-	if((CurSpeed==0)&&PowerOn&&(PowerOnT<10))
-	{//ÉÏµçºó2Ãë
-		spe = 0;
-		pulse = 0;
-	}
-			
-	if((CurSpeed<=1)&&(PowerOn==0)&&(PowerOffT<15))
-	{//¶Ïµçºó3Ãë
-		spe = 0;
-		pulse = 0;
-	}
-*/
-	DeltaSpeed = spe - CurSpeed;
-	
-	if(DeltaSpeed>4)//Èç¹ûÉÏÉıËÙ¶È´óÓÚ4,ÈÏÎª²»ºÏÀí
-	{
-		DeltaSpeed = 4; 
-		spe = CurSpeed + 4;
-		t = spe*20000/T;
-		if(t>p)
-			temp_pulse = t - p;
-//			pulse =  t - p;
-		else
-			temp_pulse = 1;
-//			pulse = 1;
-	}
-	AverageV = spe;	
-	CurSpeed = spe;
-	CurPulse = pulse;
-	
-	for(i=0;i<(SpeedSpace-1);i++)
-	{
-		LastPN[i] = LastPN[i+1];
-	}
-	LastPN[SpeedSpace-1] = pulse;
-
-    PulseTotalNumber += pulse;//±¾´ÎĞĞÊ»×ÜÂö³åÊı
-    pTable.OSAlarmAddupDistance += pulse;
-	Distance = ComputeDistance100m(PulseTotalNumber);
+	return spe;
 
 }
 //#if OpenDoorDeal
 //*----------------------------------------------------------------------------
 //* Function Name       : GetSpeed
-//* Object              : »ñÈ¡ËÙ¶ÈºÍ¿ª¹ØÃÅ×´Ì¬
-//* Input Parameters    : times±íÊ¾µÚ¼¸´Î²É¼¯
-//* Output Parameters   : ²É¼¯ÊÇ·ñ³É¹¦
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : Âö³åÊı¡¢ËÙ¶ÈÖµ¡¢
+//* Object              : ï¿½ï¿½È¡ï¿½Ù¶ÈºÍ¿ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+//* Input Parameters    : timesï¿½ï¿½Ê¾ï¿½Ú¼ï¿½ï¿½Î²É¼ï¿½
+//* Output Parameters   : ï¿½É¼ï¿½ï¿½Ç·ï¿½É¹ï¿½
+//*0.2sæ‰§è¡Œä¸€æ¬¡
 //*----------------------------------------------------------------------------
- 
-u_char GetSpeed(u_char times)
+void GetSpeed(void)
 {
- 	u_int pulse,timer;
-	u_int temp;
-	u_int p,t;
-	int i=0;
-	int j=0;
-	u_int PIO_Pin_Status;
-	u_char RunFlagOfTC2 = 0;
-	u_char Received_Bit[4];
-	u_int Received_PulseNB = 0;
-	CurDoorStatus = LastDoorStatus;            //¿ª¹ØÃÅ×´Ì¬µÄ³õÖµÓ¦ÎªÉÏÒ»´ÎµÄ×´Ì¬
-	pulse = LastPN[SpeedSpace-1];
-	
-	u_char  SmallLimit=200,LargeLimit=250;        //200Îª10ms,250Îª12.5ms,Í¬²½Í·Îª12ms
-////////////////////////////////////////////////////////
-	at91_pio_open ( &PIO_DESC,SPEED, PIO_INPUT );
-////////////////////////////////////////////////////////
+ 	unsigned long pulse,timer;
+	unsigned long temp;
+	unsigned long p,t;     //200Îª10ms,250Îª12.5ms,Í¬ï¿½ï¿½Í·Îª12ms
+	if(timeflag.Time200msflag == 1)
+	{
+		if(LastPN20ms == 0)
+			pulse = CurPN;
+		else
+			pulse = CurPN-LastPN20ms;
+		timeflag.Time200msflag = 0;
+		LastPN20ms = CurPN;
+		CurSpeed = ComputeSpeed(pulse);
+	}
+	if(timeflag.Time1sflag == 1)
+	{
+		if(LastPN1s == 0)
+			pulse = CurPN;
+		else
+			pulse = CurPN-LastPN1s;
+		LastPN1s = CurPN;
+		timeflag.Time1sflag = 0;
+		Curspeed1s = ComputeSpeed(pulse);
+	}
+	if(timeflag.Time1minflag == 1)
+	{
+		if(LastPN1min == 0)
+			pulse = CurPN;
+		else
+			pulse = CurPN-LastPN1min;
+		LastPN1min = CurPN;
+		timeflag.Time1minflag = 0;
+		Curspeed1min = ComputeSpeed(pulse);
+	}
 
-	CurTN = 0;     //0.05ms¶¨Ê±Æ÷
-	//¶ÁÈ¡Í¬²½Í·
-	do
-	{
-		PIO_Pin_Status = PIO_PDSR & SPEED;
-		
-		if((PIO_Pin_Status == 0)&& (RunFlagOfTC2 ==0))
-		{
-			//´ò¿ª¼ÆÊıÆ÷£¬¿ªÊ¼¼ÆÊ±
-			at91_tc_trig_cmd(&TC2_DESC, TC_TRIG_CHANNEL);
-			temp=TC2_SR;
-			TC2_IER = TC_CPCS;
-			RunFlagOfTC2 = 1;
-			j=0;
-		}
-		else if(PIO_Pin_Status != 0)
-		{
-			//¼ÆÊ±½áÊø£¬¶Á¶¨Ê±Æ÷
-			if((CurTN > SmallLimit)&&(CurTN < LargeLimit))
-			{
-				CurTN = 0;
-				break;
-			}
-			else
-			{
-				TC2_IDR = TC_CPCS;
-				RunFlagOfTC2 = 0;
-				CurTN = 0;
-			}
-			j++;
-			i=0;
-		}
-		else
-		{
-			i++;
-			j=0;
-		}		
-	}while((i<5000)&&(j<5000));
-	
-	if((i>=5000)||(j>=5000))
-	{
-		if(times)
-			ComputeSpeed(pulse);
-		return 0;
-	}
-	
-	//¶ÁÈ¡ËÙ¶ÈÂö³åÊı
-	u_char BitNB=32;
-	for(i=0;i<BitNB;i++)
-	{
-		t=0;
-		while((CurTN==0)&&(t<20))
-			t++;
-		if((PIO_PDSR & SPEED)==SPEED)
-			Received_Bit[j] = 1;
-		else
-			Received_Bit[j] = 0;
-			
-		t=0;
-		while((CurTN==1)&&(t<20))
-			t++;
-		if((PIO_PDSR & SPEED)==SPEED)
-			Received_Bit[1] = 1;
-		else
-			Received_Bit[1] = 0;
-			
-		t=0;
-		while((CurTN==2)&&(t<20))
-			t++;
-		if((PIO_PDSR & SPEED)==SPEED)
-			Received_Bit[2] = 1;
-		else
-			Received_Bit[2] = 0;
-		
-		t=0;
-		while((CurTN==3)&&(t<20))
-			t++;
-		if((PIO_PDSR & SPEED)==SPEED)
-			Received_Bit[3] = 1;
-		else
-			Received_Bit[3] = 0;
-			
-		Received_Bit[0] =Received_Bit[0]+Received_Bit[1]+Received_Bit[2]+Received_Bit[3];
-		Received_PulseNB = Received_PulseNB << 1;
-		if(Received_Bit[0]>2)
-			Received_PulseNB = Received_PulseNB+1;
-				
-		t=0;
-		while((CurTN<=4)&&(t<20));
-			t++;
-		CurTN = 0;
-	}
-	TC2_IDR = TC_CPCS;
-	//ÅĞ¶ÏÆğÊ¼Î»ºÍÍ£Ö¹Î»
-	if(((Received_PulseNB&2)!=0)||((Received_PulseNB&0x80000000)!=0x80000000))
-	{
-		if(times)
-			ComputeSpeed(pulse);
-		return 0;
-	} 
- 	 
- 	//ÅĞ¶ÏËÙ¶ÈĞ£Ñé,panhui,2005-04-29
- 	u_char spd_chk;
- 	spd_chk = (u_char)(Received_PulseNB>>15);
-	pulse = (u_char)(Received_PulseNB>>23);
-	if((pulse+spd_chk)!=0xff)
-	{
-		if(times)
-			ComputeSpeed(pulse);
-		return 0;
-	} 
-	/////////////////////////////////////////
-	if(!JudgeChecksum(Received_PulseNB))
-	{
-		if(times)
-			ComputeSpeed(pulse);
-		return 0;
-	}
-	//ÅĞ¶ÏUSBÍ¨Ñ¶±êÖ¾ºÍĞ£ÑéÎ»
-	if((!USB_Communicate_Flag))
-	{
-		STATUS0 = STATUS;
-		STATUS = (u_char)(Received_PulseNB>>3);
-//		CurDoorStatus = (u_char)((Received_PulseNB>>2)&0x0f);
-//		LastDoorStatus = CurDoorStatus;
-	}
-	else
-	{
-//		pulse = 0;
-		pulse = LastPN[SpeedSpace-1];
-//		CurDoorStatus = LastDoorStatus;
-	}
-	USB_Communicate_Flag = 0;  
-	ComputeSpeed(pulse);
-	
-	for(i=0;i<BitNB;i++)
-	{
-		for(j=0;j<4;j++)
-		{
-			buff[i][j]=0;
-		}
-	}
-	
-	////////////////////////add by panhui 2005-03-17//////////////////////
-	////////////////////////for ×´Ì¬²É¼¯//////////////////////////////////
-/*	u_char sta;
-	sta = (CurDoorStatus<<2)&0x30;
-	sta = sta + ((CurDoorStatus<<1)&0x06);
-	STATUS0 = STATUS;
-	STATUS = sta;
-*/	
-	//×´Ì¬Êı¾İÓë×´Ì¬¼«ĞÔºÏ²¢
-	u_short cs;
-	u_short pol=(PARAMETER_BASE->status_polarity)>>7;
-		for(i=1;i<9;i++)
-		{
-			cs = 1<<i;
-			if((pol&cs)==cs)
-			{
-				if((STATUS&cs)==cs)
-					STATUS&=~cs;//ÖÃ0
-				else
-					STATUS|=cs;//ÖÃ1
-			}
-		}
-
-	//ºöÂÔ¡°ÉÏµç¡±×´Ì¬	
-    CurStatus = (u_char)(STATUS>>1); 
 
 	//////////////////////////////////////////////////////////////////////
 }
- 
- 
- 
-#if GetSpeedStatusBy232
-//*************************************************************
-//*************************************************************
-//start    ÓÃ´®¿ÚÓëÊÊÅäÆ÷Í¨Ñ¶Í¬Ê±»ñÈ¡ËÙ¶ÈºÍÈ«²¿×´Ì¬   start
-//*************************************************************
-//*************************************************************
-//*----------------------------------------------------------------------------
-//* Function Name            : rs232_status_ready
-//* Object                   : ÅĞ¶Ï232½Ó¿ÚÊÇ·ñ×¼±¸ºÃ
-//* Input Parameters         : status¡ª¡ª´æ·Å232½Ó¿Ú×´Ì¬¼Ä´æÆ÷(US_CSR)µÄÄÚ´æµ¥Ôª£»
-//*                          : mask¡ª¡ªÆÁ±ÎÎ»(0x01£ºRXRDY)
-//* Output Parameters        : ÊÇ·ñ×¼±¸ºÃ,"1"±íÊ¾receiver¾ÍĞ÷£¬
-//*                          : "0"±íÊ¾receiverÎ´¾ÍĞ÷»òµÈ´ı³¬¹ı½çÏŞ,±¾º¯ÊıµÄ½çÏŞÊÇ100´Î
-//* Global  Variable Quoted  : none
-//* Global  Variable Modified: none
-//*----------------------------------------------------------------------------
-int rs2320_status_ready(u_int *status, u_int mask)
+void Time3_irg_handler()
 {
-	int j;
-	j=0;
-	do
-	{
-		*status = at91_usart_get_status(RS2320);
-		j++;
-	}while((((*status) & mask) != mask)&&(j<5000));
-	
-	if((j>=5000)&&(((*status)&mask)==0))
-	{
-		return FALSE;
-	}
-	return TRUE;
+
+	  if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
+	  {
+	      TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+	      timecnt.Time200msCnt++;
+	      if( timecnt.Time200msCnt >199)
+	      {
+	    	  timecnt.Time200msCnt = 0;
+	    	  timeflag.Time200msflag = 1;
+
+	    	  timecnt.Time1sCnt++;
+	    	  if(timecnt.Time1sCnt > 4)
+	    	  {
+	    		  timeflag.Time1sflag = 1;
+	    		  timecnt.Time1sCnt = 0;
+	    		  timecnt.Time1minCnt ++;
+	    		  if(timecnt.Time1minCnt >59)
+	    		  {
+	    			  timeflag.Time1minflag = 1;
+	    			  timecnt.Time1minCnt = 0;
+	    		  }
+	    	  }
+	      }
+
+	  }
 }
-
-
-//*----------------------------------------------------------------------------
-//* Function Name       : GetStatusAndSpeed
-//* Object              : »ñÈ¡×´Ì¬
-//* Input Parameters    : none
-//* Output Parameters   : none
-//* ÒıÓÃµÄÈ«¾Ö±äÁ¿      :
-//* ĞŞ¸ÄµÄÈ«¾Ö±äÁ¿      : ×´Ì¬
-//*----------------------------------------------------------------------------
-void GetStatusAndSpeed()
-{
-	u_char i,j=0;
-	u_int  status232;
-	u_int  rhr;
-	u_char CheckSum = 0;
-	u_int  pulse;
-	u_char receiveNB = 6;
-	u_char command1 = 0xb5;
-	u_char command2 = 0xa5;
-	u_char doorstatus=0;
-	u_char TempStatus;
-	u_char rxBuf[6];
-	
-	//È·¶¨ÉÏµçĞÅºÅ
-////////////////////////////////////////////////////////
-//	at91_pio_open ( &PIO_DESC,POWERON_LINE, PIO_INPUT );
-////////////////////////////////////////////////////////
-#if POWERON_LINE_EN
-	if((PIO_PDSR & POWERON_LINE) != POWERON_LINE)
-    	PowerOn = 0;
-	else
-    	PowerOn = 1;
-#else    
-    if((STATUS & (1<<POWERON)) != 0)
-    	PowerOn = 1;
-    else
-    	PowerOn = 0;
-#endif
-	
-	//·¢ËÍÃüÁî×Ö
-	while((at91_usart_get_status(RS2320) & 0x02) != 0x02);
-	at91_usart_write(RS2320,command1);
-	while((at91_usart_get_status(RS2320) & 0x02) != 0x02);
-	at91_usart_write(RS2320,command2);
-		
-	
-	//Èç¹û²»³¬Ê±£¬´Ó2051ÊÕÈ¡ËÙ¶ÈºÍ×´Ì¬
-	for(i = 0;i < receiveNB;i++)
-	{
-		if(!rs2320_status_ready(&status232, 0x01))
-		{
-			CurStatus = LastStatus;
-			pulse = LastPN[SpeedSpace-1];
-			ComputeSpeed(pulse);
-			return;
-		}
-		
-		at91_usart_read(RS2320,&rhr);
-		rxBuf[i] = (u_char)rhr;
-	}
-	//ÊÕÈ¡ÃüÁî×ÖÕıÈ·
-	if((rxBuf[0]==command1)&&(rxBuf[1]==command2))
-	{
-		//¼ÆËãĞ£ÑéºÍ
-		for(i=2;i<(receiveNB-1);i++)
-			CheckSum = CheckSum^rxBuf[i];
-		//Ğ£ÑéºÍÕıÈ·
-		if(rxBuf[receiveNB-1]==CheckSum)
-		{
-			CurDoorStatus = rxBuf[4];
-			TempStatus = rxBuf[3];
-
-			//×´Ì¬Êı¾İÓë×´Ì¬¼«ĞÔºÏ²¢
-			u_short cs;
-			u_short pol=(PARAMETER_BASE->status_polarity)>>7;
-			if(PowerOn)
-			{
-				for(i=1;i<9;i++)
-				{
-					cs = 1<<i;
-					if((pol&cs)==cs)
-					{
-						if((TempStatus&cs)==cs)
-							TempStatus&=~cs;//ÖÃ0
-						else
-							TempStatus|=cs;//ÖÃ1
-					}
-				}
-		
-			}
-			
-		    #if SectionAlarm_EN
-		    if(pTable.InOSAlarmCycle&&(pTable.OSAlarmAddupDistance>200))
-		   		TempStatus |= (1<<STATION);
-		    else
-		    	TempStatus &= ~(1<<STATION);
-		    #endif
-		    
-			//ºöÂÔ¡°ÉÏµç¡±×´Ì¬	
-		    CurStatus = (u_char)(TempStatus>>1);
-		    //¿ª¹ØÃÅ
-			doorstatus = JudgeDoorStatus();
-		    CurStatus=(CurStatus&0x7f)|doorstatus;
-		    
-		    LastStatus = CurStatus; 
-			pulse = rxBuf[2];
-			ComputeSpeed(pulse);
-			return;
-		}
-		//Ğ£ÑéºÍ´íÎó
-		else
-		{
-			CurStatus = LastStatus;
-			pulse = LastPN[SpeedSpace-1];
-			ComputeSpeed(pulse);
-			return;
-		}
-	}
-	//ÊÕÈ¡ÃüÁî×Ö´íÎó
-	else
-	{
-		CurStatus = LastStatus;
-		pulse = LastPN[SpeedSpace-1];
-		ComputeSpeed(pulse);
-		return;    
-	}
-}
-//*************************************************************
-//*************************************************************
-//end    ÓÃ´®¿ÚÓëÊÊÅäÆ÷Í¨Ñ¶Í¬Ê±»ñÈ¡ËÙ¶ÈºÍÈ«²¿×´Ì¬   end
-//*************************************************************
-//*************************************************************
-#endif
+ 
+ 

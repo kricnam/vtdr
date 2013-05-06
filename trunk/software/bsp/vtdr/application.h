@@ -101,49 +101,63 @@ typedef struct
 } RoadSection;
 typedef struct
 {
+	unsigned char AutoCode[17];
+	unsigned char AutoVincode[12];
+	unsigned char AutoSort[12];
+
+}AutoInfo;
+typedef struct
+{
+	unsigned char d0[10];
+	unsigned char d1[10];
+	unsigned char d2[10];
+	unsigned char d3[10];
+	unsigned char d4[10];
+	unsigned char d5[10];
+	unsigned char d6[10];
+	unsigned char d7[10];
+	unsigned char d8[10];
+}StatusSingal;
+typedef struct
+{
+	unsigned char productccc[7];
+	unsigned char type[16];
+	unsigned char productdate[3];
+	unsigned char productline[4];
+	unsigned char reserve[5];
+}ProductType;
+typedef struct
+{
 
 	unsigned short mark;//*�����֡���2
 	unsigned char  sn[22];//��Ʒ���кš���22(24)
-	unsigned long CHCO;//��������ϵ��4(28)
-	unsigned char  AutoType[12];//�������͡���12(40)
-	unsigned char  AutoVIN[18];//����VIN�š���18(58)
-	unsigned char  AutoCode[12];//���ƺš���12(70)
-	unsigned char  AutoSort[12];//���Ʒ��ࡪ��12(82)
-	unsigned short  CodeColor;//������ɫ����2(84)
-	unsigned long  DriverCode;//��ʻԱ���롪��4(88)
-	unsigned char  DriverLisenseCode[20];//��ʻ֤���롪��20(108)
-	unsigned short status_polarity;//״̬���ԡ���2(110)
-	unsigned short status_mask;//����״̬����2(112)
-	unsigned char  OverSpeedTimeLimit;//����ʱ�����ޣ�0��255�룩����1(113)
+	unsigned char standeryear;
+	unsigned char modifyNb;
+	AutoInfo AutoInfodata;
+	unsigned char signalstatus;
+	StatusSingal singalname;
+	ProductType  typedata;
+	unsigned char  DriverLisenseCode[18];//��ʻ֤���롪��20(108)
 	unsigned char  AlarmSound;//��������ѡ��0x00-����0xFF-������1(114)
-	unsigned char  LowSpeedLimit;//����·�ٶ����ޡ���1(115)
-	unsigned char  HighSpeedLimit;//����·�ٶ����ޡ���1(116)
-	CLOCK   time;//ʵʱʱ��BCD���ʾ����8(124)
-	CLOCK   InstallTime;//��װ����BCD���ʾ����8(132)
-	unsigned char  PulseNumber;//���ٴ�����ÿת�����������
-	unsigned char  RPM_Pulse;
-	unsigned char  Door1Type;
-	unsigned char  Door2Type;
-	unsigned char  reserved[112];//������Ԥ������ʱ���ã�(254)
-	unsigned char  DriveHour24;//ƣ�ͼ�ʻʱ��
-	unsigned char  RestHour24;
-	unsigned char  DriveHour;	//ƣ�ͼ�ʻʱ������
-	unsigned char  RestMinute;	//ƣ�ͼ�ʻ������Ϣʱ������
-	unsigned char  wakeGPStime;
-	unsigned short  IBBType;//��¼�Ǵ��롪��2(256)
+	CLOCK   time;
+	CLOCK   InstallTime;
+	unsigned long  DriverDistace;
+	unsigned long  StarDistance;
+	unsigned char  PulseNumber;
+	unsigned short  PulseCoff;
 
 	unsigned char SectionNumber;
 	RoadSection section[20];
-	//2004.03.23
+
 	unsigned char  reserved1[92];//Ϊ�˱�֤��վ������·�߷ֶ����ôӵ�ַ0x200��ʼд
-	unsigned char SectionNumber1;//��վ����·�߷ֶεĶ���
-	RoadSection section1[20];//·�μ����ٶ�����
+	unsigned char SectionNumber1;
+	RoadSection section1[20];
 } StructPara;
 
 typedef struct
 {
 	unsigned long  DriverCode;//��ʻԱ���롪��4(88)
-	unsigned char  DriverLisenseCode[20];//��ʻ֤���롪��20(108)
+	unsigned char  DriverLisenseCode[18];//��ʻ֤���롪��20(108)
 } DRIVER;
 
 typedef struct
@@ -152,6 +166,7 @@ typedef struct
 	unsigned long  BaseAddr;
 	unsigned long  EndAddr;//�����ַ
 	unsigned long  CurPoint;//��ǰָ���ַ,ָ����һ����ݿɴ�ŵ�λ��
+	unsigned long  BakPoint;
 	
 } StructPT;
 
@@ -159,33 +174,30 @@ typedef struct
 {
 
 	unsigned short  Available;//=0��ʾû��ʹ�ô������>0��ʾ�������Ч
-	StructPT DoubtPointData;
-	StructPT OverSpeedRecord;
+	StructPT DoubtPointData;// 疑点数据
+	StructPT LocationData;
+	StructPT OverSpeedRecord;//超速记录
 	StructPT PowerOffRunRecord;
-	StructPT RunRecord360h;
-	StructPT BaseData;
-	StructPT OilData;
-	StructPT RPMData;
-	StructPT TemperatureData;
-	StructPT OilPressData;
+	StructPT ModifyRecord;
+	StructPT BaseData;//行驶速度记录
+	StructPT DriverReRecord;
+	StructPT journalRecord;
+
 	unsigned long	 TotalDistance;
 	CLOCK	 LastUploadTime;
 	unsigned long	 DriverCode;//��ʻԱ����
 	unsigned char   DriverLisenseCode[20];//��ʻ֤����
-	unsigned char 	 InOSAlarmCycle;//���ڷ�·�α��������С���־��0xaa��վ������0x55��վ������
-	unsigned long	 OSAlarmAddupDistance;//��·�α���·���ۼ�
-
 } PartitionTable;
 
 /* ���������Ч�ָ�λ���� */
 #define DOUBTPOINTDATA  	0
 #define OVERSPEEDRECORD    	1
 #define POWEROFFRUNRECORD   2
-#define RUNRECORD360h 		3
+#define DOUBLTPOINT 		3
 #define BASEDATA 			4
-#define OILDATA  			5
+#define LOCATIONDATA  		5
 #define RPMDATA  			6
-#define TEMPERATUREDATA  	7
+#define JOURNALDATA  	   7
 #define OILPRESSDATA 		8
 #define STATUS14DATA        9
 /*  */
@@ -220,25 +232,34 @@ typedef struct
 #define TEMPERATUREDATA_EN  	0
 #define OILPRESSDATA_EN 		0
 
-#define PartitionTableFlag  (DOUBTPOINTDATA_EN << DOUBTPOINTDATA)|(OVERSPEEDRECORD_EN << OVERSPEEDRECORD)|(RUNRECORD360h_EN << RUNRECORD360h)|(BASEDATA_EN << BASEDATA)|(RPMDATA_EN << RPMDATA)|(Status14DATA_EN << STATUS14DATA)
-#define DATAFLASH_BASE    0x00030000
-#define PARAMETER_BASE    ((StructPara *)(DATAFLASH_BASE+0x00000000))
-#define PartitionTable_BASE ((PartitionTable *)(DATAFLASH_BASE+0x00001000))
-#define DPD_BASE      DATAFLASH_BASE+0x02000
-#define DPD_END       DATAFLASH_BASE+0x06fff
-#define RR360H_BASE   DATAFLASH_BASE+0x07000
-#define RR360H_END    DATAFLASH_BASE+0x0cfff
-#define BASEDATA_BASE DATAFLASH_BASE+0x0d000
-#define BASEDATA_END  DATAFLASH_BASE+0xfffff
-#if AlarmRecord
-#define BASEDATA_BASE DATAFLASH_BASE+0x0d000
-#define BASEDATA_END  DATAFLASH_BASE+0xfdfff
-#define ALARMDATA_BASE DATAFLASH_BASE+0xfe000
-#define ALARMDATA_END  DATAFLASH_BASE+0xfffff
-#else
-#define BASEDATA_BASE DATAFLASH_BASE+0x0d000
-#define BASEDATA_END  DATAFLASH_BASE+0xfffff
-#endif
+#define PartitionTableFlag  (DOUBTPOINTDATA_EN << DOUBTPOINTDATA)|(OVERSPEEDRECORD_EN << OVERSPEEDRECORD)|(RUNRECORD360h_EN << DOUBLTPOINT)|(BASEDATA_EN << BASEDATA)|(RPMDATA_EN << RPMDATA)|(Status14DATA_EN << STATUS14DATA)
+#define DATAFLASH_BASE    0x00000000
+#define PARAMETER_BASE    (DATAFLASH_BASE+0x00000000)
+#define PartitionTable_BASE (DATAFLASH_BASE+0x00001000)
+
+#define BASEDATA_BASE DATAFLASH_BASE+0x02000 //48h data 126byte/block
+#define BASEDATA_END  DATAFLASH_BASE+0x164fff
+
+#define DPD_BASE      DATAFLASH_BASE+0x165000 //100条
+#define DPD_END       DATAFLASH_BASE+0x17bfff
+
+#define OVERDRV_BASE  DATAFLASH_BASE+0x17c000 //100条
+#define OVERDRV_END   DATAFLASH_BASE+0x180fff
+
+#define LOCATION_BASE DATAFLASH_BASE+0x181000//360个小时
+#define LOCATION_END  DATAFLASH_BASE+0x26bfff
+
+#define DRVRG_BASE    DATAFLASH_BASE+0x26c000//200条
+#define DRVRG_END     DATAFLASH_BASE+0x270fff
+
+#define POWER_BASE    DATAFLASH_BASE+0x271000//100条
+#define POWER_END     DATAFLASH_BASE+0x271fff
+
+#define PARA_BASE     DATAFLASH_BASE+0x272000//100条
+#define PARA_END      DATAFLASH_BASE+0x272fff
+
+#define JN_BASE       DATAFLASH_BASE+0x273000//10条
+#define JN_END    	  DATAFLASH_BASE+0x274fff
 
 //2004.07.23
 #define DOWNLOADTIME_BASE DATAFLASH_BASE+0x00400
@@ -257,11 +278,49 @@ typedef struct{
 	unsigned char status;//ÿ0.2��8λ״̬
 }DoubtData;
 typedef struct{
-	unsigned long 	DriverCode;
-	CLOCK   StopTime;//ʵʱʱ��BCD���ʾ����6
-	DoubtData data[100];//20�����20��5��100
-	unsigned char 	pt;
+	unsigned char longtitude[4];
+	unsigned char latitude[4];
+	unsigned char altitude[2];
+}SizeData;
+typedef struct{
+	unsigned char  DriverLisenseCode[18];
+	CLOCK   StopTime;
+	DoubtData data[100];
+	SizeData vaildlocation;
 }DoubtDataBlock;
+typedef struct{
+	CLOCK basedataclk;
+	unsigned char speed[60];
+	unsigned char status[60];
+}BaseDataBlock;
+typedef struct{
+	unsigned char  DriverLisenseCode[18];
+	CLOCK startdrivertime;
+	CLOCK enddrivertime;
+	SizeData startlocation;
+	SizeData endlocation;
+}OverDriverBlock;
+typedef struct{
+	unsigned char  DriverLisenseCode[18];
+	CLOCK happentime;
+	unsigned char registerstatus;
+
+}DriverRegisterBlock;
+typedef struct{
+	CLOCK powertime;
+	unsigned char powerstatus;
+}PowerBlock;
+typedef struct{
+	CLOCK modifytime;
+	unsigned char modifystatus;
+}ParaModifyBlock;
+typedef struct{
+	unsigned char speedstatus;
+	CLOCK journalstartime;
+	CLOCK jouranlendtime;
+	unsigned char speed[60];
+	unsigned char rspeed[60];
+}JournalBlock;
 
 /*����ƣ�ͼ�ʻ��ݸ�ʽ*/
 //#define DriveMinuteLimit 5
@@ -304,12 +363,38 @@ typedef struct{
 #define HOUR_CHANGE		3
 #define MINUTE_CHANGE	4
 #define SECOND_CHANGE	5
+//
+#define DRIVING_STAR  0x01
+#define DRIVING_STOP  0X02
+#define DRIVING_STOP_DRIVER 0x04
+#define DRIVING_OVERTIME 0x08
 
-/* �����־λ��ÿλ�ĺ��� */
+//
+#define DRIVER_REG_IN   0x01
+#define DRIVER_REG_OUT  0x02
+
+//
+#define POWER_ON   0x01
+#define POWER_OFF  0x02
+
 #define SpeedPowerOff    0
+enum
+{
+	NONE_OPR, //木有操作
+	NORMAL,   //速度正常
+	ABORT,    //速度异常
+	RECORD_STARTTIME,   //记录数据
+	RECORD_DATA
+}CMD_JOURNAL;
+enum
+{
+	NONE_DB,
+	DBRECORD_START,
+	DBRECORD_END
+}CMD_DB;
 
 typedef struct
-{//��ʻ��¼
+{
 	Record_CLOCK dt;
 }RecordData_start;
 typedef struct

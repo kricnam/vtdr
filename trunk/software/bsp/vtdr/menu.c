@@ -3,11 +3,12 @@
 #include 	"lcd_word_model.h"
 #include    "application.h"
 
-unsigned char LargeDataBuffer[28*1024];
+extern unsigned char LargeDataBuffer[28*1024];
 
 extern CLOCK curTime;
 
- PartitionTable pTable;
+extern PartitionTable pTable;
+extern StructPara Parameter;
 
 extern unsigned long Distance;
 
@@ -486,9 +487,9 @@ void DisplayAutoCode()
 	
 	lcd_clear(line3);
 
-	StructPara *para = PARAMETER_BASE;
+	StructPara *para = &Parameter;
 	unsigned char j=0,col=0,type=0;//type��0���֣���1���֣�2��ĸ
-	unsigned char buf=para->AutoCode[0];
+	unsigned char buf;
 	unsigned short hz;
 	while((buf!='\0')&&(col<20)&&(j<12))
 	{
@@ -497,7 +498,7 @@ void DisplayAutoCode()
 			hz = buf;
 			hz = hz<<8;
 			j++;
-			buf=para->AutoCode[j];
+		//	buf=para->AutoCode[j];
 			hz = hz+buf;
 			if((col&1)==1)//���������
 				col++;
@@ -521,7 +522,7 @@ void DisplayAutoCode()
 			col++;
 		}
 		j++;
-		buf = para->AutoCode[j];
+	//	buf = para->AutoCode[j];
 	}
 
 	act_tcb.IfActionEnd = 1;
@@ -616,8 +617,8 @@ void Displaywheel()
 	lcd_clear(line2);
 	
 	StructPara *para ;
-	para = PARAMETER_BASE;
-	unsigned int y=para->CHCO;
+	para = &Parameter;
+	unsigned int y;
 	unsigned int x=y/10;
 	unsigned char i=0;
 	unsigned char buf[10];
@@ -655,8 +656,8 @@ void DisplayStatusPolarity()
 	
 	lcd_clear(line2);
 	
-	StructPara *para = PARAMETER_BASE;
-	unsigned short s=para->status_polarity;
+	StructPara *para = &Parameter;
+	unsigned short s;
 	unsigned short z;
 	int j;
 	for(j=15;j>=0;j--)
@@ -786,8 +787,6 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 	
 	//�ó�ֵ
 	TimeIntervalSum = 0;
-	spt = pTable.RunRecord360h;
-	curPointer = pTable.RunRecord360h.CurPoint;
 	TimeLimit = 15;
 	j = 15;	
 	for(i = 0;i < 15;i++)
@@ -801,17 +800,6 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 	last_start.dt.type = 0;
 	do
 	{
-		//ȡ����ǰ��¼�ǲ���ȷ��
-		if(!GetOTDR(curPointer,&(record.start), &(record.end)))
-		{
-			addup_offset++;
-			offset = -1;
-			curPointer = AddPointer(&spt, offset);
-			spt.CurPoint = curPointer;
-			if(curPointer == pTable.RunRecord360h.CurPoint)
-				break;
-			continue;
-		}
 		last_end = record.end;		
 	
 		if(last_start.dt.type==0xafaf)
@@ -845,7 +833,6 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 		while((j>=0)&&(Nb>0))
 		{
 			offset = -2;
-			GetOTDRDataFromFlash((unsigned short *)p, offset,buf);
 			speed[15-j].speed = buf[1];
 			speed[15-j].DriverCode = record.end.driver.DriverCode;
 			j--;
@@ -861,7 +848,6 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 					break;	
 			}
 			i += 2;
-			p = AddPointer(&spt, -sizeof(OTDR_end)-i);
 		}
 			
 		if(TimeIntervalSum >=TimeLimit)
@@ -875,7 +861,7 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 //		j -= TimeInterval;	
 		last_start = record.start;		
 
-	}while((j>=2)&&(pTable.RunRecord360h.CurPoint!=curPointer)&&(addup_offset<200));
+	}while((j>=2)&&(addup_offset<200));
 	return(15-j);
 			
 }
@@ -976,7 +962,6 @@ void Display2DayOTDR()
 			lcd_write_matrix(line3,i*HAN_ZI,p[i],HAN_ZI);
 			i++;
 		}while(p[i]!=NULL);
-		act_tcb.LineNumber = GetOverTimeRecordIn2Days(OTDR_Array);
 	}
 
 	if(act_tcb.LineNumber == 0)
@@ -1052,12 +1037,9 @@ void DisplayTotalDistance()
 		return;
 	
 	lcd_clear(line2);
-	
-	//�ۼ������
-	unsigned long Dis=ComputeDistance100m(pTable.TotalDistance);
 
-	unsigned long x=Dis/10;
-	unsigned long y=Dis;
+	unsigned long x;
+	unsigned long y;
 	unsigned char i=0;
 	unsigned char buf[10];
 
@@ -1966,7 +1948,7 @@ void DisplayNormalUI()
 	}
 	
 	if((CardIn == 2)&&(CurSpeed == 0))
-		DisplayInteger(PartitionTable_BASE->DriverCode,line2,19,8);
+		DisplayInteger(Parameter.DriverDistace,line2,19,8);
 	else
 //		DisplayDateTime(0x07,0,12);
 		DisplayAlarm();
@@ -1980,9 +1962,7 @@ void DisplayNormalUI()
 		lcd_write_matrix(line2,10*NUM,(FONT_MATRIX *)space,NUM);
 		lcd_write_matrix(line2, 9*NUM,(FONT_MATRIX *)space,NUM);
 	}
-	if(pTable.InOSAlarmCycle)
-		DisplayInteger(RoadNb,line2,8,0);
-	else
+
 		lcd_write_matrix(line2,8*NUM,(FONT_MATRIX *)space,NUM);
 	
 	//�ٶ�
@@ -2147,10 +2127,6 @@ void DisplayAlarm()
 	{//��ʾ�����١�
 		lcd_write_matrix(line2,6*HAN_ZI,(FONT_MATRIX *)over_chao,HAN_ZI);
 		lcd_write_matrix(line2,7*HAN_ZI,(FONT_MATRIX *)speed_su,HAN_ZI);
-		if(AlarmFlag & 0x01)
-			DisplayInteger(PARAMETER_BASE->LowSpeedLimit,line2,19,4);
-		else if(AlarmFlag & 0x02)
-			DisplayInteger(PARAMETER_BASE->HighSpeedLimit,line2,19,4);
 	}
 	else
 		DisplayDateTime(0x07,line2,12);
@@ -2262,28 +2238,6 @@ void DoorType()
 	
 	lcd_clear(lineall);
 	Display_DoorNB();
-	
-	switch(PARAMETER_BASE->Door1Type)
-	{
-		case 0x0b : Display_DoubleKeyLevel(1);  break;
-		case 0x0a : Display_SingleKeyLevel(1);  break;
-		case 0x09 : Display_SingleKeyLevel(1);  break;
-		case 0x07 : Display_DoubleKeyPulse(1);  break;
-		case 0x06 : Display_SingleKeyPulse(1);  break;
-		case 0x05 : Display_SingleKeyPulse(1);  break;
-		default   : Display_Test_No_Door(1);    break;
-	}
-
-	switch(PARAMETER_BASE->Door2Type)
-	{
-		case 0x0b : Display_DoubleKeyLevel(2);  break;
-		case 0x0a : Display_SingleKeyLevel(2);  break;
-		case 0x09 : Display_SingleKeyLevel(2);  break;
-		case 0x07 : Display_DoubleKeyPulse(2);  break;
-		case 0x06 : Display_SingleKeyPulse(2);  break;
-		case 0x05 : Display_SingleKeyPulse(2);  break;
-		default   : Display_Test_No_Door(2);    break;
-	}
 
 	act_tcb.IfActionEnd = 1;
 	act_tcb.CurLine = 1;
