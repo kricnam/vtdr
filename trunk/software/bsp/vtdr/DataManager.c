@@ -20,24 +20,19 @@
 
 extern unsigned long CurSpeed;
 extern unsigned long RsSpeed;
-extern int DeltaSpeed;
 extern CLOCK curTime;
 extern unsigned char CurStatus;
-extern unsigned long LastSPE;
 extern unsigned char TimeChange;	//时锟斤拷浠拷锟街�
 extern unsigned long AddupSpeed;
 extern unsigned short SpeedNb;
 PartitionTable pTable;
 StructPara Parameter;
 extern unsigned long PulseTotalNumber;	/*锟斤拷锟斤拷锟斤拷驶锟斤拷锟斤拷锟斤拷锟斤拷*/
-extern unsigned short STATUS;			/*16锟斤拷状态*/
-extern unsigned long PulseNB_In1Sec;     //每0.2锟斤拷锟斤拷锟斤拷前锟斤拷1锟斤拷锟斤拷锟桔硷拷锟劫讹拷锟斤拷锟斤拷锟斤拷
-extern unsigned char PowerOn;
-extern unsigned long CurEngine;
+
 unsigned short DriveMinuteLimit;       //疲锟酵硷拷驶锟斤拷驶时锟斤拷锟斤拷锟斤拷
 unsigned short RestMinuteLimit;        //疲锟酵硷拷驶锟斤拷锟斤拷锟斤拷息时锟斤拷锟斤拷锟斤拷
-extern unsigned long CurPulse;
-unsigned long SpeedOf1min;
+
+
  
 DoubtDataBlock ddb;			//锟斤拷前锟缴碉拷锟斤拷菘锟�
 BaseDataBlock basedata;
@@ -817,7 +812,7 @@ void WritelocationData2Flash(CMD_LOCATION type)
 		{
 			Location_4k[i] = (unsigned char )*((unsigned char * )(&location+i));
 		}
-		Location_4k[i] = SpeedOf1min;
+		Location_4k[i] = Curspeed1min;
 		SPI_FLASH_BufferWrite(SPI1,Location_4k , p, 6);
 		pTable.LocationData.BakPoint = p+11;
 	}
@@ -945,6 +940,13 @@ void BaseDataHandler()
 		{
 			if (curTime.second == 0)
 			{
+
+				if(( InRecordCycle&(1<<BASEDATA))==BASEDATA)
+				{
+					basedata.speed[59] = (unsigned char)Curspeed1s;
+					basedata.status[59] = (unsigned char)CurStatus;
+					WriteBaseDataToFlash((unsigned short *)(&basedata),sizeof(BaseDataBlock),DATA_1min);
+				}
 				basedata.basedataclk.year = curTime.year;
 				basedata.basedataclk.month = curTime.month;
 				basedata.basedataclk.day = curTime.day;
@@ -952,20 +954,14 @@ void BaseDataHandler()
 				basedata.basedataclk.minute = curTime.minute;
 				basedata.basedataclk.second = curTime.second;
 				InRecordCycle |= 1<<BASEDATA;
-				InRecordCycle &= ~(1<<BASEDATA);
 			}
-			else if(curTime.second == 0x59)
+			else
 			{
-				basedata.speed[curTime.second] = (unsigned char)CurSpeed;
-				basedata.status[curTime.second] = (unsigned char)CurStatus;
-				WriteBaseDataToFlash((unsigned short *)(&basedata),sizeof(BaseDataBlock),DATA_1min);
-				#if RPM_EN
-				data = (unsigned short)CurEngine;
-				WriteBaseDataToFlash((unsigned short *)(&basedata),1,DATA_1min);
-				#endif
+				basedata.speed[curTime.second-1] = (unsigned char)Curspeed1s;
+				basedata.status[curTime.second-1] = (unsigned char)CurStatus;
+
 			}
-			basedata.speed[curTime.second] = (unsigned char)CurSpeed;
-			basedata.status[curTime.second] = (unsigned char)CurStatus;
+
 			STATUS1min = 0;
 		}
 	}
@@ -1011,16 +1007,19 @@ void LocationHandler()
 		{
 			if (curTime.minute == 0)
 			{
-				WritelocationData2Flash(TIME);//write the time
+
+				if(( InRecordCycle&(1<<LOCATIONDATA))==LOCATIONDATA)
+				{
+					WritelocationData2Flash(DATA);//write the data
+
+				}
 				InRecordCycle |= 1<<LOCATIONDATA;
+				WritelocationData2Flash(TIME);//write the time
 			}
-			else if(curTime.minute == 0x59)
+			else if(( InRecordCycle&(1<<LOCATIONDATA))==LOCATIONDATA)
 			{
-				//update the location pt
-				InRecordCycle &= ~(1<<LOCATIONDATA);
+				WritelocationData2Flash(DATA);//write the data
 			}
-			//jisuan sudu
-			WritelocationData2Flash(DATA);//write the data
 
 		}
 	}
@@ -1028,13 +1027,14 @@ void LocationHandler()
 	{
 		if(( InRecordCycle&(1<<LOCATIONDATA))==LOCATIONDATA)
 		{
-			if(TimeChange & (0x01<<SECOND_CHANGE))
+			if(TimeChange & (0x01<<MINUTE_CHANGE))
 			{
 				if (curTime.minute == 0)
 				{
-					WritelocationData2Flash(DATA);//write the data
 					InRecordCycle &= ~(1<<LOCATIONDATA);
 				}
+				WritelocationData2Flash(DATA);//write the data
+
 
 
 
