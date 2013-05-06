@@ -18,6 +18,8 @@
 
 #include "stm32f10x.h"
 #include "stm32f10x_fsmc.h"
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
 #include "misc.h"
 #include "board.h"
 #include "gpio_drv.h"
