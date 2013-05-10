@@ -16,6 +16,7 @@
 #include <stm32f10x.h>
 #include <stm32f10x_rcc.h>
 #include <stm32f10x_gpio.h>
+#include <string.h>
 
 
 extern unsigned long CurSpeed;
@@ -25,15 +26,16 @@ extern unsigned char CurStatus;
 extern unsigned char TimeChange;	//时锟斤拷浠拷锟街�
 extern unsigned long AddupSpeed;
 extern unsigned short SpeedNb;
+extern unsigned long Curspeed1min;
+extern unsigned long Curspeed1s;
 PartitionTable pTable;
 StructPara Parameter;
 extern unsigned long PulseTotalNumber;	/*锟斤拷锟斤拷锟斤拷驶锟斤拷锟斤拷锟斤拷锟斤拷*/
 
 unsigned short DriveMinuteLimit;       //疲锟酵硷拷驶锟斤拷驶时锟斤拷锟斤拷锟斤拷
 unsigned short RestMinuteLimit;        //疲锟酵硷拷驶锟斤拷锟斤拷锟斤拷息时锟斤拷锟斤拷锟斤拷
+unsigned char AlarmFlag;
 
-
- 
 DoubtDataBlock ddb;			//锟斤拷前锟缴碉拷锟斤拷菘锟�
 BaseDataBlock basedata;
 SizeData location;
@@ -871,6 +873,7 @@ void ValueStatusHandler()
 	else if ((CurSpeed == 0)&&(Datastatusdata.keepstop10s == 1))
 	{
 		DriverStatus |= DRIVING_STOP;
+		memcpy((unsigned char *)&enddriverclk,(unsigned char *)&curTime,strlen((unsigned char *)&curTime));
 		DriverStatus &= ~DRIVING_STAR;
 		if( Datastatusdata.Over20min == 1)//并且同一个驾驶人
 		{
@@ -995,7 +998,7 @@ void LocationHandler()
 	int i,pt;
 	if((DriverStatus & DRIVING_STAR ))
 	{
-
+		memcpy((unsigned char *)&startdriverclk,(unsigned char *)&curTime,strlen((unsigned char *)&curTime));
 		if((pTable.BaseData.CurPoint&1)!=0)
 		{
 			pTable.BaseData.CurPoint++;

@@ -20,7 +20,7 @@ unsigned long LastPN1min = 0;
 unsigned long CurSpeed = 0;	//当前速度（0.2秒平均速度）
 unsigned long Curspeed1s = 0;//1s平均速度
 unsigned long Curspeed1min = 0;//1分钟平均速度
-
+unsigned char radionum = 0;
 
 int DeltaSpeed = 0;
 

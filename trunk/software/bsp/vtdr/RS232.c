@@ -403,8 +403,8 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 	unsigned short BlockSize;
 	unsigned long startbase,endbase;
 	unsigned long startime,endtime,readtime;
-	unsigned speed;
-	unsigned  temp_data[660];
+	unsigned char speed;
+	unsigned char temp_data[660];
 	CLOCK    temp_clock;
 	startime = timechange(Starttime);
 	endtime = timechange(Endtime);
