@@ -70,6 +70,27 @@ void rt_hw_tim3_init(void)
 
   /* TIM2 enable counter */
   TIM_Cmd(TIM3, ENABLE);
+
+}
+void Time3_enalble()
+{
+	  NVIC_InitTypeDef NVIC_InitStructure;
+
+	  /* Set the Vector Table base address at 0x08000000 */
+	  NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x00);
+
+	  /* Configure the Priority Group to 2 bits */
+	  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+
+	  /* Enable the TIM3 gloabal Interrupt */
+	  NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+	  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+
+	  NVIC_Init(&NVIC_InitStructure);
+
+	  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
 }
 
 void rt_hw_gpio_init(void)

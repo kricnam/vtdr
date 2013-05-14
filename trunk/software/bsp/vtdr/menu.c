@@ -12,9 +12,8 @@ extern StructPara Parameter;
 extern unsigned char radionum;
 extern unsigned long CurSpeed;
 extern char ClockVL;
-//#if OpenDoorDeal
-extern void DoorType();
-//#endif
+extern unsigned char CurStatus;
+
 extern unsigned char AlarmFlag;
 
 unsigned char displaystatus = 0;
@@ -24,11 +23,6 @@ LCDTCB lcd_tcb;
 LCDTCB last_lcd_tcb;
 ACTION_TCB act_tcb;
 OTDR *OTDR_Array = (OTDR *)(&(LargeDataBuffer[24*1024]));
-
-void JudgeDoorType()
-{
-
-}
 
 const FONT_MATRIX * content00[] = {
 	auto_che,
@@ -311,7 +305,7 @@ const MENU_NODE list1[6]={
 		-1,
 		0,
 		0,
-		Displaywheel
+		DisplayMaichongxishu
 	},
 	{
 		(FONT_MATRIX **)content14,
@@ -412,14 +406,14 @@ const MENU_NODE list4[4]={
 			-1,
 			2,
 			0,
-			Display15MinAverageSpeed
+			DisplayStartTime
 		},
 		{
 			(FONT_MATRIX **)content42,
 			-1,
 			2,
 			0,
-			Display15MinAverageSpeed
+			DisplayEndTime
 		}
 
 };
@@ -434,11 +428,15 @@ NODE_LIST NodeListTable[4] = {
 	},
 	{
 		(MENU_NODE *)list2,
-		3
+		1
 	},
 	{
 		(MENU_NODE *)list3,
 		2
+	},
+	{
+		(MENU_NODE *)list4,
+		3
 	}
 };
 //*----------------------------------------------------------------------------
@@ -670,6 +668,7 @@ void displayOverDriver()
 	unsigned char i = 0,j;
 	unsigned char temp_data[6];
 	unsigned long startbase = OVERDRV_BASE,endbase = OVERDRV_END;
+	otdr2dayNum = 0;
 	numofdisplay = otdr2daydisplaynum;
 	FONT_MATRIX **p;
 	p = (FONT_MATRIX **)content01;
@@ -709,7 +708,7 @@ void displayOverDriver()
 			{
 				numofdisplay = numofdisplay+2;
 			}
-			numofdisplay = numofdisplay+i+1;
+			numofdisplay = numofdisplay+j+1;
 			if(numofdisplay >otdr2dayNum )
 			{
 				numofdisplay = numofdisplay-otdr2dayNum;
@@ -800,6 +799,34 @@ void Displaywheel()
 	
 	act_tcb.IfActionEnd = 1;
 	act_tcb.CurLine = 1;
+}
+void DisplayMaichongxishu()
+{
+	lcd_clear(lineall);
+	lcd_write_matrix(line2,0,(FONT_MATRIX *)door_mai,12);
+	lcd_write_matrix(line2,12,(FONT_MATRIX *)door_chong,12);
+	lcd_write_matrix(line2,24,(FONT_MATRIX *)xi,12);
+	lcd_write_matrix(line2,36,(FONT_MATRIX *)data_shu,12);
+	lcd_write_matrix(line3,24,BCD2LCM((Parameter.PulseCoff >> 8),1),6);
+	lcd_write_matrix(line3,24,BCD2LCM((Parameter.PulseCoff >> 8),0),6);
+	lcd_write_matrix(line3,24,BCD2LCM(Parameter.PulseCoff ,1),6);
+	lcd_write_matrix(line3,24,BCD2LCM(Parameter.PulseCoff ,0),6);
+}
+void Displaystatus()
+{
+	lcd_clear(lineall);
+	lcd_write_matrix(line2,0,(FONT_MATRIX *)status_zhuang,12);
+	lcd_write_matrix(line2,12,(FONT_MATRIX *)status_tai,12);
+	lcd_write_matrix(line2,24,(FONT_MATRIX *)xin,12);
+	lcd_write_matrix(line2,36,(FONT_MATRIX *)number_hao,12);
+	lcd_write_matrix(line3,24,BCD2LCM(((CurStatus&0x80 )>> 7),0),6);
+	lcd_write_matrix(line3,24,BCD2LCM(((CurStatus&0x40 )>> 6),0),6);
+	lcd_write_matrix(line3,24,BCD2LCM(((CurStatus&0x20 )>> 5),0),6);
+	lcd_write_matrix(line3,24,BCD2LCM(((CurStatus&0x10) >> 4),0),6);
+	lcd_write_matrix(line3,24,BCD2LCM(((CurStatus&0x08)>> 3),0),6);
+	lcd_write_matrix(line3,24,BCD2LCM(((CurStatus&0x04)>> 2),0),6);
+	lcd_write_matrix(line3,24,BCD2LCM(((CurStatus&0x02)>> 1),0),6);
+	lcd_write_matrix(line3,24,BCD2LCM((CurStatus&0x01),0),6);
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayStatusPolarity
@@ -973,6 +1000,78 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 	}while((j>=2)&&(addup_offset<200));
 	return(15-j);
 			
+}
+void DisplayStartTime()
+{
+
+	unsigned long STOPp;
+	CLOCK    temp_clock;
+	STOPp = pTable.OverSpeedRecord.CurPoint-otdr2daydisplaynum*50;
+	SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&temp_clock ,STOPp, 6);
+	lcd_clear(lineall);
+	lcd_write_matrix(line2,0,(FONT_MATRIX *)date_ri,12);
+	lcd_write_matrix(line2,12,(FONT_MATRIX *)date_qi,12);
+	lcd_write_matrix(line2,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line2,30,BCD2LCM(2,0),6);
+	lcd_write_matrix(line2,36,BCD2LCM(0,0),6);
+	lcd_write_matrix(line2,42,BCD2LCM(temp_clock.year,1),6);
+	lcd_write_matrix(line2,48,BCD2LCM(temp_clock.year,0),6);
+	lcd_write_matrix(line2,54,(FONT_MATRIX *)charater_slash,NUM);
+	lcd_write_matrix(line2,60,BCD2LCM(temp_clock.month,1),6);
+	lcd_write_matrix(line2,66,BCD2LCM(temp_clock.month,0),6);
+	lcd_write_matrix(line2,72,(FONT_MATRIX *)charater_slash,NUM);
+	lcd_write_matrix(line2,78,BCD2LCM(temp_clock.day,1),6);
+	lcd_write_matrix(line2,84,BCD2LCM(temp_clock.day,0),6);
+
+	lcd_write_matrix(line3,0,(FONT_MATRIX *)time_shi,12);
+	lcd_write_matrix(line3,12,(FONT_MATRIX *)time_jian,12);
+	lcd_write_matrix(line3,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line3,42,BCD2LCM(temp_clock.hour,1),6);
+	lcd_write_matrix(line3,48,BCD2LCM(temp_clock.hour,0),6);
+	lcd_write_matrix(line3,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line3,60,BCD2LCM(temp_clock.minute,1),6);
+	lcd_write_matrix(line3,66,BCD2LCM(temp_clock.minute,0),6);
+	lcd_write_matrix(line3,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line3,78,BCD2LCM(temp_clock.second,1),6);
+	lcd_write_matrix(line3,84,BCD2LCM(temp_clock.second,0),6);
+
+
+}
+void DisplayEndTime()
+{
+
+	unsigned long STOPp;
+	CLOCK    temp_clock;
+	STOPp = pTable.OverSpeedRecord.CurPoint-otdr2daydisplaynum*50+44;
+	SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&temp_clock ,STOPp, 6);
+	lcd_clear(lineall);
+	lcd_write_matrix(line2,0,(FONT_MATRIX *)date_ri,12);
+	lcd_write_matrix(line2,12,(FONT_MATRIX *)date_qi,12);
+	lcd_write_matrix(line2,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line2,30,BCD2LCM(2,0),6);
+	lcd_write_matrix(line2,36,BCD2LCM(0,0),6);
+	lcd_write_matrix(line2,42,BCD2LCM(temp_clock.year,1),6);
+	lcd_write_matrix(line2,48,BCD2LCM(temp_clock.year,0),6);
+	lcd_write_matrix(line2,54,(FONT_MATRIX *)charater_slash,NUM);
+	lcd_write_matrix(line2,60,BCD2LCM(temp_clock.month,1),6);
+	lcd_write_matrix(line2,66,BCD2LCM(temp_clock.month,0),6);
+	lcd_write_matrix(line2,72,(FONT_MATRIX *)charater_slash,NUM);
+	lcd_write_matrix(line2,78,BCD2LCM(temp_clock.day,1),6);
+	lcd_write_matrix(line2,84,BCD2LCM(temp_clock.day,0),6);
+
+	lcd_write_matrix(line3,0,(FONT_MATRIX *)time_shi,12);
+	lcd_write_matrix(line3,12,(FONT_MATRIX *)time_jian,12);
+	lcd_write_matrix(line3,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line3,42,BCD2LCM(temp_clock.hour,1),6);
+	lcd_write_matrix(line3,48,BCD2LCM(temp_clock.hour,0),6);
+	lcd_write_matrix(line3,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line3,60,BCD2LCM(temp_clock.minute,1),6);
+	lcd_write_matrix(line3,66,BCD2LCM(temp_clock.minute,0),6);
+	lcd_write_matrix(line3,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line3,78,BCD2LCM(temp_clock.second,1),6);
+	lcd_write_matrix(line3,84,BCD2LCM(temp_clock.second,0),6);
+
+
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : Display15MinAverageSpeed
@@ -1192,7 +1291,7 @@ void DisplayCurrentNode()
 	FONT_MATRIX ** p1[4];
 
 	lcd_clear(lineall);
-	if(lcd_tcb.ListNb == 1)
+	if(lcd_tcb.ListNb == 2)
 	{
 		//特殊处理
 		displayOverDriver();
@@ -1357,6 +1456,16 @@ void SelectKeyHandler( unsigned char  dir)
 					if((lcd_tcb.mode == ActLeaf)
 						&&(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].handler == NULL))
 					lcd_tcb.mode = BackLeaf;
+					if(lcd_tcb.ListNb == 2)
+					{
+						if(otdr2dayNum)
+						{
+							if(otdr2daydisplaynum  )
+								otdr2daydisplaynum --;
+							else
+								otdr2daydisplaynum = otdr2dayNum-1;
+						}
+					}
 				}
 				else
 				{
@@ -1371,6 +1480,25 @@ void SelectKeyHandler( unsigned char  dir)
 					if((lcd_tcb.mode == ActLeaf)
 						&&(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].handler == NULL))
 						lcd_tcb.mode = BackLeaf;
+					if(lcd_tcb.ListNb == 1)
+					{
+						if(otdr2daydisplaynum == otdr2dayNum)
+							otdr2daydisplaynum --;
+						else
+							otdr2daydisplaynum = otdr2dayNum;
+					}
+					if(lcd_tcb.ListNb == 2)
+					{
+						if(otdr2dayNum)
+						{
+							otdr2daydisplaynum ++;
+							if( otdr2daydisplaynum == otdr2dayNum)
+							{
+								otdr2daydisplaynum = 0;
+							}
+
+						}
+					}
 				}
 				DisplayCurrentNode();
 				break;
@@ -1396,7 +1524,11 @@ void OKKeyHandler()
 	{
 		case Node://
 			last_lcd_tcb = lcd_tcb;
-			lcd_tcb.ListNb = NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList;	
+			lcd_tcb.ListNb = NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList;
+			if((lcd_tcb.ListNb == 4) && (otdr2dayNum == 0))
+			{
+				lcd_tcb.ListNb = -1;
+			}
 			lcd_tcb.NodeNb = 0;
 			lcd_tcb.mode = Node;
 			if(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].ChildrenList == -1)
@@ -1404,6 +1536,11 @@ void OKKeyHandler()
 			if((lcd_tcb.mode == ActLeaf)
 				&&(NodeListTable[lcd_tcb.ListNb].ListPt[lcd_tcb.NodeNb].handler == NULL))
 				lcd_tcb.mode = BackLeaf;
+			if(lcd_tcb.ListNb == 2)
+			{
+				otdr2daydisplaynum = 0;
+			}
+
 			DisplayCurrentNode();
 			break;
 		case BackLeaf://
@@ -1418,6 +1555,10 @@ void OKKeyHandler()
 				TemplistNb = lcd_tcb.ListNb;
 				lcd_tcb.ListNb = NodeListTable[TemplistNb].ListPt[lcd_tcb.NodeNb].FatherList;
 				lcd_tcb.NodeNb = NodeListTable[TemplistNb].ListPt[lcd_tcb.NodeNb].FatherNB;
+				if(lcd_tcb.ListNb == 2)
+				{
+					otdr2daydisplaynum = 0;
+				}
 				DisplayCurrentNode();
 			}
 			break;

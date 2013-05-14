@@ -6,6 +6,8 @@
 #include<application.h>
 
 
+extern CLOCK curTime;
+
 unsigned char CurStatus;
 #define SpeedSpace 4
 
@@ -107,11 +109,11 @@ unsigned long ComputeSpeed(unsigned long pulse)
 //* Output Parameters   : �ɼ��Ƿ�ɹ�
 //*0.2s执行一次
 //*----------------------------------------------------------------------------
-void GetSpeed(void)
+void GetSpeedandTime(void)
 {
  	unsigned long pulse,timer;
 	unsigned long temp;
-	unsigned long p,t;     //200Ϊ10ms,250Ϊ12.5ms,ͬ��ͷΪ12ms
+	unsigned long p,t;
 	if(timeflag.Time200msflag == 1)
 	{
 		if(LastPN20ms == 0)
@@ -124,6 +126,7 @@ void GetSpeed(void)
 	}
 	if(timeflag.Time1sflag == 1)
 	{
+		GetCurrentDateTime(&curTime);
 		if(LastPN1s == 0)
 			pulse = CurPN;
 		else
@@ -149,9 +152,9 @@ void GetSpeed(void)
 void Time3_irg_handler()
 {
 
-	  if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
+	  if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
 	  {
-	      TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+	      TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 	      timecnt.Time200msCnt++;
 	      if( timecnt.Time200msCnt >199)
 	      {
