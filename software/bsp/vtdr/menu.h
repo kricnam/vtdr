@@ -68,6 +68,7 @@ extern FONT_MATRIX *AutoCodeHZ2LCM(unsigned short data);
 extern FONT_MATRIX *ASCII2LCM(unsigned char data);
 extern void OKKeyHandler();
 extern void SelectKeyHandler( unsigned char  dir);
+extern void DisplayMaichongxishu();
 extern void MenutKeyHandler();
 extern void DisplayNormalUI();
 extern FONT_MATRIX *BCD2LCM(unsigned char data, unsigned char type);
@@ -81,4 +82,6 @@ extern void DisplayInteger(unsigned long integer,unsigned char row,unsigned char
 extern void DisplayAlarm();
 extern void DisplayNormalUI();
 extern void DisplayEraseDataFlash();
+extern void DisplayStartTime();
+extern void DisplayEndTime();
 #endif /* menu_h */

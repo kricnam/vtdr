@@ -14,7 +14,7 @@
 #define GPS                 0
 
 
-#define OpenDoorDeal    	1
+#define OpenDoorDeal    	0
 #define RTC8025             1     //ʱ��оƬѡ�񿪹�
 #define GetSpeedStatusBy232 0     //ͨ��ں�������ͨѶ��ȡ�ٶȺ�ȫ��״̬����
 //#define WATCH_DOG_EN    	1     // ���Ź�����

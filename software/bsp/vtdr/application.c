@@ -75,7 +75,8 @@ static void led_thread_entry(void* parameter)
     unsigned int i;
     unsigned long jonh;
 //    rt_hw_led_init();
-
+    Time3_enalble();
+    rt_hw_tim3_init();
     while (1)
     {
         /* led1 on */
@@ -123,6 +124,9 @@ static void led_thread_entry(void* parameter)
         rt_hw_led_on(0);
         jonhbak = jonh;
 #endif
+
+         GetSpeedandTime();
+
         if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_14) == 0)
         {
         	MenutKeyHandler();
@@ -236,12 +240,7 @@ int rt_application_init()
 	rt_thread_t usb_thread;
 
 	rt_err_t result;
-#if 0
-	//rt_hw_interrupt_disable();
-	USBH_Init( &USB_OTG_Core,USB_OTG_FS_CORE_ID,
-				&USB_Host,&USBH_MSC_cb,&USR_cb);
 
-#endif
     /* init led thread */
 	result = rt_thread_init(&led_thread,
 		"led",
@@ -251,17 +250,7 @@ int rt_application_init()
 	{
         rt_thread_startup(&led_thread);
 	}
-	/*init usb thread*/ //modify by leiyq 20130216
-	/*
-	result = rt_thread_init(&usb_thread,
-			"usb",
-			usb_thread_entry, RT_NULL,
-			(rt_uint8_t*)&usb_stack[0], sizeof(usb_stack), 21, 5);
-	if (result == RT_EOK)
-	{
-		rt_thread_startup(&usb_thread);
-	}
-	*/
+
 	usb_thread = rt_thread_create("usb",
 			usb_thread_entry, RT_NULL,
 								2048, 10, 15);

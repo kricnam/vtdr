@@ -268,8 +268,8 @@ void GetCurrentDateTime(CLOCK *clock)
 	    if (ti != RT_NULL)
 	    {
 	    	clock->day = Char2BCD((unsigned char)ti->tm_mday);
-	    	clock->month = Char2BCD((unsigned char)ti->tm_mon+1);
-	    	clock->year = Char2BCD((unsigned char)ti->tm_year-100);
+	    	clock->month = Char2BCD((unsigned char)(ti->tm_mon+1));
+	    	clock->year = Char2BCD((unsigned char)(ti->tm_year-100));
 	        clock->hour = Char2BCD((unsigned char)ti->tm_hour);
 	        clock->minute = Char2BCD((unsigned char)ti->tm_min);
 	        clock->second = Char2BCD((unsigned char)ti->tm_sec);
