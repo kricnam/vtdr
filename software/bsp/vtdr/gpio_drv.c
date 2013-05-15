@@ -35,7 +35,7 @@ void rt_hw_EXTI_cfg()
 
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	NVIC_InitStructure.NVIC_IRQChannel=EXTI15_10_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannel=EXTI0_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=0x0f;//强占优先级
 
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority=0;

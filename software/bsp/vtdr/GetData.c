@@ -4,9 +4,11 @@
 #include <stm32f10x_gpio.h>
 #include<stm32f10x_tim.h>
 #include<application.h>
+#include<menu.h>
 
 
 extern CLOCK curTime;
+extern LCDTCB lcd_tcb;
 
 unsigned char CurStatus;
 #define SpeedSpace 4
@@ -127,6 +129,10 @@ void GetSpeedandTime(void)
 	if(timeflag.Time1sflag == 1)
 	{
 		GetCurrentDateTime(&curTime);
+		if(( lcd_tcb.ListNb == 0 ) && (lcd_tcb.mode == 0))
+		{
+			DisplayNormalUI();
+		}
 		if(LastPN1s == 0)
 			pulse = CurPN;
 		else
