@@ -84,4 +84,5 @@ extern void DisplayNormalUI();
 extern void DisplayEraseDataFlash();
 extern void DisplayStartTime();
 extern void DisplayEndTime();
+extern void Displaystatus();
 #endif /* menu_h */
