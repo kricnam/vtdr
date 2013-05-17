@@ -20,6 +20,7 @@
 
 #include <board.h>
 #include <rtthread.h>
+#include <application.h>
 
 #include<stm32f10x_gpio.h>
 
@@ -59,6 +60,7 @@
 #include <usbh_core.h>
 extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 extern USBH_HOST             USB_Host;
+extern StructPara Parameter;
  USBH_Class_cb_TypeDef USBH_MSC_cb;
  USBH_Usr_cb_TypeDef   USR_cb;
 ALIGN(RT_ALIGN_SIZE)
@@ -66,8 +68,8 @@ static rt_uint8_t led_stack[ 512 ];
 //static rt_uint8_t usb_stack[ 512 ];//modify by leiyq 20130215
 static struct rt_thread led_thread;
 //static struct rt_thread usb_thread;//modify by leiyq 20130215
-u8 testwritebuff[512];
-u8 testreadbuff[512];
+u8 testwritebuff[10];
+u8 testreadbuff[10];
 unsigned long  jonhbak;
 static void led_thread_entry(void* parameter)
 {
@@ -94,9 +96,17 @@ static void led_thread_entry(void* parameter)
         rt_hw_led_off(0);
         rt_thread_delay( RT_TICK_PER_SECOND/2 );
        // testreadbuff=I2C_Master_BufferWrite(I2C1,OwnAddress1,0,1,&testwritebuff);
-        //SPI_FLASH_Sector4kErase(0x00);
+        SPI_FLASH_Sector4kErase(SPI1,0x00);
+        for(i = 0;i<10;i++)
+        {
+        	testwritebuff[i] = i;
+
+        }
+     	SPI_FLASH_BufferWrite(SPI1,testwritebuff,0,10);
+        SPI_FLASH_BufferRead(SPI1,testreadbuff,0,10);
+
 #if 0
-        SPI_FLASH_BulkErase(SPI2);
+        SPI_FLASH_BulkErase(SPI1);
         for (jonh = 0;jonh<0x100000;jonh=jonh+512)
         {
 			for (i = 0;i<512;i++ )
@@ -110,8 +120,8 @@ static void led_thread_entry(void* parameter)
 					testwritebuff[i] = i-256;
 				}
 			}
-			SPI_FLASH_BufferWrite(SPI2,&testwritebuff,jonh,512);
-	        SPI_FLASH_BufferRead(SPI2,&testreadbuff,jonh,512);
+			SPI_FLASH_BufferWrite(SPI1,&testwritebuff,jonh,512);
+	        SPI_FLASH_BufferRead(SPI1,&testreadbuff,jonh,512);
 	        if (strcmp(testwritebuff,testreadbuff)== 0)
 	        {
 	               	rt_hw_led_off(0);
@@ -124,7 +134,7 @@ static void led_thread_entry(void* parameter)
         rt_hw_led_on(0);
         jonhbak = jonh;
 #endif
-
+        Parameter.PulseCoff = 300;
          GetSpeedandTime();
 
         if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_14) == 0)

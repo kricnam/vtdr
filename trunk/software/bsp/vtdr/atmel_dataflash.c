@@ -55,13 +55,13 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Select DATAFLASH Card: ChipSelect pin low  */
-#define DATAFLASH_CS_LOW()    GPIO_ResetBits(GPIOA, GPIO_Pin_4)
+#define DATAFLASH_CS_LOW()    GPIO_ResetBits(GPIOA, GPIO_Pin_3)
 /* Deselect DATAFLASH Card: ChipSelect pin high */
-#define DATAFLASH_CS_HIGH()   GPIO_SetBits(GPIOA, GPIO_Pin_4)
+#define DATAFLASH_CS_HIGH()   GPIO_SetBits(GPIOA, GPIO_Pin_3)
 /* Select SPI FLASH: ChipSelect pin low  */
-#define SPI_FLASH_CS_LOW()     GPIO_ResetBits(GPIOA, GPIO_Pin_4)
+#define SPI_FLASH_CS_LOW()     GPIO_ResetBits(GPIOA, GPIO_Pin_3)
 /* Deselect SPI FLASH: ChipSelect pin high */
-#define SPI_FLASH_CS_HIGH()    GPIO_SetBits(GPIOA, GPIO_Pin_4)
+#define SPI_FLASH_CS_HIGH()    GPIO_SetBits(GPIOA, GPIO_Pin_3)
 /* Deselect ADATAFLASH : ChipSelect pin high */
 #define ADATAFLASH_CS_HIGH()   GPIO_SetBits(GPIOB, GPIO_Pin_12)
 /* Deselect ADATAFLASH : ChipSelect pin Low */
@@ -338,7 +338,7 @@ void SPI_Config(SPI_TypeDef* SPIx)
 
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 		GPIO_Init(GPIOA, &GPIO_InitStructure);
 	}
 	else if(SPIx == SPI2)
@@ -356,7 +356,7 @@ void SPI_Config(SPI_TypeDef* SPIx)
 
 		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 		GPIO_Init(GPIOB, &GPIO_InitStructure);
 	}
 

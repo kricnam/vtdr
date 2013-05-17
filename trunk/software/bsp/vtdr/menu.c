@@ -550,34 +550,26 @@ void WriteDataToUDiskMenu()
 //*----------------------------------------------------------------------------
 void DisplayAutoCode()
 {
-	act_tcb.type = SHOW;
-	act_tcb.LineNumber = 1;
-	if(act_tcb.CurLine == act_tcb.LineNumber)
-		return;
-	
 	lcd_clear(lineall);
-
-	StructPara *para = &Parameter;
-	unsigned char j=0,col=0,type=0;//type��0���֣���1���֣�2��ĸ
-	unsigned char buf;
 	unsigned short hz;
-	while((buf!='\0')&&(col<20)&&(j<12))
+	unsigned char j=0,col=0,type=0;
+	unsigned char buf =Parameter.AutoInfodata.AutoCode[0];
+	while((buf!='\0')&&(col<20)&&(j<17))
 	{
 		if(buf>127)
-		{//���ִ���
-			hz = buf;
+		{
 			hz = hz<<8;
 			j++;
-		//	buf=para->AutoCode[j];
+			buf=Parameter.AutoInfodata.AutoCode[j];
 			hz = hz+buf;
-			if((col&1)==1)//���������
+			if((col&1)==1)
 				col++;
-			lcd_write_matrix(line3,(col/2)*HAN_ZI,AutoCodeHZ2LCM(hz),HAN_ZI);
+			lcd_write_matrix(line2,(col/2)*HAN_ZI,AutoCodeHZ2LCM(hz),HAN_ZI);
 			col+=2;
-			type = 0;
+
 		}
 		else
-		{//��ĸ������
+		{
 			if(buf<60){
 				lcd_write_matrix(line3,col*HAN_ZI,ASCII2LCM(buf),NUM);
 				type = 1;
@@ -590,12 +582,11 @@ void DisplayAutoCode()
 				type = 2;
 			}
 			col++;
+			j++;
+			buf=Parameter.AutoInfodata.AutoCode[j];
 		}
-		j++;
 	}
 
-	act_tcb.IfActionEnd = 1;
-	act_tcb.CurLine = 1;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayDriverNumber
@@ -613,8 +604,6 @@ void DisplayDriverNumber()
 		return;
 	
 	lcd_clear(line2);
-
-//	StructPara *para = PARAMETER_BASE;
 	unsigned int y=pTable.DriverCode;
 	unsigned int x=y/10;
 	unsigned char i=0;
@@ -678,7 +667,7 @@ void displayOverDriver()
 	CLOCK    temp_clock;
 	STOPp = pTable.OverSpeedRecord.CurPoint;
 	endtime = timechange(curTime)-BCD2Char(curTime.hour)*360-BCD2Char(curTime.minute)*60;
-	startime = startime-19440;
+	startime = endtime-19440;
 	do
 	{
 		if(STOPp > startbase)
@@ -1108,7 +1097,6 @@ void Display15MinAverageSpeed()
 		}while(p[i]!=NULL);
 		act_tcb.LineNumber = Get15MinAverageSpeed(pt);
 	}
-	
 	if(act_tcb.LineNumber == 0)
 	{//��ʾ���޼�¼��
 		lcd_clear(line2);
