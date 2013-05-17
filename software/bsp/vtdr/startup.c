@@ -97,7 +97,8 @@ void rtthread_startup(void)
 	rt_system_scheduler_init();
 
 	/* init dataflash driver */
-	//rt_hw_dataflash_init();
+	rt_hw_dataflash_init();
+
 	rt_hw_rtc_init();
 
 	/* init all device */

@@ -139,7 +139,7 @@ void GetSpeedandTime(void)
 			pulse = CurPN-LastPN1s;
 		LastPN1s = CurPN;
 		timeflag.Time1sflag = 0;
-		Curspeed1s = ComputeSpeed(pulse);
+		Curspeed1s = ComputeSpeed(pulse)/5;
 	}
 	if(timeflag.Time1minflag == 1)
 	{
@@ -149,7 +149,8 @@ void GetSpeedandTime(void)
 			pulse = CurPN-LastPN1min;
 		LastPN1min = CurPN;
 		timeflag.Time1minflag = 0;
-		Curspeed1min = ComputeSpeed(pulse);
+		Curspeed1min = ComputeSpeed(pulse)/300;
+
 	}
 
 
