@@ -35,6 +35,7 @@
  * USART3 Rx --> DMA Channel 3
  */
 
+
 #ifdef RT_USING_UART1
 struct stm32_serial_int_rx uart1_int_rx;
 struct stm32_serial_device uart1 =
@@ -89,9 +90,9 @@ struct rt_device uart3_device;
 #define RCC_APBPeriph_UART2	RCC_APB1Periph_USART2
 #else /* for STM32F10X_HD */
 /* USART2_REMAP = 0 */
-#define UART2_GPIO_TX		GPIO_Pin_2
-#define UART2_GPIO_RX		GPIO_Pin_3
-#define UART2_GPIO			GPIOA
+#define UART2_GPIO_TX		GPIO_Pin_5
+#define UART2_GPIO_RX		GPIO_Pin_6
+#define UART2_GPIO			GPIOD
 #define RCC_APBPeriph_UART2	RCC_APB1Periph_USART2
 #define UART2_TX_DMA		DMA1_Channel7
 #define UART2_RX_DMA		DMA1_Channel6
@@ -124,7 +125,9 @@ static void RCC_Configuration(void)
     GPIO_PinRemapConfig(GPIO_Remap_USART2, ENABLE);
 #else
     /* Enable AFIO and GPIOA clock */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA, ENABLE);
+   // RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA, ENABLE);
+    GPIO_PinRemapConfig(GPIO_Remap_USART2, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOD, ENABLE);
 #endif
 
 	/* Enable USART2 clock */
@@ -289,9 +292,9 @@ void rt_hw_usart_init()
 
 #ifdef RT_USING_UART2
 	USART_InitStructure.USART_BaudRate = 115200; 
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_InitStructure.USART_WordLength = USART_WordLength_9b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_Parity = USART_Parity_Odd;
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 	USART_ClockInitStructure.USART_Clock = USART_Clock_Disable;

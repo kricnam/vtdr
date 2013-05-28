@@ -163,10 +163,11 @@ void rt_hw_board_init()
 	rt_hw_usart_init();
 	rt_hw_led_init();
 	rt_hw_lcd_init();
-	rt_hw_buzz_init();
+	//rt_hw_buzz_init();
 	rt_hw_usb_init();
 	rt_hw_gpio_init();
 	rt_hw_tim3_init();
+	rt_hw_dac_init();
 	I2C_LowLevel_Init(I2C1);
 	rt_console_set_device(CONSOLE_DEVICE);
 	 //DisplayProductVersion();
