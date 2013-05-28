@@ -10,6 +10,7 @@
 #include <stm32f10x_gpio.h>
 #include<stm32f10x_exti.h>
 #include<stm32f10x_tim.h>
+#include<stm32f10x_dac.h>
 #include "gpio_drv.h"
 
 
@@ -118,6 +119,49 @@ void rt_hw_gpio_init(void)
     GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_15 |GPIO_Pin_14|GPIO_Pin_4;
     GPIO_Init(GPIOD, &GPIO_InitStructure);
 
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AIN;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE, ENABLE);
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+    GPIO_Init(GPIOE, &GPIO_InitStructure);
 
     rt_hw_EXTI_cfg();
+}
+
+
+
+
+void rt_hw_dac_init(void)
+
+{
+
+	 RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+
+       DAC_InitTypeDef            DAC_InitStructure;
+
+       DAC_DeInit();
+
+
+      DAC_InitStructure.DAC_Trigger = DAC_Trigger_None;
+
+      DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
+
+      DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Disable;
+
+      DAC_InitStructure.DAC_LFSRUnmask_TriangleAmplitude = 0;
+
+      DAC_Init(DAC_Channel_1, &DAC_InitStructure);
+
+
+       DAC_Cmd(DAC_Channel_1, ENABLE);
+
+     //  DAC_SoftwareTriggerCmd(DAC_Channel_1,ENABLE);
+
+
 }

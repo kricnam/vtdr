@@ -30,6 +30,7 @@
 #include "usbh_msc_core.h"
 #include "usbh_msc_scsi.h"
 #include "usbh_msc_bot.h"
+#include <application.h>
 
 #include <rthw.h>
 #include <rtthread.h>
@@ -67,6 +68,8 @@
 /** @defgroup USBH_USR_Private_Macros
 * @{
 */ 
+extern StructPara Parameter;
+extern CLOCK curTime;
 extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 #define NULL 0
 
@@ -79,8 +82,9 @@ extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 * @{
 */ 
 uint8_t USBH_USR_ApplicationState = USH_USR_FS_INIT;
-uint16_t filenameString[5]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
-
+uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
+uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
+//uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
 //FATFS fatfs;
 //FIL file;
 FATFS fatfs; //modify by leiyq 20120219
@@ -404,7 +408,6 @@ void USBH_USR_OverCurrentDetected (void)
 int USBH_USR_MSC_Application(void)
 {
   FRESULT res;//modify by leiyq 20120319
-  uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
   uint16_t bytesWritten, bytesToWrite;
   switch(USBH_USR_ApplicationState)
   {
@@ -413,13 +416,8 @@ int USBH_USR_MSC_Application(void)
     /* Initialises the File System*/
     if ( f_mount( 0, &fatfs ) != FR_OK ) //modify by leiyq20120319
     {
-      /* efs initialisation fails*/
-      //LOGOUT("> Cannot initialize File System.\n");
       return(-1);
     }
-   // LOGOUT("> File System initialized.\n");
-    //LOGOUT("> Disk capacity : %d Bytes\n", USBH_MSC_Param.MSCapacity * \
-      USBH_MSC_Param.MSPageLength); 
     
     if(USBH_MSC_Param.MSWriteProtect == DISK_WRITE_PROTECTED)
     {
@@ -442,56 +440,19 @@ int USBH_USR_MSC_Application(void)
     
   case USH_USR_FS_WRITEFILE:
     
-	//LOGOUT( "Press Key to write file");
 
-    USB_OTG_BSP_mDelay(100);
-    
-    /*Key B3 in polling*/
-//    while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
-//      (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
-//    {
-//      Toggle_Leds();
-//    }
-    /* Writes a text file, STM32.TXT in the disk*/
-    //LOGOUT("> Writing File to disk flash ...\n");
-    if(USBH_MSC_Param.MSWriteProtect == DISK_WRITE_PROTECTED)
-    {
-      
-      //LOGOUT ( "> Disk flash is write protected \n");
-      USBH_USR_ApplicationState = USH_USR_FS_DRAW;
-      break;
-    }
-    
-    /* Register work area for logical drives */
-//    f_mount(0, &fatfs);
-    
-//    if(f_open(&file, "0:STM32.TXT",FA_CREATE_ALWAYS | FA_WRITE) == FR_OK)
-//    {
-//      /* Write buffer to file */
-//      bytesToWrite = sizeof(writeTextBuff);
-//      res= f_write (&file, writeTextBuff, bytesToWrite, (void *)&bytesWritten);
-//
-//      if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
-//      {
-//        LOGOUT("> STM32.TXT CANNOT be writen.\n");
-//      }
-//      else
-//      {
-//        LOGOUT("> 'STM32.TXT' file created\n");
-//      }
-//
-//      /*close file and filesystem*/
-//      f_close(&file);
-//      f_mount(0, NULL);
-//    }
-//
-//    else
-//    {
-//      LOGOUT ("> STM32.TXT created in the disk\n");
-//    }
-        /*write the file to the FATfs*/ //modify by leiyq 20120219
+		USB_OTG_BSP_mDelay(100);
+
+		if(USBH_MSC_Param.MSWriteProtect == DISK_WRITE_PROTECTED)
+		{
+
+		  //LOGOUT ( "> Disk flash is write protected \n");
+		  USBH_USR_ApplicationState = USH_USR_FS_DRAW;
+		  break;
+		}
+
 		f_mount(0, &fatfs);
-	    res = f_open(&file, filenameString,FA_CREATE_ALWAYS | FA_WRITE);
+		res = f_open(&file, filenameString,FA_CREATE_ALWAYS | FA_WRITE);
 		if(res == FR_OK)
 		{
 			/* Write buffer to file */
@@ -519,7 +480,6 @@ int USBH_USR_MSC_Application(void)
 		}
 		USBH_USR_ApplicationState = USH_USR_FS_DRAW;
 
-   // LOGOUT( "To start Image slide show Press Key.");
 
   
     break;
@@ -527,21 +487,6 @@ int USBH_USR_MSC_Application(void)
   case USH_USR_FS_DRAW:
     
     /*Key B3 in polling*/
-//    while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
-//      (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
-//    {
-//      Toggle_Leds();
-//    }
-  
-//    while(HCD_IsDeviceConnected(&USB_OTG_Core))
-//    {
-//      if ( f_mount( 0, &fatfs ) != FR_OK )
-//      {
-//        /* fat_fs initialisation fails*/
-//        return(-1);
-//      }
-//      return Image_Browser("0:/");
-//    }
     break;
   default: break;
   }
@@ -640,6 +585,43 @@ static void Toggle_Leds(void)
   {
     i = 0;
   }  
+}
+unsigned char BCD2ASCLL(unsigned char data, unsigned char type)
+{
+	unsigned char ret;
+	if(type)
+	{
+		ret = (data & 0xf0) >> 4;
+	}
+	else
+		ret = data & 0x0f;
+	ret = ret+0x30;
+	return ret;
+}
+//DXXXXXX_XXXX_XXXXXXXX
+//uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
+void Fillthefilename()
+{
+	filenameString[0]= 0x3a30;
+	filenameString[1]= BCD2ASCLL(curTime.year,1) +(BCD2ASCLL(curTime.year,0)<<8);
+	filenameString[2]= BCD2ASCLL(curTime.month,1)+(BCD2ASCLL(curTime.month,0)<<8);
+	filenameString[3]= BCD2ASCLL(curTime.day,1)	+(BCD2ASCLL(curTime.day,0)<<8);
+	filenameString[4]= 0x005f+(BCD2ASCLL(curTime.hour,1)<<8);
+	filenameString[5]= BCD2ASCLL(curTime.hour,0)+(BCD2ASCLL(curTime.minute,1)<<8);
+	filenameString[6]= BCD2ASCLL(curTime.minute,0)+0x5f00;
+	filenameString[7]= (Parameter.AutoInfodata.AutoCode[0]<<8)+Parameter.AutoInfodata.AutoCode[1];
+	filenameString[8]= (Parameter.AutoInfodata.AutoCode[2]<<8)+Parameter.AutoInfodata.AutoCode[3];
+	filenameString[9]= (Parameter.AutoInfodata.AutoCode[4]<<8)+Parameter.AutoInfodata.AutoCode[5];;
+	filenameString[10]= (Parameter.AutoInfodata.AutoCode[6]<<8)+Parameter.AutoInfodata.AutoCode[7];
+	filenameString[11]= 0x562e;
+	filenameString[12]= 0x5244;
+
+}
+void FilltheTextBuff()
+{
+	writeTextBuff[0] = 00;
+	writeTextBuff[1] = 16;
+
 }
 /**
 * @brief  USBH_USR_DeInit

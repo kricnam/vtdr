@@ -156,6 +156,15 @@ void GetSpeedandTime(void)
 
 	//////////////////////////////////////////////////////////////////////
 }
+void GetTheDriverNumber()
+{
+
+	I2C_Master_BufferRead(I2C1,
+								  0xa0,
+	                              32,
+	                              18,
+	                              Parameter.DriverLisenseCode);
+}
 void Time3_irg_handler()
 {
 

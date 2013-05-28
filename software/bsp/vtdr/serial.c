@@ -18,6 +18,7 @@
 #include "serial.h"
 #include <stm32f10x_dma.h>
 #include <stm32f10x_usart.h>
+uint8_t uartcount = 0;
 extern struct rt_device uart2_device;
 extern struct rt_device uart3_device;
 typedef enum UART2_STATUS
@@ -352,6 +353,10 @@ rt_err_t rt_hw_serial_register(rt_device_t device, const char* name, rt_uint32_t
 	/* register a character device */
 	return rt_device_register(device, name, RT_DEVICE_FLAG_RDWR | flag);
 }
+void leidebug()
+{
+
+}
 
 /* ISR for serial interrupt */
 void rt_hw_serial_isr(rt_device_t device)
@@ -380,6 +385,7 @@ void rt_hw_serial_isr(rt_device_t device)
 
 			if((&uart2_device )== device)
 			{
+				uartcount++;
 				uart->int_rx->rx_buffer[uart->int_rx->save_index] = uart->uart_device->DR & 0xff;
 				checksum = checksum^(uart->int_rx->rx_buffer[uart->int_rx->save_index]);
 				switch (Uart2PackStatus )
@@ -405,6 +411,7 @@ void rt_hw_serial_isr(rt_device_t device)
 							uart->int_rx->getcmd = 0x7f;
 							Uart2PackStatus = Get_sync_head;
 						}
+						leidebug();
 						break;
 					case Get_the_Command:
 						if(((uart->int_rx->rx_buffer[uart->int_rx->save_index]) <0x15)
@@ -422,14 +429,19 @@ void rt_hw_serial_isr(rt_device_t device)
 						break;
 					case Get_the_lenth_high:
 						lenth = uart->int_rx->rx_buffer[uart->int_rx->save_index];
-						Uart2PackStatus = Get_the_lenth_high;
+						Uart2PackStatus = Get_the_lenth_low;
 						break;
 					case Get_the_lenth_low:
 						lenth = ((lenth<<8)&0xff00)+(uart->int_rx->rx_buffer[uart->int_rx->save_index]);
 						Uart2PackStatus = Get_the_reserve;
 						break;
 					case Get_the_reserve:
-						Uart2PackStatus = Get_the_data;
+						if (lenth != 0)
+						{
+							Uart2PackStatus = Get_the_data;
+						}
+						else
+							Uart2PackStatus = Get_the_checksum;
 						break;
 					case Get_the_data:
 						if(lenth )

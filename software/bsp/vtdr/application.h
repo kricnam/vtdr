@@ -346,6 +346,40 @@ typedef struct{
 	DRIVER driver;
 }AnAlarmData;
 
+typedef struct{
+	unsigned char datacode;
+	unsigned char blockname[18];
+	unsigned long blocklenth;
+}UsbBlock;
+typedef struct{
+    unsigned short blocknum;
+	UsbBlock UsbBlock0;
+	unsigned char standeryear;
+	unsigned char modifynum;
+	UsbBlock UsbBlock1;
+	unsigned char drivercode[18];
+	UsbBlock UsbBlock2;
+	CLOCK usbtime;
+	UsbBlock UsbBlock3;
+	CLOCK drivertime;
+	CLOCK installtime;
+	unsigned long startdistance;
+	unsigned long totaldistance;
+	UsbBlock UsbBlock4;
+	UsbBlock UsbBlock5;
+	UsbBlock UsbBlock6;
+	UsbBlock UsbBlock7;
+	UsbBlock UsbBlock8;
+	UsbBlock UsbBlock9;
+	UsbBlock UsbBlock10;
+	UsbBlock UsbBlock11;
+	UsbBlock UsbBlock12;
+	UsbBlock UsbBlock13;
+	UsbBlock UsbBlock14;
+	UsbBlock UsbBlock15;
+    unsigned char checksum;
+}UsbBlockData;
+
 /*����״̬�ֽ���ÿλ�ĺ���*/
 #define DOOR	   8
 #define AIRPRESS   7

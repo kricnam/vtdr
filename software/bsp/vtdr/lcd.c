@@ -134,6 +134,7 @@ const FONT_MATRIX charmap8[15][2][8]
 		{0x00,0x08,0x0f,0x01,0x01,0x00,0x00,0x00},{0x00,0x10,0xf0,0x10,0x00,0xf0,0x10,0x00}
 	}//'h'
 };
+
 // delay us
 void lcd_delay(int n)
 {
@@ -168,7 +169,6 @@ void rt_hw_lcd_init(void)
     lcd_Reset();
     lcd_delay(30);
     rt_hw_lcd_on();
-
 }
 
 void lcd_senddata(u8 value)
