@@ -129,11 +129,12 @@ typedef struct
 typedef struct
 {
 
+	unsigned long  DriverDistace;
+	unsigned long  StarDistance;
 	unsigned short mark;//*�����֡���2
 	unsigned char  sn[22];//��Ʒ���кš���22(24)
 	unsigned char standeryear;
 	unsigned char modifyNb;
-	AutoInfo AutoInfodata;
 	unsigned char signalstatus;
 	StatusSingal singalname;
 	ProductType  typedata;
@@ -141,8 +142,6 @@ typedef struct
 	unsigned char  AlarmSound;//��������ѡ��0x00-����0xFF-������1(114)
 	CLOCK   time;
 	CLOCK   InstallTime;
-	unsigned long  DriverDistace;
-	unsigned long  StarDistance;
 	unsigned char  PulseNumber;
 	unsigned short  PulseCoff;
 
@@ -151,6 +150,7 @@ typedef struct
 
 	unsigned char  reserved1[92];//Ϊ�˱�֤��վ������·�߷ֶ����ôӵ�ַ0x200��ʼд
 	unsigned char SectionNumber1;
+	AutoInfo AutoInfodata;
 	RoadSection section1[20];
 } StructPara;
 
@@ -173,6 +173,8 @@ typedef struct
 typedef struct
 {
 
+	unsigned long	 TotalDistance;
+	unsigned long	 DriverCode;
 	unsigned short  Available;//=0��ʾû��ʹ�ô������>0��ʾ�������Ч
 	StructPT DoubtPointData;// 疑点数据
 	StructPT LocationData;
@@ -182,10 +184,7 @@ typedef struct
 	StructPT BaseData;//行驶速度记录
 	StructPT DriverReRecord;
 	StructPT journalRecord;
-
-	unsigned long	 TotalDistance;
 	CLOCK	 LastUploadTime;
-	unsigned long	 DriverCode;//��ʻԱ����
 	unsigned char   DriverLisenseCode[20];//��ʻ֤����
 } PartitionTable;
 

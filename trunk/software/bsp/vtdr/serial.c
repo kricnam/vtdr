@@ -355,7 +355,7 @@ rt_err_t rt_hw_serial_register(rt_device_t device, const char* name, rt_uint32_t
 }
 void leidebug()
 {
-
+	return;
 }
 
 /* ISR for serial interrupt */
@@ -411,10 +411,9 @@ void rt_hw_serial_isr(rt_device_t device)
 							uart->int_rx->getcmd = 0x7f;
 							Uart2PackStatus = Get_sync_head;
 						}
-						leidebug();
 						break;
 					case Get_the_Command:
-						if(((uart->int_rx->rx_buffer[uart->int_rx->save_index]) <0x15)
+						if(((uart->int_rx->rx_buffer[uart->int_rx->save_index]) <0x16)
 							||((uart->int_rx->rx_buffer[uart->int_rx->save_index])>0x81
 							 &&(uart->int_rx->rx_buffer[uart->int_rx->save_index])<0x85 )
 							||((uart->int_rx->rx_buffer[uart->int_rx->save_index])>0x81
@@ -446,12 +445,12 @@ void rt_hw_serial_isr(rt_device_t device)
 					case Get_the_data:
 						if(lenth )
 							lenth--;
-						else
+						if(lenth == 0)
 							Uart2PackStatus = Get_the_checksum;
 
 						break;
 					case Get_the_checksum:
-						if(checksum == uart->int_rx->rx_buffer[uart->int_rx->save_index])
+						if(checksum == 0)
 						{
 							uart->int_rx->getcmd ++;
 						}
@@ -476,6 +475,7 @@ void rt_hw_serial_isr(rt_device_t device)
 					if (uart->int_rx->read_index >= UART_RX_BUFFER_SIZE)
 						uart->int_rx->read_index = 0;
 				}
+
 			}
 		    if((&uart3_device)== device)
 		    {

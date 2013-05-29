@@ -324,8 +324,8 @@ void lcd_display( void )
 }
 #endif
 
-#ifdef RT_USING_FINSH
-#include <finsh.h>
+//#ifdef RT_USING_FINSH
+//#include <finsh.h>
 static rt_uint8_t lcd_inited = 0;
 void lcd(rt_uint32_t value)
 {
@@ -355,7 +355,7 @@ void lcd_clear(LINE_CMD value)
 {
 	rt_hw_lcd_clear(value);
 }
-
+#if 0
 FINSH_FUNCTION_EXPORT(lcd, set lcd on[1] or off[0].)
 FINSH_FUNCTION_EXPORT(lcd_bk, set lcd backlight on[1] or off[0].)
 FINSH_FUNCTION_EXPORT(lcd_clear, set patten x.)
