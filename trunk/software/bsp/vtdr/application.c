@@ -121,6 +121,7 @@ static void led_thread_entry(void* parameter)
     Time3_enalble();
     rt_hw_tim3_init();
     GPIO_SetBits(GPIOE,GPIO_Pin_2);
+    InitializeTable();
     while (1)
     {
         rt_hw_led_on(0);
@@ -156,6 +157,7 @@ static void led_thread_entry(void* parameter)
         rt_hw_led_on(0);
         jonhbak = jonh;
 #endif
+
         Parameter.PulseCoff = 300;
         //GetSpeedandTime();
        // rt_kprintf("\n USBH_MSC_BOT_DATAOUT_STATE\n");

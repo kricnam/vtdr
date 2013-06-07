@@ -5,6 +5,7 @@
 #include<stm32f10x_tim.h>
 #include<application.h>
 #include<menu.h>
+#include<RS232.h>
 
 
 extern CLOCK curTime;
@@ -14,33 +15,22 @@ unsigned char CurStatus;
 #define SpeedSpace 4
 
 extern StructPara Parameter;
-
+extern CMD_VER Verificationstatus;
 unsigned long CurPulse = 0;
 
 unsigned long CurPN = 0;
 unsigned long LastPN20ms = 0;
 unsigned long LastPN1s = 0;
 unsigned long LastPN1min = 0;
-unsigned long CurSpeed = 0;	//当前速度（0.2秒平均速度）
+unsigned short CurSpeed = 0;	//当前速度（0.2秒平均速度）
 unsigned long Curspeed1s = 0;//1s平均速度
 unsigned long Curspeed1min = 0;//1分钟平均速度
 unsigned char radionum = 0;
 
 int DeltaSpeed = 0;
-
+unsigned char Time6sCnt;
 unsigned long Distance = 0;
-typedef struct
-{
-	unsigned char Time200msflag:1;
-	unsigned char Time1sflag:1;
-	unsigned char Time1minflag:1;
-}Timeflag;
-typedef struct
-{
-	unsigned char Time200msCnt;
-	unsigned char Time1sCnt:3;
-	unsigned char Time1minCnt:5;
-}TimeCnt;
+
 Timeflag timeflag;
 TimeCnt  timecnt;
 
@@ -171,22 +161,32 @@ void Time3_irg_handler()
 	  if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
 	  {
 	      TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-	      timecnt.Time200msCnt++;
-	      if( timecnt.Time200msCnt >199)
+	      timecnt.Time1msCnt++;
+	      if( timecnt.Time1msCnt >199)
 	      {
-	    	  timecnt.Time200msCnt = 0;
+	    	  timecnt.Time1msCnt = 0;
 	    	  timeflag.Time200msflag = 1;
 
-	    	  timecnt.Time1sCnt++;
-	    	  if(timecnt.Time1sCnt > 4)
+	    	  timecnt.Time200msCnt++;
+	    	  if(timecnt.Time200msCnt > 4)
 	    	  {
 	    		  timeflag.Time1sflag = 1;
+	    		  timeflag.Ver1sflag = 1;
 	    		  timecnt.Time1sCnt = 0;
-	    		  timecnt.Time1minCnt ++;
-	    		  if(timecnt.Time1minCnt >59)
+	    		  timecnt.Time1sCnt ++;
+	    		  if(Time6sCnt)
+	    		  {
+	    			  Time6sCnt--;
+	    			  if((Time6sCnt == 0)&&(Verificationstatus == 1))
+	    			  {
+	    				  Verificationstatus = 0;
+	    			  }
+
+	    		  }
+	    		  if(timecnt.Time1sCnt >59)
 	    		  {
 	    			  timeflag.Time1minflag = 1;
-	    			  timecnt.Time1minCnt = 0;
+	    			  timecnt.Time1sCnt = 0;
 	    		  }
 	    	  }
 	      }
