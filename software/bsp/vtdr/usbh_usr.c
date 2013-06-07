@@ -31,6 +31,7 @@
 #include "usbh_msc_scsi.h"
 #include "usbh_msc_bot.h"
 #include <application.h>
+#include <DataManager.h>
 
 #include <rthw.h>
 #include <rtthread.h>
@@ -60,15 +61,22 @@
 /** @defgroup USBH_USR_Private_Defines
 * @{
 */ 
+#define WRITE_LENTH_MAX 1024
+#define WRITE_LENTH  1000
 /**
 * @}
 */ 
+const unsigned char Namemap16[16][18] ={
 
+
+};
 
 /** @defgroup USBH_USR_Private_Macros
 * @{
 */ 
+extern unsigned char CurStatus;
 extern StructPara Parameter;
+extern PartitionTable pTable;
 extern CLOCK curTime;
 extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 #define NULL 0
@@ -83,7 +91,7 @@ extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 */ 
 uint8_t USBH_USR_ApplicationState = USH_USR_FS_INIT;
 uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
-uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
+//uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
 //uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
 //FATFS fatfs;
 //FIL file;
@@ -452,26 +460,12 @@ int USBH_USR_MSC_Application(void)
 		}
 
 		f_mount(0, &fatfs);
-		res = f_open(&file, filenameString,FA_CREATE_ALWAYS | FA_WRITE);
+		res = f_open(&file,( const TCHAR *)filenameString,FA_CREATE_ALWAYS | FA_WRITE);
 		if(res == FR_OK)
 		{
 			/* Write buffer to file */
-			bytesToWrite = sizeof(writeTextBuff);
-			res= f_write (&file, writeTextBuff, bytesToWrite, (void *)&bytesWritten);
-			if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
-			{
-			 //LOGOUT("> STM32.TXT CANNOT be writen.\n");
-				rt_kprintf("> STM32.TXT CANNOT be writen.\n");
-			}
-			else
-			{
-			 //LOGOUT("> 'STM32.TXT' file created\n");
-				rt_kprintf("> 'STM32.TXT' file created\n");
-			}
+			WriteTheData();
 
-		 /*close file and filesystem*/
-			f_close(&file);
-			f_mount(0, NULL);
 		}
 		else
 		{
@@ -617,12 +611,379 @@ void Fillthefilename()
 	filenameString[12]= 0x5244;
 
 }
-void FilltheTextBuff()
+void WriteTheData()
 {
-	writeTextBuff[0] = 00;
-	writeTextBuff[1] = 16;
+#if 0
+		FRESULT res;//modify by leiyq 20120319
+		uint16_t bytesWritten, bytesToWrite;
+		bytesToWrite = sizeof(writeTextBuff);
+		res= f_write (&file, writeTextBuff, bytesToWrite, (void *)&bytesWritten);
+
+		if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
+		{
+			rt_kprintf("> STM32.TXT CANNOT be writen.\n");
+		}
+
+		/*close file and filesystem*/
+		f_close(&file);
+		f_mount(0, NULL);
+#endif
+		unsigned char writeTextBuff[WRITE_LENTH_MAX];
+		unsigned char Wcount,i;
+		uint16_t bytesWritten, bytesToWrite;
+		FRESULT res;//modify by leiyq 20120319
+		bytesToWrite = FilltheTextBuff(writeTextBuff,0,&Wcount);
+		res= f_write (&file, writeTextBuff, bytesToWrite, (void *)&bytesWritten);
+		if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
+		{
+			rt_kprintf("> STM32.TXT CANNOT be writen.\n");
+		}
+		f_lseek(&file,bytesToWrite);
+		for(i = 0x08;i<0x16;i++)
+		{
+			if((i==0x08) ||(i=0x09 )||(i<0x16&&i>0x0f))
+			{
+				Wcount =0;
+				do
+				{
+					bytesToWrite = FilltheTextBuff(writeTextBuff,i,&Wcount);
+					res= f_write (&file, writeTextBuff, bytesToWrite, (void *)&bytesWritten);
+					if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
+					{
+						rt_kprintf("> STM32.TXT CANNOT be writen.\n");
+					}
+					f_lseek(&file,bytesToWrite);
+				}while(Wcount);
+			}
+		}
+		/*close file and filesystem*/
+		f_close(&file);
+		f_mount(0, NULL);
 
 }
+void GettheBlock(unsigned char *Nameptr,unsigned char NameNum,unsigned long lenth)
+{
+	unsigned char i;
+	if(NameNum >0x09)
+	{
+		Nameptr[0] = NameNum+6;
+	}
+	else
+	{
+		Nameptr[0] = NameNum;
+	}
+	for (i = 1;i<19;i++)
+	{
+		Nameptr[i] = (unsigned char )Namemap16[NameNum][i-1];
+	}
+	for (i = 19;i<23;i++)
+	{
+		Nameptr[i] = (unsigned char )(lenth>>((22-i)*8));
+	}
+	switch(NameNum)
+	{
+		case 0:
+			Nameptr[i] = Parameter.standeryear;
+			Nameptr[i+1] = Parameter.modifyNb;
+			break;
+		case 1:
+			for(i = 23;i<41;i++)
+			{
+				Nameptr[i] = pTable.DriverLisenseCode[i-23];
+			}
+			break;
+		case 2:
+			for(i = 23;i<29;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&curTime+i-23);
+			}
+			break;
+		case 3:
+			for(i = 23;i<29;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&curTime+i-23);
+			}
+			for(i = 29;i<35;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&Parameter.InstallTime+i-29);
+			}
+			for(i = 35;i<39;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&Parameter.DriverDistace+i-35);
+			}
+			for(i = 39;i<43;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&Parameter.StarDistance+i-39);
+			}
+			break;
+		case 4:
+			for(i = 23;i<29;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&curTime+i-23);
+			}
+			for(i = 29;i<31;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&Parameter.PulseCoff+i-29);
+			}
+			break;
+		case 5:
+			for(i = 23;i<64;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&Parameter.AutoInfodata+i-23);
+			}
+			break;
+		case 6:
+			for(i = 23;i<29;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&curTime+i-23);
+			}
+			Nameptr[29] = CurStatus;
+			for(i = 30;i<110;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&Parameter.singalname+i-30);
+			}
+
+			break;
+		case 7:
+			for(i = 23;i<29;i++)
+			{
+				Nameptr[i] = *((unsigned char *)&Parameter.typedata+i-23);
+			}
+			break;
+		default:
+			break;
+
+
+	}
+
+}
+void FilltheBlock(unsigned char *buf)
+{
+	unsigned char i;
+	buf[0] = 0;
+	buf[1] = 16;
+	GettheBlock(&buf[2],0,2);
+	GettheBlock(&buf[27],1,18);
+	GettheBlock(&buf[68],2,6);
+	GettheBlock(&buf[97],3,20);
+	GettheBlock(&buf[140],4,8);
+	GettheBlock(&buf[171],5,41);
+	GettheBlock(&buf[235],6,87);
+	GettheBlock(&buf[345],7,35);
+}
+unsigned short FillthedataBlock(unsigned char *buf,unsigned char block,unsigned char *count)
+{
+	static unsigned long readnum;
+	static unsigned long readaddr;
+	unsigned short renum;
+	unsigned short BlockSize;
+	unsigned long STOPp,STOPb,startbase,endbase;
+	unsigned long flag;
+	switch (block)
+	{
+		case 0x08:
+			BlockSize = DRV_SPEED_BLOCK;
+			STOPp = pTable.BaseData.CurPoint;
+			flag = pTable.BaseData.finshflag;
+			startbase = BASEDATA_BASE;
+			endbase = BASEDATA_END;
+			break;
+		case 0x09:
+			BlockSize = LOCATION_BLOCK;
+			STOPp = pTable.LocationData.CurPoint;
+			flag = pTable.LocationData.finshflag;
+			startbase = LOCATION_BASE;
+			endbase = LOCATION_END;
+			break;
+		case 0x10:
+			BlockSize = DOUBLT_BLOCK;
+			STOPp = pTable.OverSpeedRecord.CurPoint;
+			flag = pTable.OverSpeedRecord.finshflag;
+			startbase = DPD_BASE;
+			endbase = DPD_END;
+			break;
+		case 0x11:
+			BlockSize = OVERDRV_BLOCK;
+			STOPp = pTable.DoubtPointData.CurPoint;
+			flag = pTable.BaseData.finshflag;
+			startbase = OVERDRV_BASE;
+			endbase = OVERDRV_END;
+			break;
+		case 0x12:
+			BlockSize = DRV_RG_BLOCK;
+			STOPp = pTable.DriverReRecord.CurPoint;
+			flag = pTable.DriverReRecord.finshflag;
+			startbase = DRVRG_BASE;
+			endbase = DRVRG_END;
+			break;
+		case 0x13:
+			BlockSize = POW_BLOCK;
+			STOPp = pTable.PowerOffRunRecord.CurPoint;
+			flag = pTable.PowerOffRunRecord.finshflag;
+			startbase = POWER_BASE;
+			endbase = POWER_END;
+			break;
+		case 0x14:
+			BlockSize = PARA_BLOCK;
+			STOPp = pTable.ModifyRecord.CurPoint;
+			flag = pTable.ModifyRecord.finshflag;
+			startbase = PARA_BASE;
+			endbase = PARA_END;
+			break;
+		case 0x15:
+			BlockSize = JN_BLOCK;
+			STOPp = pTable.journalRecord.CurPoint;
+			flag = pTable.journalRecord.finshflag;
+			startbase = JN_BASE;
+			endbase =  JN_END;
+			break;
+		default:
+			break;
+
+	}
+	if( flag == 0xaeae)
+	{
+		if((*count)==0)
+		{
+			readaddr = STOPp;
+			if(readaddr > startbase)
+			{
+				readaddr = readaddr-BlockSize;
+			}
+			else
+			{
+				readaddr = (endbase-startbase+1)/BlockSize;
+				readaddr = readaddr*BlockSize+startbase;
+			}
+			readnum = (endbase -startbase+1)/BlockSize;
+			readnum = readnum*BlockSize;
+			GettheBlock(buf,block,readnum);
+			renum = WRITE_LENTH;
+			if(readnum%renum)
+			{
+				*count = readnum/renum;
+			}
+			else
+			{
+				*count = readnum/renum-1;
+			}
+			readnum = readnum-renum;
+			SPI_FLASH_BufferRead(SPI1 ,&buf[23] ,readaddr, renum);
+			renum = renum+23;
+
+		}
+		else
+		{
+			if(readaddr > startbase)
+			{
+				readaddr = readaddr-BlockSize;
+			}
+			else
+			{
+				readaddr = (endbase-startbase+1)/BlockSize;
+				readaddr = readaddr*BlockSize+startbase;
+			}
+			(*count)--;
+			if((*count)!= 1)
+			{
+				renum = WRITE_LENTH;
+				readnum = readnum-renum;
+			}
+			else
+			{
+				renum = readnum;
+			}
+			SPI_FLASH_BufferRead(SPI1 ,buf ,STOPp, renum);
+		}
+	}
+	else
+	{
+		if((*count)==0)
+		{
+			readaddr = STOPp;
+			readnum = (STOPp -startbase)/BlockSize;
+			readnum = readnum*BlockSize;
+			if(readnum  == 0)
+			{
+				renum = 0;
+				GettheBlock(buf,block,0);
+				return renum;
+			}
+			else
+			{
+				readaddr = readaddr-BlockSize;
+				GettheBlock(buf,block,readnum);
+				if(readnum%WRITE_LENTH)
+				{
+					*count = readnum/WRITE_LENTH;
+					if((*count)!= 0)
+					{
+						renum = WRITE_LENTH;
+						readnum = readnum-renum;
+					}
+					else
+					{
+						renum = readnum;
+					}
+
+				}
+				else
+				{
+					*count = readnum/renum-1;
+					renum = WRITE_LENTH;
+					readnum = readnum-renum;
+				}
+				SPI_FLASH_BufferRead(SPI1 ,&buf[23] ,STOPp, renum);
+				renum = renum+23;
+			}
+
+		}
+		else
+		{
+			readaddr = readaddr-BlockSize;
+			(*count)--;
+			if((*count)!= 1)
+			{
+				renum = WRITE_LENTH;
+				readnum = readnum-renum;
+			}
+			else
+			{
+				renum = readnum;
+			}
+			SPI_FLASH_BufferRead(SPI1 ,buf ,STOPp, renum);
+		}
+	}
+	return renum;
+
+}
+
+unsigned short FilltheTextBuff(unsigned char *bufptr,unsigned char block,unsigned char *Count)
+{
+	unsigned short writenum =0;
+	switch (block)
+	{
+		case 0:
+			//bufptr[writenum] =
+			FilltheBlock(bufptr);
+			writenum = 403;
+			break;
+		case 0x08:
+		case 0x09:
+		case 0x10:
+		case 0x11:
+		case 0x12:
+		case 0x13:
+		case 0x14:
+		case 0x15:
+			writenum = FillthedataBlock(bufptr,block,Count);
+			break;
+		default:
+			break;
+	}
+	return writenum;
+}
+
 /**
 * @brief  USBH_USR_DeInit
 *         Deint User state and associated variables

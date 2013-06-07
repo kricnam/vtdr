@@ -417,7 +417,9 @@ void rt_hw_serial_isr(rt_device_t device)
 							||((uart->int_rx->rx_buffer[uart->int_rx->save_index])>0x81
 							 &&(uart->int_rx->rx_buffer[uart->int_rx->save_index])<0x85 )
 							||((uart->int_rx->rx_buffer[uart->int_rx->save_index])>0x81
-							&&(uart->int_rx->rx_buffer[uart->int_rx->save_index])<0x85 ))
+							&&(uart->int_rx->rx_buffer[uart->int_rx->save_index])<0x85 )
+							||((uart->int_rx->rx_buffer[uart->int_rx->save_index])>0xc1
+							&&(uart->int_rx->rx_buffer[uart->int_rx->save_index])<0xc5 ))
 							Uart2PackStatus = Get_the_lenth_high;
 						else
 						{

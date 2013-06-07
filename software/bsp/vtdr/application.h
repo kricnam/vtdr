@@ -116,7 +116,6 @@ typedef struct
 	unsigned char d5[10];
 	unsigned char d6[10];
 	unsigned char d7[10];
-	unsigned char d8[10];
 }StatusSingal;
 typedef struct
 {
@@ -166,7 +165,8 @@ typedef struct
 	unsigned long  BaseAddr;
 	unsigned long  EndAddr;//�����ַ
 	unsigned long  CurPoint;//��ǰָ���ַ,ָ����һ����ݿɴ�ŵ�λ��
-	unsigned long  BakPoint;
+	//unsigned long  BakPoint;
+	unsigned long  finshflag;
 	
 } StructPT;
 
@@ -185,8 +185,21 @@ typedef struct
 	StructPT DriverReRecord;
 	StructPT journalRecord;
 	CLOCK	 LastUploadTime;
-	unsigned char   DriverLisenseCode[20];//��ʻ֤����
+	unsigned char   DriverLisenseCode[18];//��ʻ֤����
 } PartitionTable;
+typedef struct
+{
+	unsigned char Time200msflag:1;
+	unsigned char Time1sflag:1;
+	unsigned char Ver1sflag:1;
+	unsigned char Time1minflag:1;
+}Timeflag;
+typedef struct
+{
+	unsigned char Time1msCnt;
+	unsigned char Time200msCnt:3;
+	unsigned char Time1sCnt:6;
+}TimeCnt;
 
 /* ���������Ч�ָ�λ���� */
 #define DOUBTPOINTDATA  	0
@@ -237,28 +250,28 @@ typedef struct
 #define PartitionTable_BASE (DATAFLASH_BASE+0x00001000)
 
 #define BASEDATA_BASE DATAFLASH_BASE+0x02000 //48h data 126byte/block
-#define BASEDATA_END  DATAFLASH_BASE+0x164fff
+#define BASEDATA_END  DATAFLASH_BASE+0x5afff
 
-#define DPD_BASE      DATAFLASH_BASE+0x165000 //100条
-#define DPD_END       DATAFLASH_BASE+0x17bfff
+#define DPD_BASE      DATAFLASH_BASE+0x5b000 //100条
+#define DPD_END       DATAFLASH_BASE+0x60fff
 
-#define OVERDRV_BASE  DATAFLASH_BASE+0x17c000 //100条
-#define OVERDRV_END   DATAFLASH_BASE+0x180fff
+#define OVERDRV_BASE  DATAFLASH_BASE+0x61000 //100条
+#define OVERDRV_END   DATAFLASH_BASE+0x62fff
 
-#define LOCATION_BASE DATAFLASH_BASE+0x181000//360个小时
-#define LOCATION_END  DATAFLASH_BASE+0x26bfff
+#define LOCATION_BASE DATAFLASH_BASE+0x63000//360个小时
+#define LOCATION_END  DATAFLASH_BASE+0x9dfff
 
-#define DRVRG_BASE    DATAFLASH_BASE+0x26c000//200条
-#define DRVRG_END     DATAFLASH_BASE+0x270fff
+#define DRVRG_BASE    DATAFLASH_BASE+0x9e000//200条
+#define DRVRG_END     DATAFLASH_BASE+0x9ffff
 
-#define POWER_BASE    DATAFLASH_BASE+0x271000//100条
-#define POWER_END     DATAFLASH_BASE+0x271fff
+#define POWER_BASE    DATAFLASH_BASE+0xa0000//100条
+#define POWER_END     DATAFLASH_BASE+0xa0fff
 
-#define PARA_BASE     DATAFLASH_BASE+0x272000//100条
-#define PARA_END      DATAFLASH_BASE+0x272fff
+#define PARA_BASE     DATAFLASH_BASE+0xa1000//100条
+#define PARA_END      DATAFLASH_BASE+0xa1fff
 
-#define JN_BASE       DATAFLASH_BASE+0x273000//10条
-#define JN_END    	  DATAFLASH_BASE+0x274fff
+#define JN_BASE       DATAFLASH_BASE+0xa2000//10条
+#define JN_END    	  DATAFLASH_BASE+0xa2fff
 
 //2004.07.23
 #define DOWNLOADTIME_BASE DATAFLASH_BASE+0x00400
@@ -292,6 +305,11 @@ typedef struct{
 	unsigned char speed[60];
 	unsigned char status[60];
 }BaseDataBlock;
+typedef struct{
+	CLOCK lclk;
+	SizeData Lsizedata[60];
+    unsigned char speed1min[60];
+}LocationBlock;
 typedef struct{
 	unsigned char  DriverLisenseCode[18];
 	CLOCK startdrivertime;

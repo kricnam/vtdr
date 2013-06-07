@@ -15,6 +15,8 @@
 #define CMDLENGTH 0x20
 #define FALSE 0
 #define TRUE 1
+
+CMD_VER Verificationstatus;
 unsigned char RSCmdrxBuf[CMDLENGTH];
 unsigned char RSCmdtxBuf[CMDLENGTH];
 unsigned char RSDatarxBuf[DataLength];
@@ -33,9 +35,12 @@ extern int WritePartitionTable(PartitionTable *ptt);
 extern int IsCorrectCLOCK(CLOCK *dt);
 //unsigned char SetTimeFlag = 0;
 
+extern unsigned short CurSpeed;
+extern unsigned char CurStatus;
+extern Timeflag timeflag;
 extern unsigned char BCD2Char(unsigned char bcd);
 extern unsigned char GetOverTimeRecordIn2Days(OTDR *record);
-
+extern unsigned char Time6sCnt;
 extern CLOCK curTime;
 extern PartitionTable pTable;
 extern StructPara Parameter;
@@ -385,7 +390,7 @@ void UpLoad_Type()
 		RSCmdtxBuf[3] = 0x00;
 		RSCmdtxBuf[4] = 0x23;
 		RSCmdtxBuf[5] = 0x00;
-		SendCheckSum = 0x55^0x7a^0x07^0x00^0x2d^0x00;
+		SendCheckSum = 0x55^0x7a^0x07^0x00^0x23^0x00;
 		rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 
 		rt_device_write(&uart2_device, 0, (const void *)(&(para->typedata) ), 35);
@@ -400,7 +405,7 @@ void UpLoad_Type()
 void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t cmd)
 {
 	unsigned long i,j,k;
-	unsigned long STOPp;
+	unsigned long STOPp,STOPb;
 	unsigned short BlockSize;
 	unsigned long startbase,endbase;
 	unsigned long startime,endtime,readtime;
@@ -492,7 +497,8 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			}
 			else
 			{
-				STOPp = startbase-BlockSize;
+				STOPb = (endbase-startbase+1)/BlockSize;
+				STOPp = STOPb*BlockSize+startbase;
 			}
 			SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&temp_clock ,STOPp, 6);
 			readtime = timechange(temp_clock);
@@ -548,6 +554,46 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 		j = 6;
 	}
 	//Modify_LastUploadTime();
+}
+void upload_Miledata()
+{
+	unsigned long i;
+	unsigned char temp_data[51];
+	StructPara *para = &Parameter;
+	RSCmdtxBuf[0] = 0x55;
+	RSCmdtxBuf[1] = 0x7a;
+	RSCmdtxBuf[2] = 0xe1;
+	RSCmdtxBuf[3] = 0x00;
+	RSCmdtxBuf[4] = 0x2c;
+	RSCmdtxBuf[5] = 0x00;
+	SendCheckSum = 0x55^0x7a^0x07^0x00^0x2c^0x00;
+	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
+
+	rt_device_write(&uart2_device, 0, (const void *)(&(para->typedata) ), 35);
+	for(i = 0;i<35;i++)
+	{
+		SendCheckSum = SendCheckSum^((unsigned char) *((unsigned char *)(&(para->typedata)+i)));
+	}
+	for(i = 0; i < 2;i++)
+	{
+		rt_device_write(&uart2_device, 0, (const void *)((para->PulseCoff) >> ((2-i)*8)), 1);
+		SendCheckSum = SendCheckSum^((unsigned char)((para->PulseCoff) >> ((2-i)*8)));
+	}
+	for(i= 0;i<2;i++)
+	{
+
+		rt_device_write(&uart2_device, 0, (const void *)(&CurSpeed), 2);
+	}
+	SendCheckSum = SendCheckSum^((unsigned char )CurSpeed)^((unsigned char )(CurSpeed >>8));
+	for(i= 0;i<4;i++)
+	{
+		rt_device_write(&uart2_device, 0, (const void *)((para->DriverDistace) >> ((4-i)*8)), 1);
+		SendCheckSum = SendCheckSum^((unsigned char)((para->DriverDistace) >> ((4-i)*8)));
+	}
+	rt_device_write(&uart2_device, 0, (const void *)(&CurStatus), 1);
+	SendCheckSum = SendCheckSum^CurStatus;
+	rt_device_write(&uart2_device, 0, &SendCheckSum, 1);
+	Modify_LastUploadTime();
 }
 #if 0
 void UpLoad_DriverSpeedInfo( CLOCK Starttime, CLOCK Endtime,uint16_t lenth )
@@ -863,7 +909,7 @@ void UpLoad_ExVersion()
 	RSCmdtxBuf[4] = 0x02;
 	RSCmdtxBuf[5] = 0x00;
 	RSCmdtxBuf[6] = Parameter.standeryear;
-	RSCmdtxBuf[7] = Parameter.modifyNb;;
+	RSCmdtxBuf[7] = Parameter.modifyNb;
 	SendCheckSum = 0x55^0x7a^0x00^0x00^0x02^0x00^0x03^0x00;
 
 	rt_device_write(&uart2_device, 0,RSCmdtxBuf, 8);
@@ -2117,36 +2163,68 @@ void Set_Curtime(unsigned char *buf,unsigned short lenth)
 void Set_PulseCoff(unsigned char *buf,unsigned short lenth)
 {
 	unsigned long i=0;
-	unsigned char *ptr = (unsigned char *)&Parameter.PulseCoff;
-	if(lenth == 0x02)
+	if(lenth == 0x08)
 	{
 		RS232SetSuccess(0xc3);
-		for (i = 0;i<lenth;i++)
-		{
 
-			ptr[i] = buf[i];
-		}
+		Parameter.PulseCoff =buf[7]+buf[6]*256;
+
 			WriteParameterTable(&Parameter);
 	}
 }
 void Set_StartDistance(unsigned char *buf,unsigned short lenth)
 {
-	unsigned long i=0;
-	unsigned char *ptr = (unsigned char *)&Parameter.StarDistance;
-	if(lenth == 0x04)
+	unsigned long i=0,j= 1;
+	if(lenth == 4)
 	{
+		Parameter.StarDistance = 0;
 		RS232SetSuccess(0xc4);
-		for (i = 0;i<lenth;i++)
+		for (i = 4;i>0;i--)
 		{
 
-			ptr[i] = buf[i];
+			Parameter.StarDistance =j*BCD2Char(buf[i-1])+Parameter.StarDistance;
+			j= 100*j;
 		}
-			WriteParameterTable(&Parameter);
+		WriteParameterTable(&Parameter);
+	}
+}
+void EnterVercationStatus()
+{
+	Time6sCnt = 6;
+	Verificationstatus = VER_ENTER;
+	RS232SetSuccess(0xe0);
+}
+
+void EnterMileStatus()
+{
+	if( Verificationstatus )
+	{
+		Verificationstatus = VER_MIL;
 	}
 }
 
+void EnterPulsStatus()
+{
+	if( Verificationstatus )
+	{
+		Verificationstatus = VER_PLUS;
+	}
+	RS232SetSuccess(0xe2);
+}
+void EnterTimeStatus()
+{
 
-
+	if( Verificationstatus )
+	{
+		Verificationstatus = VER_TIME;
+	}
+	RS232SetSuccess(0xe3);
+}
+void GetBackNormalStatus()
+{
+	Verificationstatus = VER_NONE;
+	RS232SetSuccess(0xe4);
+}
 //*----------------------------------------------------------------------------
 //* Function Name            : Set_RealTime
 //* Object                   : ����ʵʱʱ��
@@ -2508,9 +2586,39 @@ void rs232_handle_application(rt_device_t device)
 			case 0xc2 : Set_Curtime(&(uart->int_rx->rx_buffer[(uart->int_rx->read_index +6) &UART_RX_BUFFER_MAX_SIZE]),Datalenth); break;//设置记录仪的时间
 			case 0xc3 : Set_PulseCoff(&(uart->int_rx->rx_buffer[(uart->int_rx->read_index +6) &UART_RX_BUFFER_MAX_SIZE]),Datalenth);  break;//设置记录仪的脉冲系数
 			case 0xc4 : Set_StartDistance(&(uart->int_rx->rx_buffer[(uart->int_rx->read_index +6) &UART_RX_BUFFER_MAX_SIZE]),Datalenth); break;//设置记录仪的初始里程
+			case 0xe0 : EnterVercationStatus(); break;//进入检定状态
+			case 0xe1 : EnterMileStatus(); break;//进入里程误差测量
+			case 0xe2 : EnterPulsStatus(); break;//进入脉冲系数测量
+			case 0xe3 : EnterTimeStatus(); break;//进入时间误差测量
+			case 0xe4 : GetBackNormalStatus(); break;//返回正常状态
 			default   : RS232UploadError();              break;
 		}
 		uart->int_rx->read_index = (Datalenth+uart->int_rx->read_index+7)& UART_RX_BUFFER_MAX_SIZE;
 		uart->int_rx->getcmd--;
+	}
+}
+void Ver_handle_application()
+{
+	switch( Verificationstatus )
+	{
+		case VER_ENTER:
+			break;
+		case VER_MIL:
+			  if( timeflag.Ver1sflag == 1)
+			  {
+				  timeflag.Ver1sflag = 0;
+				  upload_Miledata();
+				  //sendthe buff
+			  }
+			break;
+		case VER_PLUS:
+			//send the maichong xinhao
+			break;
+
+		case VER_TIME:
+			//send the time
+			break;
+		default:break;
+
 	}
 }
