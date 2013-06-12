@@ -157,7 +157,15 @@ static void led_thread_entry(void* parameter)
         rt_hw_led_on(0);
         jonhbak = jonh;
 #endif
-
+#if 1
+        SPI_FLASH_Sector4kErase(SPI2,0);
+        for(i = 0;i<10;i++)
+        {
+        	testwritebuff[i] = i+1;
+        }
+        SPI_FLASH_BufferWrite(SPI2,testwritebuff,0,10);
+        SPI_FLASH_BufferRead(SPI2,testreadbuff,0,10);
+#endif
         Parameter.PulseCoff = 300;
         //GetSpeedandTime();
        // rt_kprintf("\n USBH_MSC_BOT_DATAOUT_STATE\n");

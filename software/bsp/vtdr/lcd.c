@@ -25,7 +25,7 @@
 #endif
 
 #define lcd_bk_ctrl				    GPIOB
-#define lcd_BK						(GPIO_Pin_8)
+#define lcd_BK						(GPIO_Pin_5)
 
 #define lcd_ctrl					RCC_APB2Periph_GPIOD
 #define lcd_gpio_ctrl				GPIOD
@@ -295,6 +295,7 @@ void rt_hw_lcd_off(void)
 
 void lcd_write_matrix(LINE_CMD row,rt_uint8_t column,FONT_MATRIX *pt,rt_uint8_t num)
 {
+	rt_public_pin_init(1);
 	rt_uint8_t i,j;
 	rt_uint8_t  temp;
 	for(i = 0;i<2;i++)
@@ -353,6 +354,7 @@ void lcd_bk(rt_uint32_t value)
 }
 void lcd_clear(LINE_CMD value)
 {
+	rt_public_pin_init(1);
 	rt_hw_lcd_clear(value);
 }
 #if 0

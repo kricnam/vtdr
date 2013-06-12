@@ -18,6 +18,7 @@
 #include "serial.h"
 #include <stm32f10x_dma.h>
 #include <stm32f10x_usart.h>
+uint8_t uart3flag;
 uint8_t uartcount = 0;
 extern struct rt_device uart2_device;
 extern struct rt_device uart3_device;
@@ -364,9 +365,9 @@ void rt_hw_serial_isr(rt_device_t device)
 	struct stm32_serial_device* uart = (struct stm32_serial_device*) device->user_data;
     static unsigned char checksum;
     static uint16_t lenth;
-    unsigned char gprmcbuf[5];
+    unsigned char gprmcbuf[20];
     static unsigned char isgprmc;
-    static unsigned char gprmccnt;
+    static unsigned char gprmccnt = 0;
 
 	if(USART_GetITStatus(uart->uart_device, USART_IT_RXNE) != RESET)
 	{
@@ -481,44 +482,75 @@ void rt_hw_serial_isr(rt_device_t device)
 			}
 		    if((&uart3_device)== device)
 		    {
-		    	 if((uart->uart_device->DR & 0xff) == '$')
-		    	 {
+		    	if((uart->uart_device->DR & 0xff) == '$')
+		    	{
 
 		    	       SectionID=0;
 		    	       isgprmc = 0;
 		    	       gprmccnt =0;
 		    	 }
-		    	 if((uart->uart_device->DR & 0xff)==',')
+		    	 else if((uart->uart_device->DR & 0xff)==',')
 		    	 {
 		    	           SectionID++;
+		    	           gprmccnt = 0;
 		    	 }
 
 		    	 else
 		    	 {
-
+		    		   if(gprmccnt == 20)
+		    		   {
+		    			   gprmccnt = 0;
+		    		   }
+					   gprmcbuf[gprmccnt] = uart->uart_device->DR & 0xff;
+					   gprmccnt++;
 					   switch(SectionID)
 					   {
-					   	   	 case FIELD_NONE:
-					   	   		 if (gprmccnt !=5)
+					         case FIELD_NONE:
+					   	   		 if(gprmccnt == 5)
 					   	   		 {
-									gprmcbuf[gprmccnt] = uart->uart_device->DR & 0xff;
-									gprmccnt++;
-					   	   		 }
-					   	   		 if((gprmccnt == 5)&& strcmp(gprmcbuf,"GPRMC",5))
-					   	   		 {
-					   	   			 isgprmc =1;
+					   	   			gprmccnt =0 ;
+									if ( (gprmcbuf[0] = 'G')
+										&&(gprmcbuf[1] = 'P')&&(gprmcbuf[2] = 'R')
+										&&(gprmcbuf[3] = 'M')&&(gprmcbuf[4] = 'C'))
+									 {
+										 isgprmc =1;
+									 }
 					   	   		 }
 
 					   	   		   break;
 							 case FIELD_ONE://提取时间
+								 if(isgprmc == 1)
+								 {
+										 if(gprmccnt == 10 )
+										 {
+											 //get the time
+										 }
+								 }
 								  break;
-							 case FIELD_TWO: //判断数据是否可信(当GPS天线能接收到有3颗GPS卫星时为A，可信)
+							 case FIELD_TWO: //判断数据是否可信(当GPS天线能接收到有3颗GPS卫星时为A，可信
 								 break;
 							 case FIELD_THREE://提取出纬度
-
+								 if(isgprmc == 1)
+								 {
+									 if(gprmccnt == 9 )
+									 {
+										 //get the time
+									 }
+								 }
 								  break;
 							 case FIELD_FOUR://提取出经度
 								  break;
+							 case FIELD_FIVE://提取出经度
+								 if (gprmccnt !=9)
+								 {
+									gprmcbuf[gprmccnt] = uart->uart_device->DR & 0xff;
+									gprmccnt++;
+								 }
+								 if(gprmccnt == 9 )
+								 {
+									 //get the time
+								 }
+							 	  break;
 							 case FIELD_NIGHT://提取出日期
 
 								  break;

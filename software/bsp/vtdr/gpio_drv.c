@@ -133,7 +133,31 @@ void rt_hw_gpio_init(void)
 
     rt_hw_EXTI_cfg();
 }
+void rt_public_pin_init(unsigned char dir)
+{
+	 GPIO_InitTypeDef GPIO_InitStructure;
+	 RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB  ,ENABLE);
+	//lcd and priter
+	if(dir)
+	{
+		    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+		    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+		    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_15 | GPIO_Pin_13;
+		    GPIO_Init(GPIOB, &GPIO_InitStructure);
+		    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
+		    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+		    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_14;
+		    GPIO_Init(GPIOB, &GPIO_InitStructure);
+	}
+	else//spi2
+	{
+			GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15 | GPIO_Pin_13 | GPIO_Pin_14;
+			GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+			GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+			GPIO_Init(GPIOB, &GPIO_InitStructure);
+	}
 
+}
 
 
 
