@@ -140,7 +140,7 @@ static void RCC_Configuration(void)
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
 
 	/* DMA clock enable */
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+	//RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
 #endif
 }
 
@@ -216,10 +216,10 @@ static void NVIC_Configuration(void)
 	NVIC_Init(&NVIC_InitStructure);
 
 	/* Enable the DMA1 Channel2 Interrupt */
-	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&NVIC_InitStructure);
+//	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel2_IRQn;
+//	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+//	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+//	NVIC_Init(&NVIC_InitStructure);
 #endif
 }
 
@@ -264,7 +264,7 @@ void rt_hw_usart_init()
 
 	NVIC_Configuration();
 
-	DMA_Configuration();
+//	DMA_Configuration();
 
 	/* uart init */
 #ifdef RT_USING_UART1
@@ -314,7 +314,7 @@ void rt_hw_usart_init()
 #endif
 
 #ifdef RT_USING_UART3
-	USART_InitStructure.USART_BaudRate = 115200;
+	USART_InitStructure.USART_BaudRate = 9600;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -327,15 +327,20 @@ void rt_hw_usart_init()
 	USART_Init(USART3, &USART_InitStructure);
 	USART_ClockInit(USART3, &USART_ClockInitStructure);
 
-	uart3_dma_tx.dma_channel= UART3_TX_DMA;
+	//uart3_dma_tx.dma_channel= UART3_TX_DMA;
 
 	/* register uart3 */
+#if 0
 	rt_hw_serial_register(&uart3_device, "uart3",
 		RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX | RT_DEVICE_FLAG_DMA_TX,
 		&uart3);
+#endif
+	rt_hw_serial_register(&uart3_device, "uart3",
+		RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_INT_RX | RT_DEVICE_FLAG_STREAM,
+		&uart3);
 
 	/* Enable USART3 DMA Tx request */
-	USART_DMACmd(USART3, USART_DMAReq_Tx , ENABLE);
+	//USART_DMACmd(USART3, USART_DMAReq_Tx , ENABLE);
 
 	/* enable interrupt */
 	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);

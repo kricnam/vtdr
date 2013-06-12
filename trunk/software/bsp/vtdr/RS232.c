@@ -2542,7 +2542,6 @@ void rs232_handle_application(rt_device_t device)
 	{
 		Datalenth = uart->int_rx->rx_buffer[(uart->int_rx->read_index +4) &UART_RX_BUFFER_MAX_SIZE];
 		Datalenth = ((uart->int_rx->rx_buffer[(uart->int_rx->read_index +3) &UART_RX_BUFFER_MAX_SIZE])<<8)+Datalenth;
-		leidebug();
 		DataCmd = uart->int_rx->rx_buffer[(uart->int_rx->read_index+2)& UART_RX_BUFFER_MAX_SIZE];
 		if ((DataCmd < 0x16)&& (DataCmd > 0x07))
 		{
