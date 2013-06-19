@@ -10,7 +10,7 @@
 
 extern CLOCK curTime;
 extern LCDTCB lcd_tcb;
-
+extern SizeData location;
 unsigned char CurStatus;
 #define SpeedSpace 4
 
@@ -193,5 +193,104 @@ void Time3_irg_handler()
 
 	  }
 }
+
+///GPS data////////////////////////////////
+///////////////////////////////////////////
+///////////////////////////////////////////
+unsigned char ASCII2char(unsigned char number)
+{
+	if((number <58)&&(number>47))
+	{
+		number = number-48;
+	}
+	return number;
+}
+unsigned long CountTime(CLOCK ctime)
+{
+	unsigned long timesec;
+	timesec = ctime.hour*3600+ctime.minute*60+ctime.second;
+	return timesec;
+}
+
+void GetTheGPSTime(unsigned char *tbuf)
+{
+	CLOCK GPStime;
+	unsigned long nwtime,gtime;
+	unsigned char i,dtime;
+	unsigned char *pbuf;
+	unsigned char *buf;
+	pbuf = &GPStime.day;
+	buf = &curTime.day;
+	for(i= 0;i<3;i++)
+	{
+		*(pbuf+i+1) = 10*ASCII2char(*tbuf)+ ASCII2char(*tbuf);
+	}
+	nwtime =CountTime(curTime);
+	gtime = CountTime(GPStime);
+	if(gtime>nwtime)
+	{
+		dtime = gtime-nwtime;
+	}
+	else
+	{
+		dtime = nwtime-gtime;
+	}
+	if((dtime >10) &&(dtime<200))
+	{
+		for(i= 0;i<3;i++)
+		{
+			*(buf+i-1) = (*(pbuf+i-1));
+		}
+		//set the time
+		SetCurrentDateTime(curTime);
+	}
+
+}
+void GetGPSLocation1(unsigned char *tbuf)
+{
+	unsigned char i,j= 1;
+	unsigned long *pbuf = &location.longtitude;
+	*pbuf = 0;
+	for(i= 0;i<9;i++)
+	{
+		if(i!=5)
+		{
+			*pbuf =ASCII2char(*tbuf)+j*(*pbuf);
+			j= j*10;
+		}
+	}
+
+}
+void GetGPSLocation2(unsigned char *tbuf)
+{
+	unsigned char i,j= 1;
+	unsigned long *pbuf = &location.latitude;
+	*pbuf = 0;
+	for(i= 0;i<9;i++)
+	{
+		if(i!=5)
+		{
+			*pbuf =ASCII2char(*tbuf)+j*(*pbuf);
+			j= j*10;
+		}
+	}
+
+}
+void GetGPSLocation3(unsigned char *tbuf)
+{
+	unsigned char i,j= 1;
+	unsigned long *pbuf = &location.latitude;
+	*pbuf = 0;
+	for(i= 0;i<6;i++)
+	{
+		if(i!=5)
+		{
+			*pbuf =ASCII2char(*tbuf)+j*(*pbuf);
+			j= j*10;
+		}
+	}
+
+}
+
  
  

@@ -290,8 +290,8 @@ typedef struct{
 	unsigned char status;//ÿ0.2��8λ״̬
 }DoubtData;
 typedef struct{
-	unsigned char longtitude[4];
-	unsigned char latitude[4];
+	unsigned char longtitude[4];//经度
+	unsigned char latitude[4];//纬度
 	unsigned char altitude[2];
 }SizeData;
 typedef struct{
