@@ -365,9 +365,9 @@ void rt_hw_serial_isr(rt_device_t device)
 	struct stm32_serial_device* uart = (struct stm32_serial_device*) device->user_data;
     static unsigned char checksum;
     static uint16_t lenth;
-    unsigned char gprmcbuf[20];
+    static unsigned char gprmcbuf[400];
     static unsigned char isgprmc;
-    static unsigned char gprmccnt = 0;
+    static unsigned short gprmccnt = 0;
 
 	if(USART_GetITStatus(uart->uart_device, USART_IT_RXNE) != RESET)
 	{
@@ -488,42 +488,56 @@ void rt_hw_serial_isr(rt_device_t device)
 		    	       SectionID=0;
 		    	       isgprmc = 0;
 		    	       gprmccnt =0;
+		    	       uart3flag =1;
 		    	 }
 		    	 else if((uart->uart_device->DR & 0xff)==',')
 		    	 {
 		    	           SectionID++;
 		    	           gprmccnt = 0;
+		    	           uart3flag =2;
 		    	 }
 
 		    	 else
 		    	 {
-		    		   if(gprmccnt == 20)
+		    		   if(gprmccnt == 400)
 		    		   {
 		    			   gprmccnt = 0;
 		    		   }
 					   gprmcbuf[gprmccnt] = uart->uart_device->DR & 0xff;
+					   rt_device_write(&uart2_device, 0, &gprmcbuf[gprmccnt], 1);
 					   gprmccnt++;
 					   switch(SectionID)
 					   {
 					         case FIELD_NONE:
-					   	   		 if(gprmccnt == 5)
+					   	   		 if(gprmccnt == 399)
 					   	   		 {
+					   	   			 uart3flag =2;
 					   	   			gprmccnt =0 ;
-									if ( (gprmcbuf[0] = 'G')
-										&&(gprmcbuf[1] = 'P')&&(gprmcbuf[2] = 'R')
-										&&(gprmcbuf[3] = 'M')&&(gprmcbuf[4] = 'C'))
+									if ( (gprmcbuf[0] == 'G')
+										&&(gprmcbuf[1] == 'P')&&(gprmcbuf[2] =='G')
+										&&(gprmcbuf[3] =='G')&&(gprmcbuf[4] == 'A'))
 									 {
-										 isgprmc =1;
+										 isgprmc =1;//位置信息
+
+									 }
+									if ( (gprmcbuf[0] == 'G')
+										&&(gprmcbuf[1] == 'P')&&(gprmcbuf[2] =='V')
+										&&(gprmcbuf[3] == 'T')&&(gprmcbuf[4] == 'G'))
+									 {
+										 isgprmc =2;//速度信息
+										 uart3flag =2;
 									 }
 					   	   		 }
 
 					   	   		   break;
 							 case FIELD_ONE://提取时间
+								 uart3flag =1;
 								 if(isgprmc == 1)
 								 {
-										 if(gprmccnt == 10 )
+										 if(gprmccnt == 6 )
 										 {
 											 //get the time
+											 GetTheGPSTime(gprmcbuf);
 										 }
 								 }
 								  break;
@@ -532,26 +546,38 @@ void rt_hw_serial_isr(rt_device_t device)
 							 case FIELD_THREE://提取出纬度
 								 if(isgprmc == 1)
 								 {
-									 if(gprmccnt == 9 )
+									 if(gprmccnt == 8 )
 									 {
 										 //get the time
 									 }
 								 }
 								  break;
-							 case FIELD_FOUR://提取出经度
+							 case FIELD_FOUR://提取出速度
+								 if(isgprmc == 2)
+								 {
+									 //get the speed
+								 }
 								  break;
 							 case FIELD_FIVE://提取出经度
-								 if (gprmccnt !=9)
+								 if(isgprmc == 1)
 								 {
-									gprmcbuf[gprmccnt] = uart->uart_device->DR & 0xff;
-									gprmccnt++;
-								 }
-								 if(gprmccnt == 9 )
-								 {
-									 //get the time
+									 if(gprmccnt == 8 )
+									 {
+										 //get the time
+									 }
 								 }
 							 	  break;
-							 case FIELD_NIGHT://提取出日期
+							 case FIELD_SEVEN:
+								if(isgprmc == 1)
+								{
+									 if(gprmccnt == 2 )
+									 {
+										 //get the singal
+									 }
+								}
+								break;
+							 case FIELD_NIGHT://提取高度
+
 
 								  break;
 								  default:

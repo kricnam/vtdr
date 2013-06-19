@@ -11,6 +11,7 @@
 #include "application.h"
 #include <stm32f10x_rcc.h>
 #include <stm32f10x_gpio.h>
+#include <stm32f10x_spi.h>
 
 #define PRN_CMDE_CTR (GPIOE)
 #define PRN_EN    GPIO_Pin_1
@@ -35,8 +36,11 @@ extern CLOCK curTime;
 extern PartitionTable pTable;
 extern StructPara Parameter;
 extern unsigned char LargeDataBuffer[];
-extern u_short DriveMinuteLimit;
-extern u_short RestMinuteLimit;
+extern unsigned short DriveMinuteLimit;
+extern unsigned short RestMinuteLimit;
+
+unsigned short print_buf[32][24];
+
 
 //const unsigned short     line1[]={0xb5b3,0xc6c5,0xc5ba,0xebc2,0xbaa3};//���ƺ��룺
 //const unsigned short     line2[]={0xb5b3,0xc6c5,0xd6b7,0xe0c0,0xbaa3};//���Ʒ��ࣺ
@@ -130,10 +134,10 @@ void TiredToASCII(unsigned char *ASCII,unsigned char *buf)
 //*���õ�ȫ�ֱ���       : none
 //*�޸ĵ�ȫ�ֱ���       : None
 //*----------------------------------------------------------------------------
-unsigned char IntToASCII(unsigned char *buf,u_int drivercode)
+unsigned char IntToASCII(unsigned char *buf,unsigned long drivercode)
 {
 	//unsigned char gew;unsigned char shiw;unsigned char baiw;
-	// u_int 16--10����,
+	// unsigned long 16--10����,
 	unsigned int y;
 	y=drivercode;
 	unsigned int x=y/10;
@@ -207,9 +211,19 @@ unsigned char printOneOTDRRecord(unsigned char number,OTDR *record)
 //*���õ�ȫ�ֱ���       : none
 //*�޸ĵ�ȫ�ֱ���       : None
 //*----------------------------------------------------------------------------
-unsigned char printline8()
+void printsent2byte(unsigned short *tbyte )
 {
-return 1;
+	rt_public_pin_init(3);
+	SPI_I2S_SendData(SPI2, *tbyte);
+
+}
+void print1stb(unsigned short *tbyte)
+{
+	unsigned char i;
+	for(i = 0;i<4;i++)
+	{
+
+	}
 }
 
 
@@ -219,33 +233,189 @@ return 1;
 //* Input Parameters    : none
 //* Output Parameters   : none
 //*----------------------------------------------------------------------------
-unsigned char Printer()
+#if 0
+void PrinterOneline()
 {
-	return 1;
-}
+	unsigned long i,j;
+	GPIO_SetBits(PRN_CMDB_CTR,PRN_LAT);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB1);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB2);
+	rt_public_pin_init(3);
+	lcd_delay(1000);
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_SCK);
+	GPIO_SetBits(PRN_CMDB_CTR,PRN_MOSI);
+	lcd_delay(1);
+	for(i = 0;i<384;i++)
+	{
 
-void rt_hw_printer_init()
+		//if((i%4)==0)
+			//GPIO_SetBits(PRN_CMDB_CTR,PRN_MOSI);
+		//else
+			//GPIO_ResetBits(PRN_CMDB_CTR,PRN_MOSI);
+		//GPIO_SetBits(PRN_CMDB_CTR,PRN_SCK);
+		//lcd_delay(1);
+
+		//GPIO_ResetBits(PRN_CMDB_CTR,PRN_SCK);
+		//GPIO_ResetBits(PRN_CMDB_CTR,PRN_LAT);
+		//lcd_delay(1);
+		SPI_I2S_SendData(SPI2, 0xaaaa);
+	}
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_LAT);
+	lcd_delay(3);
+	GPIO_SetBits(PRN_CMDB_CTR,PRN_LAT);
+	lcd_delay(1);
+	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB1);
+	lcd_delay(2000);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB1);
+	lcd_delay(1);
+	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB2);
+	lcd_delay(2000);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB2);
+
+}
+void Printtest()
 {
-	GPIO_InitTypeDef GPIO_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE, ENABLE);
+	unsigned long i,j,k,count;
+	j=0;
+	k=0;
+	GPIO_SetBits(PRN_CMDB_CTR,PRN_MCSTOP);
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC1);
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC2);
+	for(i=0;i<500;i++)
+	{
+		if((i%2)==0)
+		{
+			if(k)
+			{
+				GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC2);
+				k= 0;
+			}
+			else
+			{
+				GPIO_SetBits(PRN_CMDB_CTR,PRN_MC2);
 
-	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+				k= 1;
+			}
 
-	GPIO_InitStructure.GPIO_Pin   = PRN_PWR|PRN_EN|PRN_STB1|PRN_STB2;
-	//PRN_PWR，PRN_EN，SRTOB12。
-	GPIO_Init(PRN_CMDE_CTR, &GPIO_InitStructure);
+		}
+		else
+		{
+			if(j)
+			{
+				GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC1);
+				j = 0;
+			}
+			else
+			{
+				GPIO_SetBits(PRN_CMDB_CTR,PRN_MC1);
+				j= 1;
+			}
+		}
+		PrinterOneline();
+		for(count = 0;count<0xfff;count++);
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-	GPIO_InitStructure.GPIO_Pin   = PRN_MCSTOP |PRN_LAT;
-	GPIO_Init(PRN_CMDB_CTR, &GPIO_InitStructure);
+		}
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MCSTOP);
+}
+#endif
 
-	GPIO_Init(GPIOE, &GPIO_InitStructure);
-
-	printer_pwr_ctrl(1);
+void PrinterOnelinePoint(unsigned short *prtbuf)
+{
+	unsigned long i,j;
+	GPIO_SetBits(PRN_CMDB_CTR,PRN_LAT);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB1);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB2);
+	rt_public_pin_init(3);
+	lcd_delay(1);
+    for(i = 0;i<24;i++)
+    {
+    	while(SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_TXE) == RESET);
+    	SPI_I2S_SendData(SPI2,  *(prtbuf+i));
+    }
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_LAT);
+	lcd_delay(1);
+	GPIO_SetBits(PRN_CMDB_CTR,PRN_LAT);
+	lcd_delay(1);
+	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB1);
+	lcd_delay(2000);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB1);
+	lcd_delay(1);
+	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB2);
+	lcd_delay(2000);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB2);
 
 }
+void Print1line(unsigned short *buf)
+{
+	unsigned long i,j,k,count;
+	j=0;
+	k=0;
+	GPIO_SetBits(PRN_CMDB_CTR,PRN_MCSTOP);
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC1);
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC2);
+	for(i=0;i<34;i++)
+	{
+		if((i%2)==0)
+		{
+			if(k)
+			{
+				GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC2);
+				k= 0;
+			}
+			else
+			{
+				GPIO_SetBits(PRN_CMDB_CTR,PRN_MC2);
 
+				k= 1;
+			}
+
+		}
+		else
+		{
+			if(j)
+			{
+				GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC1);
+				j = 0;
+			}
+			else
+			{
+				GPIO_SetBits(PRN_CMDB_CTR,PRN_MC1);
+				j= 1;
+			}
+		}
+		if(i<32)
+		{
+			PrinterOnelinePoint((buf+i*24));
+		}
+		for(count = 0;count<0xfff;count++);
+
+		}
+	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MCSTOP);
+}
+void setprint1linebuf()
+{
+	unsigned char i;
+	for(i=0;i<32;i++)
+	{
+		print_buf[i][24] = Pri_ji[i];
+		print_buf[i][23] = Pri_dong[i];
+		print_buf[i][22] = Pri_che[i];
+		print_buf[i][21] = Pri_hao[i];
+		print_buf[i][20] = Pri_pai[i];
+		print_buf[i][19] = Pri_fen[i];
+		print_buf[i][18] = Pri_lei[i];
+		print_buf[i][17] = Pri_maohao[i];
+
+	}
+}
+void printer()
+{
+	unsigned char i,j;
+	menset(print_buf,0,sizeof(print_buf));
+	setprint1linebuf();
+	setprint2linebuf();
+	Print1line(print_buf);
+}
 void printer_pwr_ctrl(unsigned char ctldr)
 {
 	if(ctldr)
@@ -261,3 +431,26 @@ void printer_pwr_ctrl(unsigned char ctldr)
 		GPIO_ResetBits(PRN_CMDE_CTR,PRN_PWR);
 	}
 }
+void rt_hw_printer_init()
+{
+	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE, ENABLE);
+
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+
+	GPIO_InitStructure.GPIO_Pin   = PRN_PWR|PRN_EN|PRN_STB1|PRN_STB2;
+	//PRN_PWR，PRN_EN，SRTOB12。
+	GPIO_Init(PRN_CMDE_CTR, &GPIO_InitStructure);
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	GPIO_InitStructure.GPIO_Pin   = PRN_MCSTOP |PRN_LAT|PRN_MC1|PRN_MC2;
+	GPIO_Init(PRN_CMDB_CTR, &GPIO_InitStructure);
+
+	GPIO_Init(GPIOE, &GPIO_InitStructure);
+
+	printer_pwr_ctrl(1);
+
+}
+
+

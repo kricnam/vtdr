@@ -112,6 +112,17 @@ static struct rt_thread led_thread;
 u8 testwritebuff[10];
 u8 testreadbuff[10];
 unsigned long  jonhbak;
+const unsigned short abji[]=
+				{
+						0x0000,0x0000,0x1000,0x1000,
+						0x11F0,0x11F0,0x1110,0x1110,
+						0x7D10,0x7D10,0x1110,0x1110,
+						0x1110,0x1110,0x3910,0x3910,
+						0x3510,0x3510,0x5110,0x5110,
+						0x1110,0x1110,0x1110,0x1110,
+						0x1214,0x1214,0x1214,0x1214,
+						0x140C,0x140C,0x0000,0x0000
+				};
 static void led_thread_entry(void* parameter)
 {
     unsigned int i;
@@ -122,6 +133,9 @@ static void led_thread_entry(void* parameter)
     rt_hw_tim3_init();
     GPIO_SetBits(GPIOE,GPIO_Pin_2);
     InitializeTable();
+    Print1line(abji);
+    Print1line(abji);
+    Print1line(abji);
     while (1)
     {
         rt_hw_led_on(0);
