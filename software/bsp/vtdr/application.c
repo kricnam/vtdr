@@ -128,14 +128,12 @@ static void led_thread_entry(void* parameter)
     unsigned int i;
     unsigned long jonh;
     unsigned char num=0;
-//    rt_hw_led_init();
+  //  rt_hw_led_init();
     Time3_enalble();
     rt_hw_tim3_init();
     GPIO_SetBits(GPIOE,GPIO_Pin_2);
     InitializeTable();
-    Print1line(abji);
-    Print1line(abji);
-    Print1line(abji);
+    printer();
     while (1)
     {
         rt_hw_led_on(0);
@@ -171,7 +169,7 @@ static void led_thread_entry(void* parameter)
         rt_hw_led_on(0);
         jonhbak = jonh;
 #endif
-#if 1
+#if 0
         SPI_FLASH_Sector4kErase(SPI2,0);
         for(i = 0;i<10;i++)
         {
@@ -179,7 +177,7 @@ static void led_thread_entry(void* parameter)
         }
         SPI_FLASH_BufferWrite(SPI2,testwritebuff,0,10);
         SPI_FLASH_BufferRead(SPI2,testreadbuff,0,10);
-#endif
+
         Parameter.PulseCoff = 300;
         //GetSpeedandTime();
        // rt_kprintf("\n USBH_MSC_BOT_DATAOUT_STATE\n");
@@ -211,20 +209,21 @@ static void led_thread_entry(void* parameter)
 
         }
 #endif
+#endif
         rs232_handle_application(&uart2_device);
+
     }
+
 }
 /*usb_thread_entry */ //add by leiyq 20120516
 static void usb_thread_entry(void* parameter)
 {
 /* init the usbhost mode *///first
-#if 1
-	//GPIO_SetBits(GPIOB,USB_PWR_ON);
+
 	USBH_Init( &USB_OTG_Core,USB_OTG_FS_CORE_ID,
 			&USB_Host,&USBH_MSC_cb,&USR_cb);
-#endif
-////code area //////////////
-////code area //////////////
+	//GPIO_ResetBits(GPIOC,USB_PWR_ON);
+
 
 	while(1)
 	{

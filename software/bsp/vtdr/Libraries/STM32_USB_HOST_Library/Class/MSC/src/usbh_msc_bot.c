@@ -51,7 +51,6 @@
 * @{
 */ 
 
-
 /** @defgroup USBH_MSC_BOT_Private_TypesDefinitions
 * @{
 */ 
@@ -284,7 +283,7 @@ void USBH_MSC_HandleBOTXfer (USB_OTG_CORE_HANDLE *pdev ,USBH_HOST *phost)
         USBH_MSC_BOTXferParam.BOTStateBkp = USBH_MSC_RECEIVE_CSW_STATE;
         
       }
-      else if(URB_Status == URB_ERROR)//add by leiyq 20130305
+      else if((URB_Status == URB_ERROR))//add by leiyq 20130305
 	  {
 		  if (remainingDataLength == 0)
 		  {
@@ -441,6 +440,16 @@ void USBH_MSC_HandleBOTXfer (USB_OTG_CORE_HANDLE *pdev ,USBH_HOST *phost)
         error_direction = USBH_MSC_DIR_IN;
         USBH_MSC_BOTXferParam.BOTState  = USBH_MSC_BOT_ERROR_IN;
       }
+      else if(URB_Status == URB_NOTREADY)//addby leiyq 20130625
+      {
+    	  USBH_MSC_BOTXferParam.BOTState =  USBH_MSC_BOTXferParam.BOTStateBkp;
+
+      }
+      else if(URB_Status == URB_ERROR)//addby leiyq 20130625
+	  {
+		  USBH_MSC_BOTXferParam.BOTState =  USBH_MSC_BOTXferParam.BOTStateBkp;
+
+	  }
       break;
       
     case USBH_MSC_BOT_ERROR_IN: 
@@ -464,6 +473,12 @@ void USBH_MSC_HandleBOTXfer (USB_OTG_CORE_HANDLE *pdev ,USBH_HOST *phost)
       {
         /* This means that there is a STALL Error limit, Do Reset Recovery */
         USBH_MSC_BOTXferParam.BOTXferStatus = USBH_MSC_PHASE_ERROR;
+         //USBH_MSC_BOTXferParam.MSCState = USBH_MSC_BOTXferParam.MSCStateBkp;//add by leiyq
+        if(USBH_MSC_BOTXferParam.MSCState!=8 )
+              	USBH_MSC_BOTXferParam.MSCState = 0;//add by leiyq
+       // USBH_MSC_BOTXferParam.CmdStateMachine = CMD_SEND_STATE;//add by leiyq
+        //USBH_MSC_BOTReset(pdev, phost);
+
       }
       break;
       
@@ -477,6 +492,11 @@ void USBH_MSC_HandleBOTXfer (USB_OTG_CORE_HANDLE *pdev ,USBH_HOST *phost)
       {
         /* This means that there is a STALL Error limit, Do Reset Recovery */
         USBH_MSC_BOTXferParam.BOTXferStatus = USBH_MSC_PHASE_ERROR;
+        if(USBH_MSC_BOTXferParam.MSCState!=8 )
+        	USBH_MSC_BOTXferParam.MSCState = 0;//add by leiyq
+        //USBH_MSC_BOTXferParam.CmdStateMachine = CMD_SEND_STATE;//add by leiyq
+        //USBH_MSC_BOTReset(pdev, phost);
+
       }
       break;
       

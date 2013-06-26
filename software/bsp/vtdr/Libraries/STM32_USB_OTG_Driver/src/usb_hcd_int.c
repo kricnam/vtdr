@@ -640,7 +640,7 @@ uint32_t USB_OTG_USBH_handle_hc_n_In_ISR (USB_OTG_CORE_HANDLE *pdev , uint32_t n
     hcint.b.nak = 0;           /* NOTE: When there is a 'stall', reset also nak, 
                                   else, the pdev->host.HC_Status = HC_STALL
     will be overwritten by 'nak' in code below */
-    USB_OTG_HC_Halt(pdev, num);    
+    USB_OTG_HC_Halt(pdev, num);
   }
   else if (hcint.b.datatglerr)
   {
@@ -723,6 +723,7 @@ uint32_t USB_OTG_USBH_handle_hc_n_In_ISR (USB_OTG_CORE_HANDLE *pdev , uint32_t n
     UNMASK_HOST_INT_CHH (num);
     pdev->host.ErrCnt[num] ++;
     pdev->host.HC_Status[num] = HC_XACTERR;
+    pdev->host.URB_State[num] = URB_ERROR;  //addby leiyq
     USB_OTG_HC_Halt(pdev, num);
     CLEAR_HC_INT(hcreg , xacterr);    
     
@@ -743,6 +744,7 @@ uint32_t USB_OTG_USBH_handle_hc_n_In_ISR (USB_OTG_CORE_HANDLE *pdev , uint32_t n
       USB_OTG_WRITE_REG32(&pdev->regs.HC_REGS[num]->HCCHAR, hcchar.d32); 
     }
     pdev->host.HC_Status[num] = HC_NAK;
+    pdev->host.URB_State[num] = URB_NOTREADY;
     CLEAR_HC_INT(hcreg , nak);   
   }
   

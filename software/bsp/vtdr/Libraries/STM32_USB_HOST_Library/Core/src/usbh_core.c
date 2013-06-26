@@ -170,7 +170,7 @@ void USBH_Init(USB_OTG_CORE_HANDLE *pdev,
   USB_OTG_BSP_Init(pdev);  
   
   /* configure GPIO pin used for switching VBUS power */
-  USB_OTG_BSP_ConfigVBUS(0);  
+  //USB_OTG_BSP_ConfigVBUS(0);
   
   
   /* Host de-initializations */
@@ -692,7 +692,9 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
     if  (URB_Status == URB_STALL) 
     { 
       /* In stall case, return to previous machine state*/
-      phost->gState =   phost->gStateBkp;
+     phost->gState =   phost->gStateBkp;
+     phost->Control.state = CTRL_STALLED;//add by leiyq
+
     }   
     else if (URB_Status == URB_ERROR)
     {
@@ -758,7 +760,7 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
                          phost->Control.hc_num_in);
     
     phost->Control.state = CTRL_STATUS_IN_WAIT;
-    rt_kprintf("\n sDATA in\n");
+    //rt_kprintf("\n sDATA in\n");
     break;
     
   case CTRL_STATUS_IN_WAIT:
@@ -769,7 +771,7 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
     { /* Control transfers completed, Exit the State Machine */
       phost->gState =   phost->gStateBkp;
       phost->Control.state = CTRL_COMPLETE;
-      rt_kprintf("\s complete in\n");
+     // rt_kprintf("\s complete in\n");
     }
     
     else if (URB_Status == URB_ERROR)
@@ -785,9 +787,11 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
      else if(URB_Status == URB_STALL)
     {
       /* Control transfers completed, Exit the State Machine */
-      phost->gState =   phost->gStateBkp;
-      phost->Control.status = CTRL_STALL;
-      status = USBH_NOT_SUPPORTED;
+     phost->gState =   phost->gStateBkp;
+     phost->Control.status = CTRL_STALL;
+     status = USBH_NOT_SUPPORTED;
+    	// phost->Control.state = CTRL_ERROR;
+
     }
     break;
     
@@ -799,7 +803,7 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
                       0,
                       phost->Control.hc_num_out);
     
-    rt_kprintf("\n sDATA out\n");
+    //rt_kprintf("\n sDATA out\n");
     phost->Control.state = CTRL_STATUS_OUT_WAIT;
     break;
     
