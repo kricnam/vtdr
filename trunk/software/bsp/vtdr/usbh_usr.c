@@ -84,13 +84,14 @@ extern USB_OTG_CORE_HANDLE          USB_OTG_Core;
 /**
 * @}
 */ 
-
+extern void Fillthefilename();
 
 /** @defgroup USBH_USR_Private_Variables
 * @{
 */ 
 uint8_t USBH_USR_ApplicationState = USH_USR_FS_INIT;
 uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
+//uint16_t filenameString[13];
 //uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
 //uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
 //FATFS fatfs;
@@ -460,21 +461,22 @@ int USBH_USR_MSC_Application(void)
 		}
 
 		f_mount(0, &fatfs);
+		//Fillthefilename();
 		res = f_open(&file,( const TCHAR *)filenameString,FA_CREATE_ALWAYS | FA_WRITE);
 		if(res == FR_OK)
 		{
 			/* Write buffer to file */
-			WriteTheData();
+			//WriteTheData();
+			USBH_USR_OverCurrentDetected();
+			USBH_USR_ApplicationState = USH_USR_FS_DRAW;
 
 		}
 		else
 		{
 			//LOGOUT ("> STM32.TXT created in the disk\n");
+			USBH_USR_ApplicationState = USH_USR_FS_WRITEFILE;
 			rt_kprintf("> STM32.TXT created in the disk\n");
 		}
-		USBH_USR_ApplicationState = USH_USR_FS_DRAW;
-
-
   
     break;
     

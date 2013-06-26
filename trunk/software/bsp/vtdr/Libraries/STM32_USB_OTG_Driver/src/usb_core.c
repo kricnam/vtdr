@@ -731,7 +731,7 @@ void USB_OTG_DriveVbus (USB_OTG_CORE_HANDLE *pdev, uint8_t state)
   hprt0.d32 = 0;
   
   /* enable disable the external charge pump */
-  USB_OTG_BSP_DriveVBUS(pdev, state);
+ // USB_OTG_BSP_DriveVBUS(pdev, state);
   
   /* Turn on the Host port power. */
   hprt0.d32 = USB_OTG_ReadHPRT0(pdev);

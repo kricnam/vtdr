@@ -35,6 +35,7 @@
 extern CLOCK curTime;
 extern PartitionTable pTable;
 extern StructPara Parameter;
+extern unsigned char CurStatus;
 extern unsigned char LargeDataBuffer[];
 extern unsigned short DriveMinuteLimit;
 extern unsigned short RestMinuteLimit;
@@ -318,7 +319,319 @@ void Printtest()
 	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MCSTOP);
 }
 #endif
+unsigned short AutoCodeHZ2Print(unsigned short data,unsigned char num)
+{
+	unsigned short ret;
+    if(num%2 != 0)
+    {
+    	num = num-1;
+    }
+	switch(data)
+	{
+		case 0xbea9:
+			ret = Pri_Ejing[num];//{""}
+			break;
+		case 0xbba6:
+			ret = Pri_Ehu[num];//{"��"}
+			break;
+		case 0xbdf2:
+			ret = Pri_Ejin[num];//{"��"}
+			break;
+		case 0xcbd5:
+			ret = Pri_Esu[num];//{"��"}
+			break;
+		case 0xcdee:
+			ret = Pri_Ewan[num];//{"��"}
+			break;
+		case 0xb8d3:
+			ret = Pri_Egan[num];//{"��"}
+			break;
+		case 0xc3f6:
+			ret = Pri_Emin[num];//{"��"}
+			break;
+		case 0xc2b3:
+			ret = Pri_Elu[num];//{"³"}
+			break;
+		case 0xd5e3:
+			ret = Pri_Ezhe[num];//{"��"}
+			break;
+		case 0xbdfa:
+			ret = Pri_Ejin1[num];//{"��"}
+			break;
+		case 0xbcbd:
+			ret = Pri_Eji[num];//{"��"}
+			break;
+		case 0xd4a5:
+			ret = Pri_Eyu[num];//{"ԥ"}
+			break;
+		case 0xc3c9:
+			ret = Pri_Emeng[num];//{"��"}
+			break;
+		case 0xd0c2:
+			ret = Pri_Exin[num];//{"��"}
+			break;
+		case 0xc4fe:
+			ret = Pri_Ening[num];//{"��"}
+			break;
+		case 0xc1c9:
+			ret = Pri_Eliao[num];//{"��"}
+			break;
+		case 0xbada:
+			ret = Pri_Ehei[num];//{"��"}
+			break;
+		case 0xbcaa:
+			ret = Pri_Eji1[num];//{"��"}
+			break;
+		case 0xcfe6:
+			ret = Pri_Exiang[num];//{"��"}
+			break;
+		case 0xb6f5:
+			ret = Pri_Ee[num];//{"��"}
+			break;
+		case 0xb9f0:
+			ret = Pri_Egui[num];//{"��"}
+			break;
+		case 0xd4c1:
+			ret = Pri_Eyue[num];//{"��"}
+			break;
+		case 0xc7ed:
+			ret = Pri_Eqiong[num];//{"��"}
+			break;
+		case 0xb2d8:
+			ret = Pri_Ezang[num];//{"��"}
+			break;
+		case 0xc9c2:
+			ret = Pri_Eshan[num];//{"��"}
+			break;
+		case 0xb8ca:
+			ret = Pri_Egan1[num];//{"��"}
+			break;
+		case 0xc7e0:
+			ret = Pri_Eqing[num];//{"��"}
+			break;
+		case 0xb4a8:
+			ret = Pri_Echuan[num];//{"��"}
+			break;
+		case 0xc7ad:
+			ret =  Pri_Eqian[num];//{"ǭ"}
+			break;
+		case 0xd4c6:
+			ret = Pri_Eyun[num];//{"��"}
+			break;
+		case 0xbaa3:
+			ret =  Pri_Ehai[num];//{"��"}
+			break;
+		case 0xcca8:
+			ret =  Pri_Etai[num];//{"̨"}
+			break;
+		case 0xd3e5:
+			ret = Pri_Eyu1[num];//{"��"}
+			break;
+		case 0xb8db:
+			ret =  Pri_Egang[num];//{"��"}
+			break;
+		case 0xb0c4:
+			ret =  Pri_Eao[num];//{"��"}
+			break;
+		case 0xcab9:
+			ret =  Pri_Eshi[num];//{"ʹ"}
+			break;
+		case 0xbcd7:
+			ret = Pri_Ejia[num];//{"��"}
+			break;
+		case 0xd2d2:
+			ret = Pri_Eyi[num];//{"��"}
+			break;
+		case 0xb1fb:
+			ret = Pri_Ebing[num];//{"��"}
+			break;
+		case 0xb6a1:
+			ret = Pri_Eding[num];//{"��"}
+			break;
+		case 0xceec:
+			ret = Pri_Exu[num];//{"��"}
+			break;
+		case 0xbcba:
+			ret = Pri_Eji3[num];//{"��"}
+			break;
+		case 0xb8fd:
+			ret = Pri_Egeng[num];//{"��"}
+			break;
+		case 0xd0c1:
+			ret =Pri_Exin1[num];//{"��"}
+			break;
+		case 0xd7d3:
+			ret = Pri_Ezi[num];//{"��"}
+			break;
+		case 0xb3f3:
+			ret = Pri_Echou[num];//{"��"}
+			break;
+		case 0xd2fa:
+			ret = Pri_Eyin[num];//{"��"}
+			break;
+		case 0xc3ae:
+			ret = Pri_Emou[num];//{"î"}
+			break;
+		case 0xb3bd:
+			ret = Pri_Echen[num];//{"��"}
+			break;
+		case 0xcee7:
+			ret =Pri_Ewu[num];//{"��"}
+			break;
+		case 0xceb4:
+			ret = Pri_Ewei[num];//{"δ"}
+			break;
+		case 0xc9ea:
+			ret = Pri_Eshen[num];//{"��"}
+			break;
+		case 0xd3cf:
+			ret = Pri_Eyou[num];//{"��"}
+			break;
+		case 0xbaa5:
+			ret = Pri_Ehai1[num];//{"��"}
+			break;
+		case 0xc8c9:
+			ret = Pri_Eren[num];//{"��"}
+			break;
+		case 0xbeaf:
+			ret = Pri_Ejing1[num];//{"��"}
+			break;
+		case 0xb9f3:
+			ret = Pri_Egui1[num];//{"��"}
+			break;
+		case 0xc1ec:
+			ret = Pri_Eling[num];//{"��"}
+			break;
+		case 0xd1a7:
+			ret = Pri_Exue[num];//{"ѧ"}
+			break;
+		case 0xcad4:
+			ret = Pri_Eshi3[num];//{"��"}
+			break;
+		case 0xbeb3:
+			ret = Pri_Ejing2[num];//{"��"}
+			break;
+		default:
+			ret = 0x0000;
+			break;
+	}
+	return ret;
+}
+unsigned short ASCII2Print(unsigned char data,unsigned char num)
+{
+	unsigned short ret;
+    if((num%2 != 0)&&(data >64)&&(data<91))
+    {
+    	num = num-1;
+    }
+	switch(data)
+	{
+		case 48:
+			ret=Pri_zimu0[num];break;
+		case 49:
+			ret=Pri_zimu1[num];break;
+		case 50:
+			ret=Pri_zimu2[num];break;
+		case 51:
+			ret=Pri_zimu3[num];break;
+		case 52:
+			ret=Pri_zimu4[num];break;
+		case 53:
+			ret=Pri_zimu5[num];break;
+		case 54:
+			ret=Pri_zimu6[num];break;
+		case 55:
+			ret=Pri_zimu7[num];break;
+		case 56:
+			ret=Pri_zimu8[num];break;
+		case 57:
+			ret=Pri_zimu9[num];break;
 
+		case 65:
+			ret=Pri_zimuA[num];break;
+		case 66:
+			ret=Pri_zimuB[num];break;
+		case 67:
+			ret=Pri_zimuC[num];break;
+		case 68:
+			ret=Pri_zimuD[num];break;
+		case 69:
+			ret=Pri_zimuE[num];break;
+		case 70:
+			ret=Pri_zimuF[num];break;
+		case 71:
+			ret=Pri_zimuG[num];break;
+		case 72:
+			ret=Pri_zimuH[num];break;
+		case 73:
+			ret=Pri_zimuI[num];break;
+		case 74:
+			ret=Pri_zimuJ[num];break;
+		case 75:
+			ret=Pri_zimuK[num];break;
+		case 76:
+			ret=Pri_zimuL[num];break;
+		case 77:
+			ret=Pri_zimuM[num];break;
+		case 78:
+			ret=Pri_zimuN[num];break;
+		case 79:
+			ret=Pri_zimuO[num];break;
+		case 80:
+			ret=Pri_zimuP[num];break;
+		case 81:
+			ret=Pri_zimuQ[num];break;
+		case 82:
+			ret=Pri_zimuR[num];break;
+		case 83:
+			ret=Pri_zimuS[num];break;
+		case 84:
+			ret=Pri_zimuT[num];break;
+		case 85:
+			ret=Pri_zimuU[num];break;
+		case 86:
+			ret=Pri_zimuV[num];break;
+		case 87:
+			ret=Pri_zimuW[num];break;
+		case 88:
+			ret=Pri_zimuX[num];break;
+		case 89:
+			ret=Pri_zimuY[num];break;
+		case 90:
+			ret=Pri_zimuZ[num];break;
+		default:
+			ret=0;break;
+	}
+	return ret;
+}
+void PrinAutoCode(unsigned short *pbuf ,unsigned char num)
+{
+	unsigned short hz;
+	unsigned char j=0,type=0;
+	unsigned char buf =Parameter.AutoInfodata.AutoCode[0];
+	while((buf!='\0')&&(j<17))
+	{
+		if(buf>127)
+		{
+			hz = hz<<8;
+			j++;
+			buf=Parameter.AutoInfodata.AutoCode[j];
+			hz = hz+buf;
+			pbuf[type] = AutoCodeHZ2Print(hz,num);
+			type++;
+
+		}
+		else
+		{
+			pbuf[type] = ASCII2Print(buf,num);
+
+			j++;
+			type++;
+			buf=Parameter.AutoInfodata.AutoCode[j];
+		}
+	}
+
+}
 void PrinterOnelinePoint(unsigned short *prtbuf)
 {
 	unsigned long i,j;
@@ -337,12 +650,15 @@ void PrinterOnelinePoint(unsigned short *prtbuf)
 	GPIO_SetBits(PRN_CMDB_CTR,PRN_LAT);
 	lcd_delay(1);
 	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB1);
-	lcd_delay(2000);
-	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB1);
-	lcd_delay(1);
 	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB2);
-	lcd_delay(2000);
+	lcd_delay(1200);
+	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB1);
 	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB2);
+
+//	lcd_delay(1);
+//	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB2);
+	//lcd_delay(2000);
+	//GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB2);
 
 }
 void Print1line(unsigned short *buf)
@@ -353,7 +669,7 @@ void Print1line(unsigned short *buf)
 	GPIO_SetBits(PRN_CMDB_CTR,PRN_MCSTOP);
 	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC1);
 	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC2);
-	for(i=0;i<34;i++)
+	for(i=0;i<45;i++)
 	{
 		if((i%2)==0)
 		{
@@ -387,34 +703,166 @@ void Print1line(unsigned short *buf)
 		{
 			PrinterOnelinePoint((buf+i*24));
 		}
-		for(count = 0;count<0xfff;count++);
-
+		else
+		{
+			for(count = 0;count<0xfff;count++);
 		}
+		for(count = 0;count<0xff;count++);
+
+	}
 	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MCSTOP);
 }
-void setprint1linebuf()
+void printhaoma()
 {
+	memset(print_buf,0,sizeof(print_buf));
 	unsigned char i;
 	for(i=0;i<32;i++)
 	{
-		print_buf[i][24] = Pri_ji[i];
-		print_buf[i][23] = Pri_dong[i];
-		print_buf[i][22] = Pri_che[i];
-		print_buf[i][21] = Pri_hao[i];
-		print_buf[i][20] = Pri_pai[i];
-		print_buf[i][19] = Pri_fen[i];
-		print_buf[i][18] = Pri_lei[i];
-		print_buf[i][17] = Pri_maohao[i];
+		print_buf[i][0] = Pri_ji[i];
+		print_buf[i][1] = Pri_dong[i];
+		print_buf[i][2] = Pri_che[i];
+		print_buf[i][3] = Pri_hao[i];
+		print_buf[i][4] = Pri_pai[i];
+		print_buf[i][5] = Pri_hao[i];
+		print_buf[i][6] = Pri_ma[i];
+		print_buf[i][7] = Pri_maohao[i];
+		PrinAutoCode(&print_buf[i][8],i);
 
 	}
+	Print1line(&print_buf[0][0]);
+
+}
+void printfenlei()
+{
+	unsigned char i;
+	memset(print_buf,0,sizeof(print_buf));
+	for(i=0;i<32;i++)
+	{
+		print_buf[i][0] = Pri_ji[i];
+		print_buf[i][1] = Pri_dong[i];
+		print_buf[i][2] = Pri_che[i];
+		print_buf[i][3] = Pri_hao[i];
+		print_buf[i][4] = Pri_pai[i];
+		print_buf[i][5] = Pri_fen[i];
+		print_buf[i][6] = Pri_lei[i];
+		print_buf[i][7] = Pri_maohao[i];
+
+	}
+	Print1line(&print_buf[0][0]);
+}
+void printJSZ()
+{
+	unsigned char i,j;
+	memset(print_buf,0,sizeof(print_buf));
+	for(i=0;i<32;i++)
+	{
+		print_buf[i][0] = Pri_ji[i];
+		print_buf[i][1] = Pri_dong[i];
+		print_buf[i][2] = Pri_che[i];
+		print_buf[i][3] = Pri_jia[i];
+		print_buf[i][4] = Pri_shi[i];
+		print_buf[i][5] = Pri_zheng[i];
+		print_buf[i][6] = Pri_hao[i];
+		print_buf[i][7] = Pri_ma[i];
+		print_buf[i][8] = Pri_maohao[i];
+
+	}
+	Print1line(&print_buf[0][0]);
+	memset(print_buf,0,sizeof(print_buf));
+	///////dayin jiashizheng
+	for(i = 0;i<32;i++)
+	{
+		for(j=0;j<18;j++)
+		{
+			print_buf[i][21-j] =ASCII2Print(Parameter.DriverLisenseCode[j],i);
+		}
+	}
+	Print1line(&print_buf[0][0]);
+
+}
+void printspeed()
+{
+	unsigned char i;
+	memset(print_buf,0,sizeof(print_buf));
+	for(i=0;i<32;i++)
+	{
+		print_buf[i][0] = Pri_su[i];
+		print_buf[i][1] = Pri_du[i];
+		print_buf[i][2] = Pri_zhuang[i];
+		print_buf[i][3] = Pri_tai[i];
+		print_buf[i][4] = Pri_maohao[i];
+		//print_buf[i][19] = ASCII2Print(CurStatus,i);
+
+
+	}
+	Print1line(&print_buf[0][0]);
+}
+void printTime()
+{
+	unsigned char i;
+	memset(print_buf,0,sizeof(print_buf));
+	for(i=0;i<32;i++)
+	{
+		print_buf[i][0] = Pri_da[i];
+		print_buf[i][1] = Pri_yin[i];
+		print_buf[i][2] = Pri_shi[i];
+		print_buf[i][3] = Pri_jian[i];
+		print_buf[i][4] = Pri_maohao[i];
+
+	}
+	Print1line(&print_buf[0][0]);
+	memset(print_buf,0,sizeof(print_buf));
+
+}
+void printOverRecord()
+{
+	unsigned char i;
+	memset(print_buf,0,sizeof(print_buf));
+	for(i=0;i<32;i++)
+	{
+		print_buf[i][0] = Pri_zimu2[i];
+		print_buf[i][1] = Pri_ge[i];
+		print_buf[i][2] = Pri_ri[i];
+		print_buf[i][3] = Pri_li[i];
+		print_buf[i][4] = Pri_tian[i];
+		print_buf[i][5] = Pri_nei[i];
+		print_buf[i][6] = Pri_chao[i];
+		print_buf[i][7] = Pri_shi2[i];
+		print_buf[i][8] = Pri_jia[i];
+		print_buf[i][9] = Pri_shi[i];
+		print_buf[i][10] = Pri_ji1[i];
+		print_buf[i][11] = Pri_lu[i];
+		print_buf[i][12] = Pri_maohao[i];
+
+	}
+	Print1line(&print_buf[0][0]);
+	memset(print_buf,0,sizeof(print_buf));
+}
+void printsign()
+{
+	unsigned char i;
+	memset(print_buf,0,sizeof(print_buf));
+	for(i=0;i<32;i++)
+	{
+		print_buf[i][0] = Pri_qian[i];
+		print_buf[i][1] = Pri_ming[i];
+		print_buf[i][2] = Pri_maohao[i];
+
+	}
+	Print1line(&print_buf[0][0]);
 }
 void printer()
 {
-	unsigned char i,j;
-	menset(print_buf,0,sizeof(print_buf));
-	setprint1linebuf();
-	setprint2linebuf();
-	Print1line(print_buf);
+	printhaoma();
+	printfenlei();
+	printJSZ();
+	printspeed();
+	printTime();
+	printOverRecord();
+	printsign();
+	memset(print_buf,0,sizeof(print_buf));
+	Print1line(&print_buf[0][0]);
+	Print1line(&print_buf[0][0]);
 }
 void printer_pwr_ctrl(unsigned char ctldr)
 {
