@@ -143,7 +143,7 @@ void rt_hw_usb_init()
  //   GPIO_SetBits(GPIOA,USB_VBUS);
 
     GPIO_ResetBits(GPIOC,USB_PWR_ON);
-   //GPIO_SetBits(GPIOC,USB_PWR_ON);
+  // GPIO_SetBits(GPIOC,USB_PWR_ON);
 }
 
 /**
@@ -164,7 +164,7 @@ void rt_hw_board_init()
 	rt_hw_usart_init();
 	rt_hw_led_init();
 	rt_hw_lcd_init();
-	//rt_hw_buzz_init();
+	rt_hw_buzz_init();
 	rt_hw_usb_init();
 	rt_hw_gpio_init();
 	rt_hw_tim3_init();

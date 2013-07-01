@@ -117,10 +117,10 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *pdev)
 {
 
      GPIO_InitTypeDef GPIO_InitStructure;
-
-     RCC_AHBPeriphClockCmd( RCC_AHBPeriph_OTG_FS , ENABLE);
      RCC_OTGFSCLKConfig(RCC_OTGFSCLKSource_PLLVCO_Div3);
-#if 1
+     RCC_AHBPeriphClockCmd( RCC_AHBPeriph_OTG_FS , ENABLE);
+
+#if 0
      /* Configure SOF VBUS ID DM DP Pins */
      GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8  |
        GPIO_Pin_9 |

@@ -92,7 +92,7 @@ extern void Fillthefilename();
 uint8_t USBH_USR_ApplicationState = USH_USR_FS_INIT;
 uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
 //uint16_t filenameString[13];
-//uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
+uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
 //uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
 //FATFS fatfs;
 //FIL file;
@@ -417,7 +417,7 @@ void USBH_USR_OverCurrentDetected (void)
 int USBH_USR_MSC_Application(void)
 {
   FRESULT res;//modify by leiyq 20120319
-  uint16_t bytesWritten, bytesToWrite;
+  uint16_t bytesWritten, bytesToWrite,i;
   switch(USBH_USR_ApplicationState)
   {
   case USH_USR_FS_INIT: 
@@ -467,7 +467,11 @@ int USBH_USR_MSC_Application(void)
 		{
 			/* Write buffer to file */
 			//WriteTheData();
-			USBH_USR_OverCurrentDetected();
+			for(i = 0;i<10000;i++)
+			{
+				WriteTheData(i);
+			}
+			//USBH_USR_OverCurrentDetected();
 			USBH_USR_ApplicationState = USH_USR_FS_DRAW;
 
 		}
@@ -477,6 +481,8 @@ int USBH_USR_MSC_Application(void)
 			USBH_USR_ApplicationState = USH_USR_FS_WRITEFILE;
 			rt_kprintf("> STM32.TXT created in the disk\n");
 		}
+		f_close(&file);
+		f_mount(0, NULL);
   
     break;
     
@@ -613,9 +619,9 @@ void Fillthefilename()
 	filenameString[12]= 0x5244;
 
 }
-void WriteTheData()
+void WriteTheData(unsigned short num)
 {
-#if 0
+#if 1
 		FRESULT res;//modify by leiyq 20120319
 		uint16_t bytesWritten, bytesToWrite;
 		bytesToWrite = sizeof(writeTextBuff);
@@ -623,13 +629,17 @@ void WriteTheData()
 
 		if((bytesWritten == 0) || (res != FR_OK)) /*EOF or Error*/
 		{
-			rt_kprintf("> STM32.TXT CANNOT be writen.\n");
+			//rt_kprintf("> STM32.TXT CANNOT be writen.\n");
+			res= 0;
+			//f_close(&file);
 		}
+		f_lseek(&file,(bytesToWrite+2)*(num+1));
 
 		/*close file and filesystem*/
-		f_close(&file);
-		f_mount(0, NULL);
+		//f_close(&file);
+		//f_mount(0, NULL);
 #endif
+#if 0
 		unsigned char writeTextBuff[WRITE_LENTH_MAX];
 		unsigned char Wcount,i;
 		uint16_t bytesWritten, bytesToWrite;
@@ -661,6 +671,7 @@ void WriteTheData()
 		/*close file and filesystem*/
 		f_close(&file);
 		f_mount(0, NULL);
+#endif
 
 }
 void GettheBlock(unsigned char *Nameptr,unsigned char NameNum,unsigned long lenth)

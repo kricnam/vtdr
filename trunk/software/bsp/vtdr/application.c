@@ -128,7 +128,7 @@ static void led_thread_entry(void* parameter)
     unsigned int i;
     unsigned long jonh;
     unsigned char num=0;
-  //  rt_hw_led_init();
+    rt_hw_led_init();
     Time3_enalble();
     rt_hw_tim3_init();
     GPIO_SetBits(GPIOE,GPIO_Pin_2);
@@ -232,10 +232,6 @@ static void usb_thread_entry(void* parameter)
 		rt_thread_delay(1);
 
 	}
-////code area //////////////
-////code area //////////////
-
-
 
 
 }

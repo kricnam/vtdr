@@ -609,7 +609,7 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
 	                   phost->Control.setup.d8 , 
 	                   phost->Control.hc_num_out);  
     phost->Control.state = CTRL_SETUP_WAIT;  
-    rt_kprintf("\n setup\n");
+   // rt_kprintf("\n setup\n");
     break; 
     
   case CTRL_SETUP_WAIT:
@@ -628,13 +628,13 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
         {
           /* Data Direction is IN */
           phost->Control.state = CTRL_DATA_IN;
-          rt_kprintf("\n setup wait data in\n");
+          //rt_kprintf("\n setup wait data in\n");
         }
         else
         {
           /* Data Direction is OUT */
           phost->Control.state = CTRL_DATA_OUT;
-          rt_kprintf("\n setup wait data out\n");
+         // rt_kprintf("\n setup wait data out\n");
         } 
       }
       /* No DATA stage */
@@ -647,13 +647,13 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
         {
           /* Data Direction is IN */
           phost->Control.state = CTRL_STATUS_OUT;
-          rt_kprintf("\n setup wait data sout in\n");
+         // rt_kprintf("\n setup wait data sout in\n");
         }
         else
         {
           /* Data Direction is OUT */
           phost->Control.state = CTRL_STATUS_IN;
-          rt_kprintf("\n setup wait data sin\n");
+          //rt_kprintf("\n setup wait data sin\n");
         } 
       }          
       /* Set the delay timer to enable timeout for data stage completion */
@@ -673,8 +673,8 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
                         phost->Control.length,
                         phost->Control.hc_num_in);
 
-    rt_kprintf("\n data in\n");
-    rt_kprintf("\n data in\n");
+   // rt_kprintf("\n data in\n");
+   // rt_kprintf("\n data in\n");
     phost->Control.state = CTRL_DATA_IN_WAIT;
     break;    
     
@@ -720,7 +720,7 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
 
 
 
-    rt_kprintf("\n DATA OUT\n");
+  //  rt_kprintf("\n DATA OUT\n");
     phost->Control.state = CTRL_DATA_OUT_WAIT;
     break;
     
@@ -788,7 +788,7 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
     {
       /* Control transfers completed, Exit the State Machine */
      phost->gState =   phost->gStateBkp;
-     phost->Control.status = CTRL_STALL;
+     phost->Control.status = CTRL_STALLED;
      status = USBH_NOT_SUPPORTED;
     	// phost->Control.state = CTRL_ERROR;
 
@@ -814,7 +814,7 @@ USBH_Status USBH_HandleControl (USB_OTG_CORE_HANDLE *pdev, USBH_HOST *phost)
     { 
       phost->gState =   phost->gStateBkp; 
       phost->Control.state = CTRL_COMPLETE; 
-      rt_kprintf("\n sDATA out complete\n");
+    //  rt_kprintf("\n sDATA out complete\n");
     }
     else if  (URB_Status == URB_NOTREADY)
     { 

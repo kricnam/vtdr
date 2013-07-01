@@ -131,6 +131,7 @@ typedef union _USBH_CSW_Block
 #define USBH_MSC_DECODE_CSW               6
 #define USBH_MSC_BOT_ERROR_IN             7
 #define USBH_MSC_BOT_ERROR_OUT            8
+#define USBH_MSC_BOT_RESET_CBW              9 //add by leiyq
 
 
 #define USBH_MSC_BOT_CBW_SIGNATURE        0x43425355
