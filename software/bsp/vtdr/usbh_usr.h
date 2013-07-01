@@ -89,7 +89,7 @@ void USBH_USR_DeInit(void);
 void USBH_USR_DeviceNotSupported(void);
 void USBH_USR_UnrecoveredError(void);
 int USBH_USR_MSC_Application(void);
-void WriteTheData(void);
+void WriteTheData(unsigned short num);
 unsigned short FilltheTextBuff(unsigned char *bufptr,unsigned char block,unsigned char *Count);
 void GettheBlock(unsigned char *Nameptr,unsigned char NameNum,unsigned long lenth);
 /**
