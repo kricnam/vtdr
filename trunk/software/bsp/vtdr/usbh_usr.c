@@ -90,12 +90,10 @@ extern void Fillthefilename();
 * @{
 */ 
 uint8_t USBH_USR_ApplicationState = USH_USR_FS_INIT;
-uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
-//uint16_t filenameString[13];
-uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
 //uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
-//FATFS fatfs;
-//FIL file;
+uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
+
+uint16_t filenameString[13];
 FATFS fatfs; //modify by leiyq 20120219
 FIL file;    //modify by leiyq 20120219
 uint8_t line_idx = 0;   
@@ -133,23 +131,6 @@ USBH_Usr_cb_TypeDef USR_cb =
 /** @defgroup USBH_USR_Private_Constants
 * @{
 */ 
-/*---------------  Messages ---------------*/
-const uint8_t MSG_HOST_INIT[]        = "> Host Library Initialized\n";
-const uint8_t MSG_DEV_ATTACHED[]     = "> Device Attached \n";
-const uint8_t MSG_DEV_DISCONNECTED[] = "> Device Disconnected\n";
-const uint8_t MSG_DEV_ENUMERATED[]   = "> Enumeration completed \n";
-const uint8_t MSG_DEV_HIGHSPEED[]    = "> High speed device detected\n";
-const uint8_t MSG_DEV_FULLSPEED[]    = "> Full speed device detected\n";
-const uint8_t MSG_DEV_LOWSPEED[]     = "> Low speed device detected\n";
-const uint8_t MSG_DEV_ERROR[]        = "> Device fault \n";
-
-const uint8_t MSG_MSC_CLASS[]        = "> Mass storage device connected\n";
-const uint8_t MSG_HID_CLASS[]        = "> HID device connected\n";
-const uint8_t MSG_DISK_SIZE[]        = "> Size of the disk in MBytes: \n";
-const uint8_t MSG_LUN[]              = "> LUN Available in the device:\n";
-const uint8_t MSG_ROOT_CONT[]        = "> Exploring disk flash ...\n";
-const uint8_t MSG_WR_PROTECT[]       = "> The disk is write protected\n";
-const uint8_t MSG_UNREC_ERROR[]      = "> UNRECOVERED ERROR STATE\n";
 /**
 * @}
 */
@@ -195,7 +176,7 @@ void USBH_USR_Init(void)
 */
 void USBH_USR_DeviceAttached(void)
 {
-
+	USBH_USR_ApplicationState = 0;
 }
 
 
@@ -220,7 +201,7 @@ void USBH_USR_UnrecoveredError (void)
 */
 void USBH_USR_DeviceDisconnected (void)
 {
-  
+	USBH_USR_ApplicationState = 0;
 }
 /**
 * @brief  USBH_USR_ResetUSBDevice 
@@ -421,29 +402,18 @@ int USBH_USR_MSC_Application(void)
   switch(USBH_USR_ApplicationState)
   {
   case USH_USR_FS_INIT: 
-    
-    /* Initialises the File System*/
-    if ( f_mount( 0, &fatfs ) != FR_OK ) //modify by leiyq20120319
-    {
-      return(-1);
-    }
-    
-    if(USBH_MSC_Param.MSWriteProtect == DISK_WRITE_PROTECTED)
-    {
-     // LOGOUT((void *)MSG_WR_PROTECT);
-    }
-    
-   // USBH_USR_ApplicationState = USH_USR_FS_READLIST;//modify by leiyq 20120219
-    USBH_USR_ApplicationState = USH_USR_FS_WRITEFILE;//modify by leiyq 20120219
-
+	  TIM_Cmd(TIM3, ENABLE);
+	  USBH_USR_ApplicationState = USH_USR_IDEL;
     break;
     
   case USH_USR_FS_READLIST:
-    
-    //LOGOUT((void *)MSG_ROOT_CONT);
-    Explore_Disk("0:/", 1);
-    line_idx = 0;   
-    USBH_USR_ApplicationState = USH_USR_FS_WRITEFILE;
+	   TIM_Cmd(TIM3, DISABLE);
+	    /* Initialises the File System*/
+	    if ( f_mount( 0, &fatfs ) != FR_OK ) //modify by leiyq20120319
+	    {
+	      return(-1);
+	    }
+	    USBH_USR_ApplicationState = USH_USR_FS_WRITEFILE;//modify by leiyq 20120219
     
     break;
     
@@ -451,7 +421,6 @@ int USBH_USR_MSC_Application(void)
     
 
 		USB_OTG_BSP_mDelay(100);
-
 		if(USBH_MSC_Param.MSWriteProtect == DISK_WRITE_PROTECTED)
 		{
 
@@ -461,17 +430,13 @@ int USBH_USR_MSC_Application(void)
 		}
 
 		f_mount(0, &fatfs);
-		//Fillthefilename();
+		Fillthefilename();
 		res = f_open(&file,( const TCHAR *)filenameString,FA_CREATE_ALWAYS | FA_WRITE);
 		if(res == FR_OK)
 		{
 			/* Write buffer to file */
-			//WriteTheData();
-			for(i = 0;i<10000;i++)
-			{
-				WriteTheData(i);
-			}
-			//USBH_USR_OverCurrentDetected();
+			for(i= 1;i<200;i++)
+			WriteTheData(1);
 			USBH_USR_ApplicationState = USH_USR_FS_DRAW;
 
 		}
@@ -487,7 +452,8 @@ int USBH_USR_MSC_Application(void)
     break;
     
   case USH_USR_FS_DRAW:
-    
+	  USBH_USR_ApplicationState = USH_USR_IDEL;
+	  TIM_Cmd(TIM3, ENABLE);
     /*Key B3 in polling*/
     break;
   default: break;
@@ -503,91 +469,9 @@ int USBH_USR_MSC_Application(void)
 */
 static uint8_t Explore_Disk (char* path , uint8_t recu_level)
 {
-
-//  FRESULT res;
-//  FILINFO fno;
-//  DIR dir;
-//  char *fn;
-//  char tmp[14];
-//
-//  res = f_opendir(&dir, path);
-//  if (res == FR_OK) {
-//    while(HCD_IsDeviceConnected(&USB_OTG_Core))
-//    {
-//      res = f_readdir(&dir, &fno);
-//      if (res != FR_OK || fno.fname[0] == 0)
-//      {
-//        break;
-//      }
-//      if (fno.fname[0] == '.')
-//      {
-//        continue;
-//      }
-//
-//      fn = fno.fname;
-//      strcpy(tmp, fn);
-//
-//      line_idx++;
-//      if(line_idx > 9)
-//      {
-//        line_idx = 0;
-//
-//
-//        LOGOUT("Press Key to continue...");
-//
-//
-//        /*Key B3 in polling*/
-////        while((HCD_IsDeviceConnected(&USB_OTG_Core)) && \
-////          (STM_EVAL_PBGetState (BUTTON_KEY) == SET))
-//        {
-//          Toggle_Leds();
-//
-//        }
-//      }
-//
-//      if(recu_level == 1)
-//      {
-//    	  LOGOUT("   |__");
-//      }
-//      else if(recu_level == 2)
-//      {
-//    	  LOGOUT("   |   |__");
-//      }
-//      if((fno.fattrib & AM_MASK) == AM_DIR)
-//      {
-//        strcat(tmp, "\n");
-//        LOGOUT((void *)tmp);
-//      }
-//      else
-//      {
-//        strcat(tmp, "\n");
-//        LOGOUT((void *)tmp);
-//      }
-//
-//      if(((fno.fattrib & AM_MASK) == AM_DIR)&&(recu_level == 1))
-//      {
-//        Explore_Disk(fn, 2);
-//      }
-//    }
-//  }
-//  return res;
 	return 0;
 }
 
-/**
-* @brief  Toggle_Leds
-*         Toggle leds to shows user input state
-* @param  None
-* @retval None
-*/
-static void Toggle_Leds(void)
-{
-  static uint32_t i;
-  if (i++ == 0x10000)
-  {
-    i = 0;
-  }  
-}
 unsigned char BCD2ASCLL(unsigned char data, unsigned char type)
 {
 	unsigned char ret;
@@ -611,10 +495,10 @@ void Fillthefilename()
 	filenameString[4]= 0x005f+(BCD2ASCLL(curTime.hour,1)<<8);
 	filenameString[5]= BCD2ASCLL(curTime.hour,0)+(BCD2ASCLL(curTime.minute,1)<<8);
 	filenameString[6]= BCD2ASCLL(curTime.minute,0)+0x5f00;
-	filenameString[7]= (Parameter.AutoInfodata.AutoCode[0]<<8)+Parameter.AutoInfodata.AutoCode[1];
-	filenameString[8]= (Parameter.AutoInfodata.AutoCode[2]<<8)+Parameter.AutoInfodata.AutoCode[3];
-	filenameString[9]= (Parameter.AutoInfodata.AutoCode[4]<<8)+Parameter.AutoInfodata.AutoCode[5];;
-	filenameString[10]= (Parameter.AutoInfodata.AutoCode[6]<<8)+Parameter.AutoInfodata.AutoCode[7];
+	filenameString[7]= (Parameter.AutoInfodata.AutoCode[1]<<8)+Parameter.AutoInfodata.AutoCode[0];
+	filenameString[8]= (Parameter.AutoInfodata.AutoCode[3]<<8)+Parameter.AutoInfodata.AutoCode[2];
+	filenameString[9]= (Parameter.AutoInfodata.AutoCode[5]<<8)+Parameter.AutoInfodata.AutoCode[4];;
+	filenameString[10]= (Parameter.AutoInfodata.AutoCode[7]<<8)+Parameter.AutoInfodata.AutoCode[6];
 	filenameString[11]= 0x562e;
 	filenameString[12]= 0x5244;
 
@@ -638,8 +522,7 @@ void WriteTheData(unsigned short num)
 		/*close file and filesystem*/
 		//f_close(&file);
 		//f_mount(0, NULL);
-#endif
-#if 0
+#else
 		unsigned char writeTextBuff[WRITE_LENTH_MAX];
 		unsigned char Wcount,i;
 		uint16_t bytesWritten, bytesToWrite;
@@ -671,8 +554,8 @@ void WriteTheData(unsigned short num)
 		/*close file and filesystem*/
 		f_close(&file);
 		f_mount(0, NULL);
-#endif
 
+#endif
 }
 void GettheBlock(unsigned char *Nameptr,unsigned char NameNum,unsigned long lenth)
 {
@@ -977,7 +860,6 @@ unsigned short FilltheTextBuff(unsigned char *bufptr,unsigned char block,unsigne
 	switch (block)
 	{
 		case 0:
-			//bufptr[writenum] =
 			FilltheBlock(bufptr);
 			writenum = 403;
 			break;

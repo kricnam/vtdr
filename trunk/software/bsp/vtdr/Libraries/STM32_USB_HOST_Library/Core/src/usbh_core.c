@@ -249,7 +249,7 @@ void USBH_Process(USB_OTG_CORE_HANDLE *pdev , USBH_HOST *phost)
     break;
    
   case HOST_DEV_ATTACHED :
-    
+	TIM_Cmd(TIM3, DISABLE);
     phost->usr_cb->DeviceAttached();
     phost->Control.hc_num_out = USBH_Alloc_Channel(pdev, 0x00);
     phost->Control.hc_num_in = USBH_Alloc_Channel(pdev, 0x80);  

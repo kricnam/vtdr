@@ -101,8 +101,8 @@ typedef struct
 } RoadSection;
 typedef struct
 {
-	unsigned char AutoCode[17];
-	unsigned char AutoVincode[12];
+	unsigned char AutoVincode[17];
+	unsigned char AutoCode[12];
 	unsigned char AutoSort[12];
 
 }AutoInfo;
@@ -130,24 +130,23 @@ typedef struct
 
 	unsigned long  DriverDistace;
 	unsigned long  StarDistance;
-	unsigned short mark;//*�����֡���2
-	unsigned char  sn[22];//��Ʒ���кš���22(24)
+	unsigned short mark;//
+	unsigned char  sn[22];//
 	unsigned char standeryear;
 	unsigned char modifyNb;
 	unsigned char signalstatus;
 	StatusSingal singalname;
 	ProductType  typedata;
-	unsigned char  DriverLisenseCode[18];//��ʻ֤���롪��20(108)
-	unsigned char  AlarmSound;//��������ѡ��0x00-����0xFF-������1(114)
+	unsigned char  AlarmSound;
 	CLOCK   time;
 	CLOCK   InstallTime;
 	unsigned char  PulseNumber;
 	unsigned short  PulseCoff;
-
+	unsigned char  DriverLisenseCode[18];
 	unsigned char SectionNumber;
 	RoadSection section[20];
 
-	unsigned char  reserved1[92];//Ϊ�˱�֤��վ������·�߷ֶ����ôӵ�ַ0x200��ʼд
+	unsigned char  reserved1[92];//
 	unsigned char SectionNumber1;
 	AutoInfo AutoInfodata;
 	RoadSection section1[20];
@@ -155,8 +154,8 @@ typedef struct
 
 typedef struct
 {
-	unsigned long  DriverCode;//��ʻԱ���롪��4(88)
-	unsigned char  DriverLisenseCode[18];//��ʻ֤���롪��20(108)
+	unsigned long  DriverCode;
+	unsigned char  DriverLisenseCode[18];
 } DRIVER;
 
 typedef struct
@@ -199,6 +198,7 @@ typedef struct
 	unsigned char Time1msCnt;
 	unsigned char Time200msCnt:3;
 	unsigned char Time1sCnt:6;
+	unsigned char Time5minCnt:7;
 }TimeCnt;
 
 /* ���������Ч�ָ�λ���� */

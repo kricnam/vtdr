@@ -60,8 +60,10 @@ typedef struct
 extern void SaveDatatoUdisk();
 extern void PrintAllData();
 extern void DisplayAutoCode();
+extern void DisplayAutoCodesort();
 extern void DisplayDriverNumber();
 extern void DisplayDriverCode();
+extern void DisplayDriverCode1();
 extern void Displaywheel();
 extern void DisplayStatusPolarity();
 extern FONT_MATRIX *AutoCodeHZ2LCM(unsigned short data);

@@ -2463,7 +2463,6 @@ void Reply_Schedule(void)
 	unsigned char sendchecksum = 0;
 	switch(Schedule_Result)
 	{
-		//��ѯ����ɹ�
 		case 1:
 			RSCmdrxBuf[0] = 0x55;
 			RSCmdrxBuf[1] = 0x7a;
@@ -2472,10 +2471,8 @@ void Reply_Schedule(void)
 				rt_device_write(&uart2_device, 0, &RSCmdtxBuf[i], 1);
 				sendchecksum = sendchecksum^RSCmdrxBuf[i];
 			}
-			//����У���
 			rt_device_write(&uart2_device, 0, &sendchecksum, 1);
 		break;
-		//��ѯ����ʧ��
 		case 2 : 
 			RSCmdrxBuf[0] = 0x55;
 			RSCmdrxBuf[1] = 0x7a;
@@ -2485,10 +2482,8 @@ void Reply_Schedule(void)
 				rt_device_write(&uart2_device, 0, &RSCmdtxBuf[i], 1);
 				sendchecksum = sendchecksum^RSCmdrxBuf[i];
 			}
-			//����У���
 			rt_device_write(&uart2_device, 0, &sendchecksum, 1);
 		break;
-		//���ȳɹ�
 		case 3 :
 			RSCmdrxBuf[0] = 0x55;
 			RSCmdrxBuf[1] = 0x7a;
@@ -2497,10 +2492,8 @@ void Reply_Schedule(void)
 				rt_device_write(&uart2_device, 0, &RSCmdtxBuf[i], 1);
 				sendchecksum = sendchecksum^RSCmdrxBuf[i];
 			}
-			//����У���
 			rt_device_write(&uart2_device, 0, &sendchecksum, 1);
 		break;
-		//����ʧ��
 		case 4 :
 			RSCmdrxBuf[0] = 0x55;
 			RSCmdrxBuf[1] = 0x7a;
@@ -2510,12 +2503,10 @@ void Reply_Schedule(void)
 				rt_device_write(&uart2_device, 0, &RSCmdtxBuf[i], 1);
 				sendchecksum = sendchecksum^RSCmdrxBuf[i];
 			}
-			//����У���
 			rt_device_write(&uart2_device, 0, &sendchecksum, 1);
 		break;
 	}
 	Schedule_Result = 0;
-	//��ֹUSART1��RXRDY�ж�
 #if 0
 	uart->uart_device->US_CR = 0x20;
 	uart2_device.user_data->uart_device->US_IDR = 0x01;
@@ -2621,3 +2612,4 @@ void Ver_handle_application()
 
 	}
 }
+

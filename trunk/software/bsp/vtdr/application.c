@@ -128,12 +128,6 @@ static void led_thread_entry(void* parameter)
     unsigned int i;
     unsigned long jonh;
     unsigned char num=0;
-    rt_hw_led_init();
-    Time3_enalble();
-    rt_hw_tim3_init();
-    GPIO_SetBits(GPIOE,GPIO_Pin_2);
-    InitializeTable();
-    printer();
     while (1)
     {
         rt_hw_led_on(0);
@@ -168,8 +162,8 @@ static void led_thread_entry(void* parameter)
         }
         rt_hw_led_on(0);
         jonhbak = jonh;
-#endif
-#if 0
+
+
         SPI_FLASH_Sector4kErase(SPI2,0);
         for(i = 0;i<10;i++)
         {
@@ -179,24 +173,7 @@ static void led_thread_entry(void* parameter)
         SPI_FLASH_BufferRead(SPI2,testreadbuff,0,10);
 
         Parameter.PulseCoff = 300;
-        //GetSpeedandTime();
-       // rt_kprintf("\n USBH_MSC_BOT_DATAOUT_STATE\n");
-        if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_14) == 0)
-        {
-        	MenutKeyHandler();
-        }
-        else if(GPIO_ReadInputDataBit( GPIOD, GPIO_Pin_15) == 0 )
-		{
-        	SelectKeyHandler(1);
-		}
-        else if(GPIO_ReadInputDataBit( GPIOC, GPIO_Pin_6) == 0 )
-        {
-        	SelectKeyHandler(0);
-        }
-        else if(GPIO_ReadInputDataBit( GPIOC, GPIO_Pin_7) == 0 )
-		{
-        	OKKeyHandler();
-		}
+#endif
 #if 0
         while(1)
       //  DisplayNormalUI();
@@ -209,7 +186,8 @@ static void led_thread_entry(void* parameter)
 
         }
 #endif
-#endif
+        KepPressHandler();
+        IckaHandler();
         rs232_handle_application(&uart2_device);
 
     }
@@ -219,7 +197,6 @@ static void led_thread_entry(void* parameter)
 static void usb_thread_entry(void* parameter)
 {
 /* init the usbhost mode *///first
-
 	USBH_Init( &USB_OTG_Core,USB_OTG_FS_CORE_ID,
 			&USB_Host,&USBH_MSC_cb,&USR_cb);
 	//GPIO_ResetBits(GPIOC,USB_PWR_ON);
@@ -260,36 +237,13 @@ void rt_init_thread_entry(void* parameter)
 #endif
 	}
 #endif
-/*
-	lcd_write_matrix(0,0,(unsigned char*)distance_cheng);
-*/
-#ifdef RT_USING_RTGUI
-	{
-	    extern void rtgui_startup();
-	    extern void rt_hw_lcd_init();
-	    extern void rtgui_touch_hw_init(void);
-
-		rt_device_t lcd;
-
-		/* init lcd */
-		rt_hw_lcd_init();
-
-		/* init touch panel */
-		rtgui_touch_hw_init();
-
-		/* re-init device driver */
-		rt_device_init_all();
-
-		/* find lcd device */
-		lcd = rt_device_find("lcd");
-
-		/* set lcd device as rtgui graphic driver */
-		rtgui_graphic_set_device(lcd);
-
-		/* startup rtgui */
-		rtgui_startup();
-	}
-#endif /* #ifdef RT_USING_RTGUI */
+		rt_hw_led_init();
+		Time3_enalble();
+		rt_hw_tim3_init();
+		GPIO_SetBits(GPIOE,GPIO_Pin_2);
+		InitialValue();
+		InitializeTable();
+		DisplayNormalUI();
 
 	while(1) { rt_thread_delay(1000);};
 }
