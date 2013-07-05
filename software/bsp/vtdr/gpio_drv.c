@@ -70,7 +70,7 @@ void rt_hw_tim3_init(void)
   /* TIM IT enable */
   TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
 
-  /* TIM2 enable counter */
+  /* TIM3 enable counter */
   TIM_Cmd(TIM3, ENABLE);
 
 }
@@ -109,7 +109,7 @@ void rt_hw_gpio_init(void)
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_6 |GPIO_Pin_7;
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_6 |GPIO_Pin_7|GPIO_Pin_8;
     GPIO_Init(speed_plus_port, &GPIO_InitStructure);
 
 
@@ -117,7 +117,7 @@ void rt_hw_gpio_init(void)
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
      GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_15 |GPIO_Pin_14|GPIO_Pin_4;
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_15 |GPIO_Pin_14;
     GPIO_Init(GPIOD, &GPIO_InitStructure);
 
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);

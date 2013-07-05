@@ -17,7 +17,7 @@ unsigned char CurStatus;
 extern StructPara Parameter;
 extern CMD_VER Verificationstatus;
 unsigned long CurPulse = 0;
-
+///////////////////////////////////gps data and speed data////////////
 unsigned long CurPN = 0;
 unsigned long LastPN20ms = 0;
 unsigned long LastPN1s = 0;
@@ -31,9 +31,28 @@ int DeltaSpeed = 0;
 unsigned char Time6sCnt;
 unsigned long Distance = 0;
 
+
+////////////////ic卡data///////////////////////
+///////////////////////////////////////////////
+unsigned char inserticflag;
+unsigned short insertcount; //防止误动作
+
+////////////////////////////////key data////////
+//////////////////////////////////////////////
 Timeflag timeflag;
 TimeCnt  timecnt;
+typedef enum KEY_STATUS
+{
+	KEY_NONE,
+	MENU_KEY,
+	SELE_UP_KEY,
+	SELE_DOWN_KEY,
+	ENTER_KEY,
+	PRIN_KEY,
 
+}Key_status;
+Key_status keyval = KEY_NONE,keyvalbak = KEY_NONE;
+unsigned short keyvalcount;
 void Getthepluse()
 {
 	CurPN++;
@@ -146,22 +165,22 @@ void GetSpeedandTime(void)
 
 	//////////////////////////////////////////////////////////////////////
 }
-void GetTheDriverNumber()
-{
-
-	I2C_Master_BufferRead(I2C1,
-								  0xa0,
-	                              32,
-	                              18,
-	                              Parameter.DriverLisenseCode);
-}
+//////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////key handler////////////////
+/////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 void Time3_irg_handler()
 {
-
+	extern void keyscanhandler(void);
 	  if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
 	  {
 	      TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 	      timecnt.Time1msCnt++;
+	      if((timecnt.Time1msCnt )%10 ==0)//10ms扫描一次按键
+	      {
+	    	  keyscanhandler();
+	      }
 	      if( timecnt.Time1msCnt >199)
 	      {
 	    	  timecnt.Time1msCnt = 0;
@@ -193,7 +212,8 @@ void Time3_irg_handler()
 
 	  }
 }
-
+//////////////////////////////////////////////
+//////////////////////////////////////////////
 ///GPS data////////////////////////////////
 ///////////////////////////////////////////
 ///////////////////////////////////////////
@@ -249,7 +269,7 @@ void GetTheGPSTime(unsigned char *tbuf)
 void GetGPSLocation1(unsigned char *tbuf)
 {
 	unsigned char i,j= 1;
-	unsigned long *pbuf = &location.longtitude;
+	unsigned long *pbuf = (unsigned long *)&location.longtitude;
 	*pbuf = 0;
 	for(i= 0;i<9;i++)
 	{
@@ -264,7 +284,7 @@ void GetGPSLocation1(unsigned char *tbuf)
 void GetGPSLocation2(unsigned char *tbuf)
 {
 	unsigned char i,j= 1;
-	unsigned long *pbuf = &location.latitude;
+	unsigned long *pbuf = (unsigned long *)&location.latitude;
 	*pbuf = 0;
 	for(i= 0;i<9;i++)
 	{
@@ -279,7 +299,7 @@ void GetGPSLocation2(unsigned char *tbuf)
 void GetGPSLocation3(unsigned char *tbuf)
 {
 	unsigned char i,j= 1;
-	unsigned long *pbuf = &location.latitude;
+	unsigned short *pbuf = (unsigned short *)&location.latitude;
 	*pbuf = 0;
 	for(i= 0;i<6;i++)
 	{
@@ -291,6 +311,144 @@ void GetGPSLocation3(unsigned char *tbuf)
 	}
 
 }
+unsigned char GettheSinaldata(unsigned char *tbuf)
+{
+		unsigned char tempdata;
+		tempdata = 10*ASCII2char(tbuf[0])+ASCII2char(tbuf[1]);
+		return tempdata;
 
- 
+}
+//////////////////////////////////////////////////////
+////////////////////////key press handle//////////////
+////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
+void KepPressHandler()
+{
+	switch(keyval)
+	{
+	case MENU_KEY:
+		MenutKeyHandler();
+		keyval = KEY_NONE;
+		break;
+	case SELE_UP_KEY:
+		SelectKeyHandler(1);
+		keyval = KEY_NONE;
+		break;
+	case SELE_DOWN_KEY:
+		SelectKeyHandler(0);
+		keyval = KEY_NONE;
+		break;
+	case ENTER_KEY:
+		OKKeyHandler();
+		keyval = KEY_NONE;
+		break;
+	case PRIN_KEY:
+		if((lcd_tcb.ListNb == 0 )&&(lcd_tcb.mode ==0))
+		{
+			PrintAllData();
+			printer();
+			lcd_clear(lineall);
+			DisplayNormalUI();
+			keyval = KEY_NONE;
+		}
+	    break;
+	default:
+		break;
+	}
+
+}
+void keyscanhandler(void)
+{
+	unsigned char tempkey = KEY_NONE;
+	if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_14) == 0)
+	{
+		tempkey = MENU_KEY;
+	}
+	else if(GPIO_ReadInputDataBit( GPIOD, GPIO_Pin_15) == 0 )
+	{
+		tempkey = SELE_UP_KEY;
+	}
+	else if(GPIO_ReadInputDataBit( GPIOC, GPIO_Pin_6) == 0 )
+	{
+		tempkey = SELE_DOWN_KEY;
+	}
+	else if(GPIO_ReadInputDataBit( GPIOC, GPIO_Pin_7) == 0 )
+	{
+		tempkey = ENTER_KEY;
+	}
+	if(tempkey)
+	{
+		if(tempkey == keyvalbak)
+		{
+
+			if(keyvalcount !=0xffff)
+				keyvalcount++;
+			if((keyvalcount ==300)&& (keyvalbak == ENTER_KEY))
+			{
+				keyval = PRIN_KEY;
+			}
+		}
+		else
+		{
+			keyvalcount = 1;
+			keyvalbak = tempkey;
+		}
+	}
+	else
+	{
+		if(keyvalcount >15)
+		{
+			if((keyvalcount >300)&& (keyvalbak == ENTER_KEY))
+			{
+				if(keyval == KEY_NONE)
+				{
+					keyval = KEY_NONE;
+				}
+			}
+			else
+			{
+				keyval = keyvalbak;
+			}
+			keyvalcount =0;
+		}
+		keyvalcount = 0;
+		keyvalbak = 0;
+	}
+
+}
+//////////////////////////////////////////////////////
+///////////////////////////////////////////////////////
+/////////IC 卡数据处理//////////////////////////////////
+void GetTheDriverNumber()
+{
+
+	I2C_Master_BufferRead(I2C1,
+								  0xa0,
+	                              32,
+	                              18,
+	                              Parameter.DriverLisenseCode);
+}
+void IckaHandler()
+{
+	if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4) == 1)
+	{
+		insertcount++;
+		if(insertcount == 1000)
+		{
+			insertcount = 0;
+			inserticflag = 1;
+			GetTheDriverNumber();
+		}
+	}
+	else
+	{
+		insertcount = 0;
+		inserticflag = 0;
+
+	}
+
+}
+
+
+
  

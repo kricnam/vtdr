@@ -303,7 +303,7 @@ void USBH_MSC_HandleBOTXfer (USB_OTG_CORE_HANDLE *pdev ,USBH_HOST *phost)
       }
       else if(URB_Status == URB_NOTREADY)
       {
-    	  if(remainingDataLength == 0)
+    	 if(remainingDataLength == 0)
     	  {
     		  /* If value was 0, and successful transfer, then change the state */
     		           USBH_MSC_BOTXferParam.BOTState = USBH_MSC_RECEIVE_CSW_STATE;

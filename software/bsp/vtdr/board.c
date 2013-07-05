@@ -162,7 +162,7 @@ void rt_hw_board_init()
 #endif
 
 	rt_hw_usart_init();
-	rt_hw_led_init();
+	//rt_hw_led_init();
 	rt_hw_lcd_init();
 	rt_hw_buzz_init();
 	rt_hw_usb_init();

@@ -269,6 +269,14 @@ int InitializeTable()
 	{
 		//
 		Parameter.mark = 0xaeae;
+		Parameter.AutoInfodata.AutoCode[0] = 0xbe;
+		Parameter.AutoInfodata.AutoCode[1] = 0xa9;
+		Parameter.AutoInfodata.AutoCode[2] = 'A';
+		Parameter.AutoInfodata.AutoCode[3] = '1';
+		Parameter.AutoInfodata.AutoCode[4] = '2';
+		Parameter.AutoInfodata.AutoCode[5] = '3';
+		Parameter.AutoInfodata.AutoCode[6] = '4';
+		Parameter.AutoInfodata.AutoCode[7] = '5';
 		if( !WriteParameterTable(&Parameter) )
 			return (0);
 	}
@@ -314,6 +322,16 @@ int InitializeTable()
 	}
 	
 	return (1);
+}
+void InitialValue()
+{
+	curTime.day = 0x20;
+	curTime.hour = 0x11;
+	curTime.minute = 0x40;
+	curTime.year = 0x13;
+	curTime.month = 0x05;
+	CurSpeed =124;
+	AlarmFlag =1;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : UpdateParameterPartition

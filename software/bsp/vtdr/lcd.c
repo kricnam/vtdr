@@ -298,11 +298,18 @@ void lcd_write_matrix(LINE_CMD row,rt_uint8_t column,FONT_MATRIX *pt,rt_uint8_t 
 	rt_public_pin_init(1);
 	rt_uint8_t i,j;
 	rt_uint8_t  temp;
+	FONT_MATRIX *dt;
+	extern const FONT_MATRIX charmapSinal[2][24];
+    dt=pt;
+
 	for(i = 0;i<2;i++)
 	{
 		lcd_write_cmdordata(CMD, Page_Set, row-i);
 		lcd_set_column(column);
-
+		if((dt ==charmapSinal)&&(i=1))
+		{
+			pt = dt+24;
+		}
 		for (j = 0; j < num; j++)
 		{
 			lcd_write_cmdordata(DATA, (*(unsigned char*) pt++),0);
