@@ -33,13 +33,8 @@
 
 
 extern CLOCK curTime;
-extern PartitionTable pTable;
 extern StructPara Parameter;
-extern unsigned char CurStatus;
-extern unsigned char LargeDataBuffer[];
-extern unsigned short DriveMinuteLimit;
-extern unsigned short RestMinuteLimit;
-
+extern PartitionTable pTable;
 unsigned short print_buf[32][24];
 
 
@@ -814,6 +809,161 @@ void printTime()
 	memset(print_buf,0,sizeof(print_buf));
 
 }
+void printRecord(void)
+{
+	unsigned long tdaytime,tsave,STOPp,STOPb,flag;
+	unsigned char num = 0,i,j;
+	unsigned char Readdata[50];
+	CLOCK timecount;
+	STOPp = pTable.BaseData.CurPoint;
+	flag = pTable.BaseData.finshflag;
+	timecount.day = curTime.day;
+	timecount.year = curTime.year;
+	timecount.month = curTime.month;
+	timecount.hour = 0;
+	timecount.minute =0;
+	timecount.second = 0;
+	tdaytime = timechange(timecount)-86400;
+	if((flag &0xea)==0xea)
+	{
+		do
+		{
+			if(STOPp > OVERDRV_BASE)
+			{
+				STOPp = STOPp-50;
+			}
+			else
+			{
+				STOPb = (OVERDRV_END-OVERDRV_BASE+1)/50;
+				STOPp = STOPb*50+OVERDRV_BASE;
+			}
+			SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&timecount ,STOPp+18, 6);
+			tsave = timechange(timecount);
+			if(tsave > tdaytime )
+			{
+				num++;
+				for(i=0;i<32;i++)
+				{
+					print_buf[i][0] = Pri_ji1[i];
+					print_buf[i][1] = Pri_lu[i];
+					print_buf[i][2] = ASCII2Print(num,i);
+					print_buf[i][3] = Pri_maohao[i];
+				}
+				Print1line(&print_buf[0][0]);
+				memset(print_buf,0,sizeof(print_buf));
+				SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&Readdata ,STOPp, 50);
+				for(i=0;i<32;i++)
+				{
+					print_buf[i][0] = Pri_ji[i];
+					print_buf[i][1] = Pri_dong[i];
+					print_buf[i][2] = Pri_che[i];
+					print_buf[i][3] = Pri_jia[i];
+					print_buf[i][4] = Pri_shi[i];
+					print_buf[i][5] = Pri_zheng[i];
+					print_buf[i][6] = Pri_hao[i];
+					print_buf[i][7] = Pri_ma[i];
+					print_buf[i][8] = Pri_maohao[i];
+
+				}
+				Print1line(&print_buf[0][0]);
+				memset(print_buf,0,sizeof(print_buf));
+				for(i=0;i<32;i++)
+				{
+					for(j=0;j<18;j++)
+					{
+						print_buf[i][21-j] =ASCII2Print(Readdata[j],i);
+					}
+				}
+				Print1line(&print_buf[0][0]);
+				memset(print_buf,0,sizeof(print_buf));
+				for(i=0;i<32;i++)
+				{
+					print_buf[i][0] = Pri_lian[i];
+					print_buf[i][1] = Pri_xu[i];
+					print_buf[i][2] = Pri_jia[i];
+					print_buf[i][3] = Pri_shi[i];
+					print_buf[i][4] = Pri_kai[i];
+					print_buf[i][5] = Pri_shi1[i];
+					print_buf[i][6] = Pri_shi2[i];
+					print_buf[i][7] = Pri_jian[i];
+					print_buf[i][8] = Pri_maohao[i];
+
+				}
+				Print1line(&print_buf[0][0]);
+				memset(print_buf,0,sizeof(print_buf));
+				for(i=0;i<32;i++)
+				{
+
+					print_buf[i][1] = ASCII2Print(2,i);
+					print_buf[i][2] = ASCII2Print(0,i);
+					print_buf[i][3] = ASCII2Print(Readdata[18]>>4,i);
+					print_buf[i][4] = ASCII2Print((Readdata[18]&0x0f),i);
+					print_buf[i][5] = Pri_Ehx2[i];
+					print_buf[i][6] = ASCII2Print(Readdata[19]>>4,i);
+					print_buf[i][7] = ASCII2Print((Readdata[19]&0x0f),i);
+					print_buf[i][8] = Pri_Ehx2[i];
+					print_buf[i][9] = ASCII2Print(Readdata[20]>>4,i);
+					print_buf[i][10] = ASCII2Print((Readdata[20]&0x0f),i);
+
+					print_buf[i][12] = ASCII2Print(Readdata[21]>>4,i);
+					print_buf[i][13] = ASCII2Print((Readdata[21]&0x0f),i);
+					print_buf[i][14] = Pri_Ehx2[i];
+					print_buf[i][15] = ASCII2Print(Readdata[22]>>4,i);
+					print_buf[i][16] = ASCII2Print((Readdata[22]&0x0f),i);
+					print_buf[i][17] = Pri_Ehx2[i];
+					print_buf[i][18] = ASCII2Print(Readdata[23]>>4,i);
+					print_buf[i][19] = ASCII2Print((Readdata[23]&0x0f),i);
+
+				}
+				Print1line(&print_buf[0][0]);
+				memset(print_buf,0,sizeof(print_buf));
+				for(i=0;i<32;i++)
+				{
+					print_buf[i][0] = Pri_lian[i];
+					print_buf[i][1] = Pri_xu[i];
+					print_buf[i][2] = Pri_jia[i];
+					print_buf[i][3] = Pri_shi[i];
+					print_buf[i][4] = Pri_jie[i];
+					print_buf[i][5] = Pri_shu[i];
+					print_buf[i][6] = Pri_shi2[i];
+					print_buf[i][7] = Pri_jian[i];
+					print_buf[i][8] = Pri_maohao[i];
+				}
+				Print1line(&print_buf[0][0]);
+				memset(print_buf,0,sizeof(print_buf));
+				for(i=0;i<32;i++)
+				{
+
+					print_buf[i][1] = ASCII2Print(2,i);
+					print_buf[i][2] = ASCII2Print(0,i);
+					print_buf[i][3] = ASCII2Print(Readdata[24]>>4,i);
+					print_buf[i][4] = ASCII2Print((Readdata[24]&0x0f),i);
+					print_buf[i][5] = Pri_Ehx2[i];
+					print_buf[i][6] = ASCII2Print(Readdata[25]>>4,i);
+					print_buf[i][7] = ASCII2Print((Readdata[25]&0x0f),i);
+					print_buf[i][8] = Pri_Ehx2[i];
+					print_buf[i][9] = ASCII2Print(Readdata[26]>>4,i);
+					print_buf[i][10] = ASCII2Print((Readdata[26]&0x0f),i);
+
+					print_buf[i][12] = ASCII2Print(Readdata[27]>>4,i);
+					print_buf[i][13] = ASCII2Print((Readdata[27]&0x0f),i);
+					print_buf[i][14] = Pri_Ehx2[i];
+					print_buf[i][15] = ASCII2Print(Readdata[28]>>4,i);
+					print_buf[i][16] = ASCII2Print((Readdata[28]&0x0f),i);
+					print_buf[i][17] = Pri_Ehx2[i];
+					print_buf[i][18] = ASCII2Print(Readdata[29]>>4,i);
+					print_buf[i][19] = ASCII2Print((Readdata[29]&0x0f),i);
+
+				}
+				Print1line(&print_buf[0][0]);
+				memset(print_buf,0,sizeof(print_buf));
+
+			}
+
+		}while((tsave < tdaytime) );
+	}
+
+}
 void printOverRecord()
 {
 	unsigned char i;
@@ -851,6 +1001,7 @@ void printsign()
 	}
 	Print1line(&print_buf[0][0]);
 }
+
 void printer()
 {
 	printhaoma();

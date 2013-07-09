@@ -130,6 +130,7 @@ typedef struct
 
 	unsigned long  DriverDistace;
 	unsigned long  StarDistance;
+	unsigned long  LimitSpeed;
 	unsigned short mark;//
 	unsigned char  sn[22];//
 	unsigned char standeryear;
@@ -427,6 +428,12 @@ typedef struct{
 //
 #define POWER_ON   0x01
 #define POWER_OFF  0x02
+
+//Alarmstatus
+#define ALARM_OVER_TIME 0x01
+#define ALARM_NOT_RE    0x02
+#define ALARM_OVER_SPEED 0x04
+#define ALARM_SPEED_ABOR  0x08
 
 #define SpeedPowerOff    0
 enum

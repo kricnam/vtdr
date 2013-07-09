@@ -174,20 +174,8 @@ static void led_thread_entry(void* parameter)
 
         Parameter.PulseCoff = 300;
 #endif
-#if 0
-        while(1)
-      //  DisplayNormalUI();
-        {
-            lcd_delay(5);
-            DAC_SetChannel1Data(DAC_Align_8b_R,sinx[num]);
 
-           // DAC_SoftwareTriggerCmd(DAC_Channel_1,ENABLE);
-            num++;
-
-        }
-#endif
         KepPressHandler();
-        IckaHandler();
         rs232_handle_application(&uart2_device);
 
     }

@@ -405,7 +405,7 @@ void UpLoad_Type()
 void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t cmd)
 {
 	unsigned long i,j,k;
-	unsigned long STOPp,STOPb;
+	unsigned long STOPp,STOPb,flag;
 	unsigned short BlockSize;
 	unsigned long startbase,endbase;
 	unsigned long startime,endtime,readtime;
@@ -425,6 +425,7 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			BlockSize = DRV_SPEED_BLOCK;
 			NumMaxBlockSize = 7;
 			STOPp = pTable.BaseData.CurPoint;
+			flag = pTable.BaseData.finshflag;
 			startbase = BASEDATA_BASE;
 			endbase = BASEDATA_END;
 			break;
@@ -432,6 +433,7 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			BlockSize = LOCATION_BLOCK;
 			NumMaxBlockSize = 1;
 			STOPp = pTable.LocationData.CurPoint;
+			flag = pTable.LocationData.finshflag;
 			startbase = LOCATION_BASE;
 			endbase = LOCATION_END;
 			break;
@@ -439,6 +441,7 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			BlockSize = DOUBLT_BLOCK;
 			NumMaxBlockSize = 4;
 			STOPp = pTable.OverSpeedRecord.CurPoint;
+			flag = pTable.OverSpeedRecord.finshflag;
 			startbase = DPD_BASE;
 			endbase = DPD_END;
 			break;
@@ -446,6 +449,7 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			BlockSize = OVERDRV_BLOCK;
 			NumMaxBlockSize = 19;
 			STOPp = pTable.DoubtPointData.CurPoint;
+			flag = pTable.DoubtPointData.finshflag;
 			startbase = OVERDRV_BASE;
 			endbase = OVERDRV_END;
 			break;
@@ -453,6 +457,7 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			BlockSize = DRV_RG_BLOCK;
 			NumMaxBlockSize = 39;
 			STOPp = pTable.DriverReRecord.CurPoint;
+			flag = pTable.DriverReRecord.finshflag;
 			startbase = DRVRG_BASE;
 			endbase = DRVRG_END;
 			break;
@@ -460,6 +465,7 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			BlockSize = POW_BLOCK;
 			NumMaxBlockSize = 141;
 			STOPp = pTable.PowerOffRunRecord.CurPoint;
+			flag = pTable.PowerOffRunRecord.finshflag;
 			startbase = POWER_BASE;
 			endbase = POWER_END;
 			break;
@@ -467,6 +473,7 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			BlockSize = PARA_BLOCK;
 			NumMaxBlockSize = 141;
 			STOPp = pTable.ModifyRecord.CurPoint;
+			flag = pTable.ModifyRecord.finshflag;
 			startbase = PARA_BASE;
 			endbase = PARA_END;
 			break;
@@ -474,6 +481,7 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 			BlockSize = JN_BLOCK;
 			NumMaxBlockSize = 7;
 			STOPp = pTable.journalRecord.CurPoint;
+			flag = pTable.journalRecord.finshflag;
 			startbase = JN_BASE;
 			endbase =  JN_END;
 			break;
@@ -487,61 +495,64 @@ void UpLoad_BlockData( CLOCK Starttime, CLOCK Endtime,uint16_t lenth, uint16_t c
 	j = 6;
 	SendCheckSum = 0x55^0x7a^cmd^0x00;
 	//rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
-	for(i = 0;i< lenth;i++)
+	if((flag &0xea)!=0xea)
 	{
-		do
+		Numcout = 0;
+	}
+	else
+	{
+		for(i = 0;i< lenth;i++)
 		{
-			if(STOPp > startbase)
+			do
 			{
-				STOPp = STOPp-BlockSize;
+				if(STOPp > startbase)
+				{
+					STOPp = STOPp-BlockSize;
+				}
+				else
+				{
+					STOPb = (endbase-startbase+1)/BlockSize;
+					STOPp = STOPb*BlockSize+startbase;
+				}
+				if(BlockSize == OVERDRV_BLOCK)
+				{
+					SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&temp_clock ,STOPp+18,6);
+				}
+				else
+				{
+					SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&temp_clock ,STOPp, 6);
+				}
+				readtime = timechange(temp_clock);
+
+			}while((readtime >endtime) || (readtime == endtime ));
+			if( readtime<startime )
+			{
+				break;
 			}
 			else
 			{
-				STOPb = (endbase-startbase+1)/BlockSize;
-				STOPp = STOPb*BlockSize+startbase;
-			}
-			SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&temp_clock ,STOPp, 6);
-			readtime = timechange(temp_clock);
+				Numcout++;
+				SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&temp_data[j] ,STOPp, BlockSize);
 
-		}while((readtime >endtime) || (readtime == endtime ));
-		if( readtime<startime )
-		{
-			break;
-		}
-		else
-		{
-			Numcout++;
-			for(k = 0;k<6;k++,j++)
-			{
-				temp_data[j]= *((unsigned char*)&temp_clock+k);
+				for(k =0;k<BlockSize;k++,j++)
+				{
+					SendCheckSum = SendCheckSum^(temp_data[j]);
+				}
+				if( Numcout == NumMaxBlockSize )
+				{
+					temp_data[3] = (NumMaxBlockSize*BlockSize)>>8;
+					temp_data[4] = (unsigned char )NumMaxBlockSize*BlockSize;
+					SendCheckSum = SendCheckSum^temp_data[4]^temp_data[3];
+					temp_data[j] = SendCheckSum;
+					j++;
+					rt_device_write(&uart2_device, 0, temp_data, j);
+					Sendflag = 1;
+					Numcout = 0;
+					j = 6;
+				}
 			}
-			SPI_FLASH_BufferRead(SPI1 ,(uint8_t *)&temp_data[j] ,STOPp+6, BlockSize-6);
-			//rt_device_write(&uart2_device, 0, &temp_clock, 6);
-			//rt_device_write(&uart2_device, 0, &temp_data, (BlockSize-6));
-			SendCheckSum = SendCheckSum^(temp_clock.year);
-			SendCheckSum = SendCheckSum^(temp_clock.month);
-			SendCheckSum = SendCheckSum^(temp_clock.day);
-			SendCheckSum = SendCheckSum^(temp_clock.hour);
-			SendCheckSum = SendCheckSum^(temp_clock.minute);
-			SendCheckSum = SendCheckSum^(temp_clock.second);
-			for(k =0;k<(BlockSize-6);k++,j++)
-			{
-				SendCheckSum = SendCheckSum^(temp_data[j]);
-			}
-			if( Numcout == NumMaxBlockSize )
-			{
-				temp_data[3] = (NumMaxBlockSize*BlockSize)>>8;
-				temp_data[4] = (unsigned char )NumMaxBlockSize*BlockSize;
-				SendCheckSum = SendCheckSum^temp_data[4]^temp_data[3];
-				temp_data[j] = SendCheckSum;
-				j++;
-				rt_device_write(&uart2_device, 0, temp_data, j);
-				Sendflag = 1;
-				Numcout = 0;
-				j = 6;
-			}
-		}
 
+		}
 	}
 	if( (Sendflag != 1) ||(Numcout !=0))
 	{

@@ -4,16 +4,24 @@
 #include <stm32f10x_gpio.h>
 #include<stm32f10x_tim.h>
 #include<application.h>
+#include<DataManager.h>
 #include<menu.h>
 #include<RS232.h>
 
-
+extern void playVolWarm1();
+extern void playVolWarm2();
+extern void playVolWarm3();
+extern void playVolWarm4();
 extern CLOCK curTime;
 extern LCDTCB lcd_tcb;
 extern SizeData location;
 unsigned char CurStatus;
 #define SpeedSpace 4
 
+extern unsigned char DriverStatus ;
+extern unsigned char AlarmFlag;
+extern unsigned char DriverRegstatus;
+extern Datastatus Datastatusdata;
 extern StructPara Parameter;
 extern CMD_VER Verificationstatus;
 unsigned long CurPulse = 0;
@@ -28,15 +36,24 @@ unsigned long Curspeed1min = 0;//1分钟平均速度
 unsigned char radionum = 0;
 
 int DeltaSpeed = 0;
+
+////////////////time///////////////////////////////////
 unsigned char Time6sCnt;
+unsigned char Time30mincnt1;
+unsigned char Time30mincnt2;
+unsigned char Time30mincnt3;
+unsigned char Time30mincnt4;
+unsigned char Time10sCnts;
+unsigned char Time10sCnte;
+unsigned char Time20sCnt1;
+unsigned char Time20sCnt2;
+
 unsigned long Distance = 0;
 
 
 ////////////////ic卡data///////////////////////
 ///////////////////////////////////////////////
-unsigned char inserticflag;
 unsigned short insertcount; //防止误动作
-
 ////////////////////////////////key data////////
 //////////////////////////////////////////////
 Timeflag timeflag;
@@ -202,16 +219,107 @@ void Time3_irg_handler()
 	    			  }
 
 	    		  }
+	    		  if(Time10sCnts)
+	    		  {
+	    			  Time10sCnts--;
+					  if(Time10sCnts == 0)
+					  {
+						  Datastatusdata.keepstart10s = 1;
+					  }
+	    		  }
+	    		  if(Time10sCnte)
+				  {
+					  Time10sCnte--;
+					  if(Time10sCnte == 0)
+					  {
+						  Datastatusdata.keepstop10s = 1;
+					  }
+				  }
+	    		  if(Time20sCnt1)
+				  {
+					  Time20sCnt1--;
+				  }
+	    		  if(Time20sCnt2)
+				  {
+					  Time10sCnte--;
+				  }
 	    		  if(timecnt.Time1sCnt >59)
 	    		  {
 	    			  timeflag.Time1minflag = 1;
 	    			  timecnt.Time1sCnt = 0;
+					  if(Time30mincnt4)//alarm status handle
+					  {
+						  if(Time30mincnt4 != 1)
+						  {
+							  Time30mincnt4--;
+						  }
+
+
+						}
+					  }
+	    			  timecnt.Time5minCnt++;
+	    			  if(timecnt.Time5minCnt>4)
+	    			  {
+	    				  timecnt.Time5minCnt = 0;
+						  if(Time30mincnt1!= 0xff )
+						  {
+							  if(Time30mincnt1)//alarm status handle
+							  {
+								  Time30mincnt1--;
+								  Time20sCnt1 =20;
+								  if(Time30mincnt1 == 0)
+								  {
+									  playVolWarm1();
+									  playVolWarm1();
+									  playVolWarm1();
+									  Time30mincnt1 = 0xff;
+
+								  }
+
+
+							  }
+						  }
+						  if(Time30mincnt2!= 0xff )
+						  {
+							  if(Time30mincnt2)//alarm status handle
+							  {
+								  Time30mincnt2--;
+								  Time20sCnt2 =20;
+								  if(Time30mincnt2 == 0)
+								  {
+									  playVolWarm2();
+									  playVolWarm2();
+									  playVolWarm2();
+									  Time30mincnt2 = 0xff;
+
+								  }
+
+							  }
+						  }
+						  if(Time30mincnt3!= 0xff )
+						  {
+							  if(Time30mincnt3)//alarm status handle
+							  {
+								  Time30mincnt3--;
+								  if(Time30mincnt3 == 0)
+								  {
+									  playVolWarm3();
+									  playVolWarm3();
+									  playVolWarm3();
+									  Time30mincnt3 = 0xff;
+								  }
+
+							  }
+						  }
+
+	    			  }
+
+
 	    		  }
 	    	  }
 	      }
 
 	  }
-}
 //////////////////////////////////////////////
 //////////////////////////////////////////////
 ///GPS data////////////////////////////////
@@ -430,25 +538,38 @@ void GetTheDriverNumber()
 }
 void IckaHandler()
 {
-	if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4) == 1)
+	if((GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4) == 1)&&(Datastatusdata.keeprestatus ==0))
 	{
 		insertcount++;
 		if(insertcount == 1000)
 		{
 			insertcount = 0;
-			inserticflag = 1;
+			Datastatusdata.keeprestatus = 1;
+			DriverRegstatus = DRIVER_REG_IN;
 			GetTheDriverNumber();
+			AlarmFlag &=~ ALARM_NOT_RE;
+			Time30mincnt2 = 0;
 		}
 	}
-	else
+	else if((Datastatusdata.keeprestatus ==  1) &&(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4) ==0))
+	{
+		Datastatusdata.keeprestatus = 0;
+		DriverRegstatus = DRIVER_REG_OUT;
+		DriverStatus &= ~DRIVING_STAR;
+		DriverStatus |= DRIVING_STOP_DRIVER;//连续驾驶结束
+		DriverStatus &= ~DRIVING_OVERTIME;
+		AlarmFlag &= ~ALARM_OVER_TIME;
+		Time30mincnt1 = 0;
+
+	}
+	else if(GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4) ==0)
 	{
 		insertcount = 0;
-		inserticflag = 0;
-
+		if((AlarmFlag&ALARM_NOT_RE)!= ALARM_NOT_RE)
+			AlarmFlag |= ALARM_NOT_RE;
 	}
 
 }
-
 
 
  
