@@ -18,6 +18,14 @@
 #include <stm32f10x_gpio.h>
 #include <string.h>
 
+////time value
+extern unsigned char Time10sCnts;
+extern unsigned char Time10sCnte;
+extern unsigned char Time30mincnt1;
+extern unsigned char Time30mincnt2;
+extern unsigned char Time30mincnt3;
+extern unsigned char Time30mincnt4;
+extern unsigned char DisplayMin;
 
 extern unsigned long CurSpeed;
 extern unsigned long RsSpeed;
@@ -858,12 +866,14 @@ void MovePtablePtr(StructPT ptr,unsigned long movesize)
 {
 
 	    ptr.CurPoint =  ptr.CurPoint+movesize;
-		if(ptr.CurPoint>ptr.EndAddr)
+	    ptr.finshflag |= 0xea;
+		if((ptr.CurPoint+movesize) >ptr.EndAddr)
 		{
 			ptr.CurPoint=ptr.BaseAddr;
-			ptr.finshflag = 0xeaea;
+			 ptr.finshflag = 0xeaea;
 		}
-		WritePartitionTable(&pTable);
+	    WritePartitionTable(&pTable);
+
 
 }
 void WriteRecordData2Flash(StructPT ptbl ,unsigned char *buff,unsigned long num)
@@ -907,28 +917,69 @@ void WriteRecordData2Flash(StructPT ptbl ,unsigned char *buff,unsigned long num)
 //*----------------------------------------------------------------------------
 void ValueStatusHandler()
 {
+	unsigned long timenowmin,timedriverstartmin,timestopmin;
 	//驾驶状态变化处理
-	if((CurSpeed >0)&&(Datastatusdata.keepstart10s == 1))
+	if((CurSpeed >0)&&(Datastatusdata.keepstart10s ==0))
 	{
-		DriverStatus |= DRIVING_STAR;
-		DriverStatus &= ~DRIVING_STAR;
-		if(Datastatusdata.Over4hour)//并且同一个驾驶人
+		if(Time10sCnts == 0)
+		{
+			Time10sCnts = 10;
+			Time10sCnte = 0;
+			Datastatusdata.keepstop10s = 0;
+		}
+
+	}
+	else if ((CurSpeed == 0)&&(Datastatusdata.keepstop10s ==0))
+	{
+		if(Time10sCnte == 0)
+		{
+			Time10sCnte = 10;
+			Time10sCnts = 0;
+			Datastatusdata.keepstart10s = 0;
+		}
+	}
+	if(Datastatusdata.keepstart10s)
+	{
+		if((DriverStatus & DRIVING_STAR)==0)
+		{
+			memcpy((unsigned char *)&startdriverclk,(unsigned char *)&curTime,strlen((unsigned char *)&curTime));
+		}
+		//Datastatusdata.keepstart10s = 0;
+		DriverStatus |= DRIVING_STAR;//连续驾驶开始
+		DriverStatus &= ~DRIVING_STOP;
+		DriverStatus &= ~DRIVING_STOP_DRIVER;
+		timedriverstartmin = timechange(startdriverclk);
+		timenowmin = timechange(curTime);
+		if((timenowmin-timedriverstartmin)>225)
+		{
+			DisplayMin = timenowmin-timedriverstartmin;
+			if((AlarmFlag&ALARM_OVER_TIME)!= ALARM_OVER_TIME)
+				AlarmFlag |= ALARM_OVER_TIME;
+		}
+		if((timenowmin-timedriverstartmin)>240)
 		{
 			DriverStatus |= DRIVING_OVERTIME;
 		}
-		//Ifshijianchaoguo
-
 	}
-	else if ((CurSpeed == 0)&&(Datastatusdata.keepstop10s == 1))
+	else if(Datastatusdata.keepstop10s)
 	{
-		DriverStatus |= DRIVING_STOP;
-		memcpy((unsigned char *)&enddriverclk,(unsigned char *)&curTime,strlen((unsigned char *)&curTime));
-		DriverStatus &= ~DRIVING_STAR;
-		if( Datastatusdata.Over20min == 1)//并且同一个驾驶人
+		if((DriverStatus & DRIVING_STOP)==0)
 		{
-			DriverStatus |= DRIVING_STOP_DRIVER;
+			memcpy((unsigned char *)&enddriverclk,(unsigned char *)&curTime,strlen((unsigned char *)&curTime));
 		}
+		DriverStatus |= DRIVING_STOP;
+		//DriverStatus &= ~DRIVING_STAR;
+		timedriverstartmin = timechange(startdriverclk);
+		timestopmin = timechange(curTime);
+		if( (timenowmin-timestopmin)>20)//并且同一个驾驶人
+		{
+			DriverStatus &= ~DRIVING_STAR;
+			DriverStatus |= DRIVING_STOP_DRIVER;//连续驾驶结束
+			DriverStatus &= ~DRIVING_OVERTIME;
+			AlarmFlag &= ~ALARM_OVER_TIME;
+			Time30mincnt1 = 0;
 
+		}
 	}
 	//疑点数据判断处理状态变化
 	if((Datastatusdata.locationchagestatus == 1)&&(DriverStatus & DRIVING_STAR ))//或者记录仪断电
@@ -944,16 +995,7 @@ void ValueStatusHandler()
 		DoubltPointstatus= NONE_DB;
 	}
 	//司机登记状态变化
-	if((GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4))&& (Datastatusdata.keeprestatus == 0))
-	{
-		Datastatusdata.keeprestatus = 1;
-		DriverRegstatus = DRIVER_REG_IN;
-	}
-	else if((GPIO_ReadInputDataBit(GPIOD,GPIO_Pin_4)== 0)&&Datastatusdata.keeprestatus == 0)
-	{
-		DriverRegstatus = DRIVER_REG_OUT;
-		Datastatusdata.keeprestatus = 1;
-	}
+	IckaHandler();
 
 	//日志状态转换
 	if(CurSpeed >40 )
@@ -966,14 +1008,52 @@ void ValueStatusHandler()
 		else if((Datastatusdata.keepthespeed == 1)&&(Datastatusdata.keepspeed5min))
 		{
 			if(speeddel <11)
+			{
 				JournalRecordstatus = NORMAL;
+				AlarmFlag &= ~ALARM_SPEED_ABOR;
+				Time30mincnt4 = 0;
+			}
 			else
+			{
 				JournalRecordstatus = ABORT;
+				AlarmFlag |= ALARM_SPEED_ABOR;
+			}
 		}
+	}
+	//速度超过限定数值
+	if(CurSpeed > (Parameter.LimitSpeed-5))
+	{
+		if((AlarmFlag&ALARM_OVER_SPEED)!= ALARM_OVER_SPEED)
+						AlarmFlag |= ALARM_OVER_SPEED;
+	}
+	else
+	{
+		AlarmFlag &= ~ALARM_OVER_SPEED;
 	}
 
 
 }
+void AlarmHandler()
+{
+	if(((AlarmFlag&ALARM_OVER_TIME)== ALARM_OVER_TIME)&&(Time30mincnt1 ==0))
+	{
+		Time30mincnt1 = 6;
+	}
+	if(((AlarmFlag&ALARM_NOT_RE)== ALARM_NOT_RE)&&(Time30mincnt2 ==0))
+	{
+		Time30mincnt2 = 6;
+	}
+	if(((AlarmFlag&ALARM_OVER_SPEED)== ALARM_OVER_SPEED)&&(Time30mincnt3 ==0))
+	{
+		Time30mincnt3 = 6;
+	}
+	if(((AlarmFlag&ALARM_SPEED_ABOR)== ALARM_SPEED_ABOR)&&(Time30mincnt4 ==0))
+	{
+		Time30mincnt4 = 6;
+	}
+
+}
+
 void BaseDataHandler()
 {
 	int i,pt;
@@ -1093,7 +1173,7 @@ void LocationHandler()
 				}
 				else
 				{
-					WriteRecordData2Flash(pTable.LocationData,(unsigned char *)(&basedata),sizeof(BaseDataBlock));
+					WriteRecordData2Flash(pTable.LocationData,(unsigned char *)(&Locationdata),sizeof(LocationBlock));
 					InRecordCycle &= ~(1<<BASEDATA);
 				}
 
@@ -1125,15 +1205,6 @@ void OverDriverHandler()
 			overdriverdata.enddrivertime.hour =enddriverclk.hour;
 			overdriverdata.enddrivertime.minute =enddriverclk.minute;
 			overdriverdata.enddrivertime.second =enddriverclk.second;
-
-			if((pTable.OverSpeedRecord.CurPoint&1)!=0)
-			{
-				pTable.OverSpeedRecord.CurPoint++;
-				if(pTable.OverSpeedRecord.CurPoint>pTable.OverSpeedRecord.EndAddr)
-				{
-					pTable.OverSpeedRecord.CurPoint=pTable.OverSpeedRecord.BaseAddr;
-				}
-			}
 			WriteRecordData2Flash(pTable.OverSpeedRecord,(unsigned char *)&overdriverdata,50);//write the data
 		}
 
@@ -1188,9 +1259,7 @@ void DoubltPointHandler()
 		break;
 		default:
 			break;
-
-
-
+	}
 }
 void DrvierRegisterHandler()
 {
@@ -1339,74 +1408,7 @@ void GetOTDRDataFromFlash(unsigned short *p, int inc,unsigned char *buf)
 
 	if(inc==0)
 		return;
-#if 0
-	if(inc<0){
-		StructPT temp;
-		temp = pTable.RunRecord360h;
-		temp.CurPoint = (unsigned long)p;
-		p = (unsigned short *)AddPointer(&temp, inc);
-		inc=0-inc;
-	}
 
-	//锟斤拷锟街革拷锟轿硷拷锟�
-	if(((unsigned long)p&1)==0)
-	{
-		for(i=0;i<inc/2;i++){
-			buf[2*i] = (unsigned char)(*p);
-			buf[2*i+1] = (unsigned char)((*p)>>8);
-			p++;
-			if((unsigned long)p > pTable.RunRecord360h.EndAddr)
-				p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
-		}
-		//锟斤拷锟絠nc为锟斤拷锟斤拷
-		if((inc&1)==1)
-		{
-//			p=(unsigned short *)((unsigned long)p-1);
-			data = *p;
-			buf[inc-1] = (unsigned char)data;
-			if((unsigned long)p > pTable.RunRecord360h.EndAddr)
-				p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
-		}
-	}
-	//锟斤拷锟街革拷锟轿拷锟斤拷锟�
-	else{
-		//锟斤拷锟絠nc为偶锟斤拷
-		if((inc&1)==0)
-		{
-			p=(unsigned short *)((unsigned long)p-1);
-			data = *p;
-			buf[0] = (unsigned char)(data>>8);
-			p++;
-			for(i=0;i<inc/2;i++)
-			{
-				data = *p;
-				buf[i*2+1]=data;
-				if(i!=(inc/2-1))
-					buf[i*2+2]=(unsigned char)(data>>8);
-				p++;
-				if((unsigned long)p > pTable.RunRecord360h.EndAddr)
-					p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
-			}
-		}
-		//锟斤拷锟絠nc为锟斤拷锟斤拷
-		if((inc&1)==1)
-		{
-			p=(unsigned short *)((unsigned long)p-1);
-			data = *p;
-			buf[0] = (unsigned char)(data>>8);
-			p++;
-			for(i=0;i<inc/2;i++)
-			{
-				data = *p;
-				buf[i*2+1]=data;
-				buf[i*2+2]=(unsigned char)(data>>8);
-				p++;
-				if((unsigned long)p > pTable.RunRecord360h.EndAddr)
-					p = (unsigned short *)pTable.RunRecord360h.BaseAddr;
-			}		
-		}
-	}
-#endif
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : IsCorrectCLOCK
@@ -1727,8 +1729,6 @@ void DataPointerSeek()
 		WritePartitionTable(&pTable);
 	}
 }
-}
-
 
 
 

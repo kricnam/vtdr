@@ -91,7 +91,7 @@ extern void Fillthefilename();
 */ 
 uint8_t USBH_USR_ApplicationState = USH_USR_FS_INIT;
 //uint16_t filenameString[]  = {0x3a30,0xcfc9,0xc2cf,0x542e,0x5458};
-uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
+//uint8_t writeTextBuff[] = "STM32 Connectivity line Host Demo application using FAT_FS   ";
 
 uint16_t filenameString[13];
 FATFS fatfs; //modify by leiyq 20120219
@@ -505,7 +505,7 @@ void Fillthefilename()
 }
 void WriteTheData(unsigned short num)
 {
-#if 1
+#if 0
 		FRESULT res;//modify by leiyq 20120319
 		uint16_t bytesWritten, bytesToWrite;
 		bytesToWrite = sizeof(writeTextBuff);
@@ -737,7 +737,7 @@ unsigned short FillthedataBlock(unsigned char *buf,unsigned char block,unsigned 
 			break;
 
 	}
-	if( flag == 0xaeae)
+	if( flag == 0xeaea)
 	{
 		if((*count)==0)
 		{
