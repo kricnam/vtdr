@@ -35,11 +35,15 @@ void rt_hw_dac_init(void)
 
 static void PlayVol(const unsigned char *buf ,unsigned short lenth)
 {
-	unsigned short i;
+	unsigned short i,n;
 	for( i =0;i<lenth ;i++)
 	{
 		DAC_SetChannel1Data(DAC_Align_8b_R,buf[i]);
+		for( n =0;n<200 ;n++);
+		for( n =0;n<200 ;n++);
+		for( n =0;n<200 ;n++);
 	}
+
 }
 void playVolWarm1()
 {

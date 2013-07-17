@@ -273,6 +273,7 @@ int InitializeTable()
 	int i;
 	SPI_FLASH_BufferRead(SPI1,(unsigned char *)&pTable,PartitionTable_BASE,sizeof(pTable));
 	SPI_FLASH_BufferRead(SPI1,(unsigned char *)&Parameter,PARAMETER_BASE,sizeof(Parameter));
+	Parameter.DriverDistace = 0x33333333;
 	if(Parameter.mark != 0xaeae)
 	{
 		//
@@ -285,6 +286,10 @@ int InitializeTable()
 		Parameter.AutoInfodata.AutoCode[5] = '3';
 		Parameter.AutoInfodata.AutoCode[6] = '4';
 		Parameter.AutoInfodata.AutoCode[7] = '5';
+		Parameter.PulseCoff = 660;
+		memcpy(Parameter.AutoInfodata.AutoSort,"EQ1195GX24D1",12);
+		memcpy(Parameter.AutoInfodata.AutoVincode,"XTA210900N1093188",17);
+		memcpy(Parameter.DriverLisenseCode ,"440781198602126403",18);
 		if( !WriteParameterTable(&Parameter) )
 			return (0);
 	}
@@ -339,7 +344,7 @@ void InitialValue()
 	curTime.year = 0x13;
 	curTime.month = 0x05;
 	CurSpeed =124;
-	AlarmFlag =1;
+	//AlarmFlag =1;
 }
 //*----------------------------------------------------------------------------
 //* Function Name       : UpdateParameterPartition

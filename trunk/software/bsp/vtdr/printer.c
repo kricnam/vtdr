@@ -987,6 +987,7 @@ void printOverRecord()
 	}
 	Print1line(&print_buf[0][0]);
 	memset(print_buf,0,sizeof(print_buf));
+	printRecord();
 }
 void printsign()
 {
@@ -1035,11 +1036,14 @@ void rt_hw_printer_init()
 	GPIO_InitTypeDef GPIO_InitStructure;
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOE, ENABLE);
 
-	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_OD;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
-	GPIO_InitStructure.GPIO_Pin   = PRN_PWR|PRN_EN|PRN_STB1|PRN_STB2;
+	GPIO_InitStructure.GPIO_Pin   = PRN_PWR|PRN_EN;
 	//PRN_PWR，PRN_EN，SRTOB12。
+	GPIO_Init(PRN_CMDE_CTR, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin   = PRN_STB1|PRN_STB2;
+	GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
 	GPIO_Init(PRN_CMDE_CTR, &GPIO_InitStructure);
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
@@ -1048,7 +1052,7 @@ void rt_hw_printer_init()
 
 	GPIO_Init(GPIOE, &GPIO_InitStructure);
 
-	printer_pwr_ctrl(1);
+	printer_pwr_ctrl(0);
 
 }
 
