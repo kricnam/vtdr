@@ -550,35 +550,39 @@ void DisplayAutoCode()
 {
 	lcd_clear(lineall);
 	unsigned short hz ;
-	unsigned char j=0,col=0;
+	unsigned char j=0,col=0,type,count=0;
 	unsigned char buf=Parameter.AutoInfodata.AutoCode[0];
-	hz = buf;
+	type = 0;
 	while((buf!='\0')&&(col<20)&&(j<12))
 	{
 		if(buf>127)
 		{
-			hz = hz<<8;
-			j++;
-			buf=Parameter.AutoInfodata.AutoCode[j];
+
 			hz = hz+buf;
-			if((col&1)==1)
+			if(count == 1)
+			{
+				lcd_write_matrix(line2,type,AutoCodeHZ2LCM(hz),HAN_ZI);
+				type = HAN_ZI+type;
 				col++;
-			lcd_write_matrix(line2,(col/2)*HAN_ZI,AutoCodeHZ2LCM(hz),HAN_ZI);
+				count = 0;
+			}
+			else
+			{
+				hz = hz<<8;
+				count++;
+			}
 			j++;
 		    buf=Parameter.AutoInfodata.AutoCode[j];
-			col+=2;
-
-
 		}
 		else
 		{
 			if(buf<60){
-				lcd_write_matrix(line2,col*ZIMU,ASCII2LCM(buf),NUM);
+				lcd_write_matrix(line2,type,ASCII2LCM(buf),NUM);
+				type = NUM+type;
 			}
 			else{
-					col--;
-				lcd_write_matrix(line2,col*HAN_ZI,ASCII2LCM(buf),ZIMU);
-				col++;
+				lcd_write_matrix(line2,type,ASCII2LCM(buf),ZIMU);
+				type = ZIMU+type;
 			}
 			col++;
 			j++;
@@ -599,35 +603,41 @@ void DisplayAutoCodesort()
 {
 	lcd_clear(lineall);
 		unsigned short hz ;
-		unsigned char j=0,col=0;
+		unsigned char j=0,col=0,type,count;
 		unsigned char buf=Parameter.AutoInfodata.AutoSort[0];
 		hz = buf;
+		type = 0;
 		while((buf!='\0')&&(col<20)&&(j<12))
 		{
 			if(buf>127)
 			{
-				hz = hz<<8;
+				hz = hz+buf;
+				if(count == 1)
+				{
+					lcd_write_matrix(line2,type,AutoCodeHZ2LCM(hz),HAN_ZI);
+					type = HAN_ZI+type;
+					col++;
+					count = 0;
+				}
+				else
+				{
+					hz = hz<<8;
+					count++;
+				}
 				j++;
 				buf=Parameter.AutoInfodata.AutoSort[j];
-				hz = hz+buf;
-				if((col&1)==1)
-					col++;
-				lcd_write_matrix(line2,(col/2)*HAN_ZI,AutoCodeHZ2LCM(hz),HAN_ZI);
-				j++;
-			    buf=Parameter.AutoInfodata.AutoSort[j];
-				col+=2;
 
 
 			}
 			else
 			{
 				if(buf<60){
-					lcd_write_matrix(line2,col*ZIMU,ASCII2LCM(buf),NUM);
+					lcd_write_matrix(line2,type,ASCII2LCM(buf),NUM);
+					type = NUM+type;
 				}
 				else{
-						col--;
-					lcd_write_matrix(line2,col*HAN_ZI,ASCII2LCM(buf),ZIMU);
-					col++;
+					lcd_write_matrix(line2,type,ASCII2LCM(buf),ZIMU);
+					type = ZIMU+type;
 				}
 				col++;
 				j++;
@@ -818,10 +828,10 @@ void DisplayMaichongxishu()
 	lcd_write_matrix(line2,12,(FONT_MATRIX *)door_chong,12);
 	lcd_write_matrix(line2,24,(FONT_MATRIX *)xi,12);
 	lcd_write_matrix(line2,36,(FONT_MATRIX *)data_shu,12);
-	lcd_write_matrix(line3,24,BCD2LCM((Parameter.PulseCoff >> 8),1),6);
-	lcd_write_matrix(line3,24,BCD2LCM((Parameter.PulseCoff >> 8),0),6);
-	lcd_write_matrix(line3,24,BCD2LCM(Parameter.PulseCoff ,1),6);
-	lcd_write_matrix(line3,24,BCD2LCM(Parameter.PulseCoff ,0),6);
+	lcd_write_matrix(line3,24,BCD2LCM((Parameter.PulseCoff/1000),0),6);
+	lcd_write_matrix(line3,30,BCD2LCM((Parameter.PulseCoff%1000/100 >> 0),0),6);
+	lcd_write_matrix(line3,36,BCD2LCM((Parameter.PulseCoff%100)/10 ,0),6);
+	lcd_write_matrix(line3,42,BCD2LCM(Parameter.PulseCoff%10,0),6);
 }
 void Displaystatus()
 {
@@ -888,7 +898,7 @@ void DisplayProductVersion()
 	if(act_tcb.CurLine == act_tcb.LineNumber)
 		return;
 	
-	lcd_clear(line2);
+	lcd_clear(lineall);
 	
 	unsigned char col=0;
 	lcd_write_matrix(line3,col*NUM,(FONT_MATRIX *)digital_0,NUM);
@@ -932,7 +942,6 @@ int Get15MinAverageSpeed(PrintSpeed *speed)
 	int offset,addup_offset=0;
 	int j;
 	
-	//�ó�ֵ
 	TimeIntervalSum = 0;
 	TimeLimit = 15;
 	j = 15;	
@@ -1288,12 +1297,17 @@ void DisplayTotalDistance()
 }
 void DisplayWarnReg()
 {
-	lcd_clear(lineall);
-	lcd_write_matrix(line3,30,(FONT_MATRIX *)Reg_qing,HAN_ZI);
-	lcd_write_matrix(line3,42,(FONT_MATRIX *)Reg_deng,HAN_ZI);
-	lcd_write_matrix(line3,54,(FONT_MATRIX *)Reg_lu,HAN_ZI);
-	lcd_write_matrix(line3,66,(FONT_MATRIX *)Reg_shen,HAN_ZI);
-	lcd_write_matrix(line3,78,(FONT_MATRIX *)Reg_fen,HAN_ZI);
+	lcd_write_matrix(line4,0,(FONT_MATRIX *)bank,12);
+	lcd_write_matrix(line2,12,(FONT_MATRIX *)bank,12);
+	lcd_write_matrix(line2,24,(FONT_MATRIX *)bank,12);
+	lcd_write_matrix(line4,36,(FONT_MATRIX *)Reg_qing,HAN_ZI);
+	lcd_write_matrix(line4,48,(FONT_MATRIX *)Reg_deng,HAN_ZI);
+	lcd_write_matrix(line4,60,(FONT_MATRIX *)Reg_lu,HAN_ZI);
+	lcd_write_matrix(line4,72,(FONT_MATRIX *)Reg_shen,HAN_ZI);
+	lcd_write_matrix(line4,84,(FONT_MATRIX *)Reg_fen,HAN_ZI);
+	lcd_write_matrix(line2,96,(FONT_MATRIX *)bank,12);
+	lcd_write_matrix(line2,108,(FONT_MATRIX *)bank,12);
+
 }
 
 //*----------------------------------------------------------------------------
@@ -2183,6 +2197,7 @@ void DisplaySpeedDimensoin(unsigned char start,LINE_CMD row)
 	lcd_write_matrix(row,start+20,(FONT_MATRIX *)Letter_h,ZIMU);
 
 }
+#if 0
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayNormalUI
 //* Object              :
@@ -2265,7 +2280,7 @@ void DisplayNormalUI()
 		lcd_write_matrix(line1,60,(FONT_MATRIX *)charater_twopoint1,NUM);
 		lcd_write_matrix(line1,66,BCD2LCM(curTime.second,1),NUM);
 		lcd_write_matrix(line1,72,BCD2LCM(curTime.second,0),NUM);
-		lcd_write_matrix(line1,78,(FONT_MATRIX *)Letter_V,ZIMU);
+		lcd_write_matrix(line1,80,(FONT_MATRIX *)Letter_V,ZIMU);
 		lcd_write_matrix(line1,91,(FONT_MATRIX *)charmapRadio,16);
 		lcd_write_matrix(line1,107,BCD2LCM(radionum,1),NUM);
 		lcd_write_matrix(line1,113,BCD2LCM(radionum,0),NUM);
@@ -2305,6 +2320,121 @@ void DisplayNormalUI()
 	}
 	//line4
 } 
+#endif
+void DisplayNormalUI()
+{
+	if(( lcd_tcb.ListNb !=0)||(lcd_tcb.mode !=0))
+	{
+		lcd_clear(lineall);
+	}
+
+	lcd_write_matrix(line1,0,(FONT_MATRIX *)charmapSinal,radiotodn(radionum));
+	lcd_write_matrix(line1,30,BCD2LCM(curTime.hour,1),NUM);
+	lcd_write_matrix(line1,36,BCD2LCM(curTime.hour,0),NUM);
+	lcd_write_matrix(line1,42,(FONT_MATRIX *)charater_twopoint1,NUM);
+	lcd_write_matrix(line1,48,BCD2LCM(curTime.minute,1),NUM);
+	lcd_write_matrix(line1,54,BCD2LCM(curTime.minute,0),NUM);
+	lcd_write_matrix(line1,60,(FONT_MATRIX *)charater_twopoint1,NUM);
+	lcd_write_matrix(line1,66,BCD2LCM(curTime.second,1),NUM);
+	lcd_write_matrix(line1,72,BCD2LCM(curTime.second,0),NUM);
+	lcd_write_matrix(line1,80,(FONT_MATRIX *)Letter_V,ZIMU);
+	lcd_write_matrix(line1,91,(FONT_MATRIX *)charmapRadio,16);
+	lcd_write_matrix(line1,107,BCD2LCM(radionum,1),NUM);
+	lcd_write_matrix(line1,113,BCD2LCM(radionum,0),NUM);
+
+//line3
+	lcd_write_matrix(line2,0,(FONT_MATRIX *)distance_li,HAN_ZI);
+	lcd_write_matrix(line2,12,(FONT_MATRIX *)distance_cheng,HAN_ZI);
+	lcd_write_matrix(line2,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line2,30,BCD2LCM(Parameter.DriverDistace>>24,1),NUM);
+	lcd_write_matrix(line2,36,BCD2LCM(Parameter.DriverDistace>>24,0),NUM);
+	lcd_write_matrix(line2,42,BCD2LCM(Parameter.DriverDistace>>16,1),NUM);
+	lcd_write_matrix(line2,48,BCD2LCM(Parameter.DriverDistace>>16,0),NUM);
+	lcd_write_matrix(line2,54,BCD2LCM(Parameter.DriverDistace>>8,1),NUM);
+	lcd_write_matrix(line2,60,BCD2LCM(Parameter.DriverDistace>>8,0),NUM);
+	lcd_write_matrix(line2,66,BCD2LCM(Parameter.DriverDistace,1),NUM);
+	lcd_write_matrix(line2,72,(FONT_MATRIX *)charater_point,NUM);
+	lcd_write_matrix(line2,78,BCD2LCM(Parameter.DriverDistace,0),NUM);
+	lcd_write_matrix(line2,84,(FONT_MATRIX *)Letter_k,ZIMU);
+	lcd_write_matrix(line2,91,(FONT_MATRIX *)Letter_m,ZIMU);
+
+	//line3
+	lcd_write_matrix(line3,0,(FONT_MATRIX *)speed_su,HAN_ZI);
+	lcd_write_matrix(line3,12,(FONT_MATRIX *)speed_du,HAN_ZI);
+	lcd_write_matrix(line3,24,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line3,30,BCD2LCM(CurSpeed/1000,0),NUM);
+	lcd_write_matrix(line3,36,BCD2LCM(((CurSpeed%1000)/100),0),NUM);
+	lcd_write_matrix(line3,42,BCD2LCM((CurSpeed%100)/10,0),NUM);
+	lcd_write_matrix(line3,48,(FONT_MATRIX *)charater_point,NUM);
+	lcd_write_matrix(line3,54,BCD2LCM((CurSpeed%10),0),NUM);
+	DisplaySpeedDimensoin(60,line3);
+	if(AlarmFlag)
+	{
+		if(((AlarmFlag&ALARM_SPEED_ABOR)== ALARM_SPEED_ABOR)&& (Time30mincnt3 >1))
+		{
+			lcd_write_matrix(line2,110,(FONT_MATRIX *)speed_su,12);
+			lcd_write_matrix(line2,122,(FONT_MATRIX *)speed_du,12);
+			lcd_write_matrix(line3,110,(FONT_MATRIX *)Reg_yi,12);
+			lcd_write_matrix(line3,122,(FONT_MATRIX *)Reg_chang,12);
+
+		}
+		else
+		{
+			lcd_write_matrix(line2,110,(FONT_MATRIX *)bank,12);
+			lcd_write_matrix(line2,122,(FONT_MATRIX *)bank,12);
+			lcd_write_matrix(line3,110,(FONT_MATRIX *)bank,12);
+			lcd_write_matrix(line3,122,(FONT_MATRIX *)bank,12);
+		}
+		if(((AlarmFlag & ALARM_OVER_TIME) == ALARM_OVER_TIME)&&Time20sCnt1)
+		{
+			DisplayAlarm();
+		}
+		else if (((AlarmFlag & ALARM_NOT_RE) == ALARM_NOT_RE)&&Time20sCnt2)
+		{
+			DisplayWarnReg();
+		}
+		else
+		{
+			lcd_write_matrix(line4,0,(FONT_MATRIX *)date_ri,HAN_ZI);
+			lcd_write_matrix(line4,12,(FONT_MATRIX *)date_qi,HAN_ZI);
+			lcd_write_matrix(line4,24,(FONT_MATRIX *)charater_twopoint,NUM);
+			lcd_write_matrix(line4,30,(FONT_MATRIX *)digital_2,NUM);
+			lcd_write_matrix(line4,36,(FONT_MATRIX *)digital_0,NUM);
+			lcd_write_matrix(line4,42,BCD2LCM(curTime.year,1),NUM);
+			lcd_write_matrix(line4,48,BCD2LCM(curTime.year,0),NUM);
+			lcd_write_matrix(line4,54,(FONT_MATRIX *)charater_slash,NUM);
+			lcd_write_matrix(line4,60,BCD2LCM(curTime.month,1),NUM);
+			lcd_write_matrix(line4,66,BCD2LCM(curTime.month,0),NUM);
+			lcd_write_matrix(line4,72,(FONT_MATRIX *)charater_slash,NUM);
+			lcd_write_matrix(line4,78,BCD2LCM(curTime.day,1),NUM);
+			lcd_write_matrix(line4,84,BCD2LCM(curTime.day,0),NUM);
+			lcd_write_matrix(line2,90,(FONT_MATRIX *)bank,12);
+			lcd_write_matrix(line2,102,(FONT_MATRIX *)bank,12);
+			lcd_write_matrix(line2,114,(FONT_MATRIX *)bank,12);
+
+		}
+	}
+	else
+	{
+			lcd_write_matrix(line4,0,(FONT_MATRIX *)date_ri,HAN_ZI);
+			lcd_write_matrix(line4,12,(FONT_MATRIX *)date_qi,HAN_ZI);
+			lcd_write_matrix(line4,24,(FONT_MATRIX *)charater_twopoint,NUM);
+			lcd_write_matrix(line4,30,(FONT_MATRIX *)digital_2,NUM);
+			lcd_write_matrix(line4,36,(FONT_MATRIX *)digital_0,NUM);
+			lcd_write_matrix(line4,42,BCD2LCM(curTime.year,1),NUM);
+			lcd_write_matrix(line4,48,BCD2LCM(curTime.year,0),NUM);
+			lcd_write_matrix(line4,54,(FONT_MATRIX *)charater_slash,NUM);
+			lcd_write_matrix(line4,60,BCD2LCM(curTime.month,1),NUM);
+			lcd_write_matrix(line4,66,BCD2LCM(curTime.month,0),NUM);
+			lcd_write_matrix(line4,72,(FONT_MATRIX *)charater_slash,NUM);
+			lcd_write_matrix(line4,78,BCD2LCM(curTime.day,1),NUM);
+			lcd_write_matrix(line4,84,BCD2LCM(curTime.day,0),NUM);
+			lcd_write_matrix(line4,90,(FONT_MATRIX *)bank,12);
+			lcd_write_matrix(line4,102,(FONT_MATRIX *)bank,12);
+			lcd_write_matrix(line4,114,(FONT_MATRIX *)bank,12);
+	}
+
+}
 
 //*----------------------------------------------------------------------------
 //* Function Name       : DisplayEraseDataFlash
@@ -2415,20 +2545,19 @@ void DisplayTestDoorSucc()
 
 void DisplayAlarm()
 {
-	lcd_clear(lineall);
-	lcd_write_matrix(line2,0,(FONT_MATRIX *)driver_lian,HAN_ZI);
-	lcd_write_matrix(line2,1*HAN_ZI,(FONT_MATRIX *)driver_xu,HAN_ZI);
-	lcd_write_matrix(line2,2*HAN_ZI,(FONT_MATRIX *)driver_jia,HAN_ZI);
-	lcd_write_matrix(line2,3*HAN_ZI,(FONT_MATRIX *)driver_shi,HAN_ZI);
-	lcd_write_matrix(line2,4*HAN_ZI,(FONT_MATRIX *)time_shi,HAN_ZI);
-	lcd_write_matrix(line2,5*HAN_ZI,(FONT_MATRIX *)time_jian,HAN_ZI);
-	lcd_write_matrix(line2,6*HAN_ZI,(FONT_MATRIX *)charater_twopoint,NUM);
+	lcd_write_matrix(line4,0,(FONT_MATRIX *)driver_lian,HAN_ZI);
+	lcd_write_matrix(line4,1*HAN_ZI,(FONT_MATRIX *)driver_xu,HAN_ZI);
+	lcd_write_matrix(line4,2*HAN_ZI,(FONT_MATRIX *)driver_jia,HAN_ZI);
+	lcd_write_matrix(line4,3*HAN_ZI,(FONT_MATRIX *)driver_shi,HAN_ZI);
+	lcd_write_matrix(line4,4*HAN_ZI,(FONT_MATRIX *)time_shi,HAN_ZI);
+	lcd_write_matrix(line4,5*HAN_ZI,(FONT_MATRIX *)time_jian,HAN_ZI);
+	lcd_write_matrix(line4,6*HAN_ZI,(FONT_MATRIX *)charater_twopoint,NUM);
 
-	lcd_write_matrix(line3,54,BCD2LCM(DisplayMin/100,0),NUM);
-	lcd_write_matrix(line3,60,BCD2LCM(DisplayMin%100/10,0),NUM);
-	lcd_write_matrix(line3,66,BCD2LCM(DisplayMin%10,0),NUM);
-	lcd_write_matrix(line3,6*HAN_ZI,(FONT_MATRIX *)minute_fen,HAN_ZI);
-	lcd_write_matrix(line3,7*HAN_ZI,(FONT_MATRIX *)minute_zhong,HAN_ZI);
+	lcd_write_matrix(line4,78,BCD2LCM(DisplayMin/100,0),NUM);
+	lcd_write_matrix(line4,84,BCD2LCM(DisplayMin%100/10,0),NUM);
+	lcd_write_matrix(line4,90,BCD2LCM(DisplayMin%10,0),NUM);
+	lcd_write_matrix(line4,96,(FONT_MATRIX *)minute_fen,HAN_ZI);
+	lcd_write_matrix(line4,108,(FONT_MATRIX *)minute_zhong,HAN_ZI);
 }
 #if OpenDoorDeal
 void Display_TestDoor()

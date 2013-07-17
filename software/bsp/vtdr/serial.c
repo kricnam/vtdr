@@ -504,12 +504,11 @@ void rt_hw_serial_isr(rt_device_t device)
 		    			   gprmccnt = 0;
 		    		   }
 					   gprmcbuf[gprmccnt] = uart->uart_device->DR & 0xff;
-					   rt_device_write(&uart2_device, 0, &gprmcbuf[gprmccnt], 1);
 					   gprmccnt++;
 					   switch(SectionID)
 					   {
 					         case FIELD_NONE:
-					   	   		 if(gprmccnt == 399)
+					   	   		 if(gprmccnt == 5)
 					   	   		 {
 					   	   			 uart3flag =2;
 					   	   			gprmccnt =0 ;
@@ -534,7 +533,7 @@ void rt_hw_serial_isr(rt_device_t device)
 								 uart3flag =1;
 								 if(isgprmc == 1)
 								 {
-										 if(gprmccnt == 6 )
+										 if(gprmccnt == 10 )
 										 {
 											 //get the time
 											 GetTheGPSTime(gprmcbuf);
@@ -542,30 +541,33 @@ void rt_hw_serial_isr(rt_device_t device)
 								 }
 								  break;
 							 case FIELD_TWO: //判断数据是否可信(当GPS天线能接收到有3颗GPS卫星时为A，可信
-								 break;
-							 case FIELD_THREE://提取出纬度
 								 if(isgprmc == 1)
 								 {
-									 if(gprmccnt == 8 )
+									 if(gprmccnt == 9 )
 									 {
 										 //get the time
+										 GetGPSLocation1(gprmcbuf);
 									 }
+									 GetGPSLocation1(gprmcbuf);
 								 }
+								 break;
+							 case FIELD_THREE://提取出纬度
 								  break;
 							 case FIELD_FOUR://提取出速度
+								 if(isgprmc == 1)
+								 {
+									 if(gprmccnt == 10 )
+									 {
+										 //get the time
+										 GetGPSLocation2(gprmcbuf);
+									 }
+								 }
 								 if(isgprmc == 2)
 								 {
 									 //get the speed
 								 }
 								  break;
 							 case FIELD_FIVE://提取出经度
-								 if(isgprmc == 1)
-								 {
-									 if(gprmccnt == 8 )
-									 {
-										 //get the time
-									 }
-								 }
 							 	  break;
 							 case FIELD_SEVEN:
 								if(isgprmc == 1)
@@ -577,7 +579,14 @@ void rt_hw_serial_isr(rt_device_t device)
 								}
 								break;
 							 case FIELD_NIGHT://提取高度
-
+								 if(isgprmc == 1)
+								 {
+									 if(gprmccnt == 7 )
+									 {
+										 //get the time
+										 GetGPSLocation3(gprmcbuf);
+									 }
+								 }
 
 								  break;
 								  default:
@@ -585,6 +594,7 @@ void rt_hw_serial_isr(rt_device_t device)
 						}
 				 }
 		   }
+
 			/* enable interrupt */
 			rt_hw_interrupt_enable(level);
 		}

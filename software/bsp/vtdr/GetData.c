@@ -381,7 +381,7 @@ void GetGPSLocation1(unsigned char *tbuf)
 	*pbuf = 0;
 	for(i= 0;i<9;i++)
 	{
-		if(i!=5)
+		if(i!=4)
 		{
 			*pbuf =ASCII2char(*tbuf)+j*(*pbuf);
 			j= j*10;
@@ -394,7 +394,7 @@ void GetGPSLocation2(unsigned char *tbuf)
 	unsigned char i,j= 1;
 	unsigned long *pbuf = (unsigned long *)&location.latitude;
 	*pbuf = 0;
-	for(i= 0;i<9;i++)
+	for(i= 0;i<10;i++)
 	{
 		if(i!=5)
 		{
@@ -409,7 +409,7 @@ void GetGPSLocation3(unsigned char *tbuf)
 	unsigned char i,j= 1;
 	unsigned short *pbuf = (unsigned short *)&location.latitude;
 	*pbuf = 0;
-	for(i= 0;i<6;i++)
+	for(i= 0;i<7;i++)
 	{
 		if(i!=5)
 		{
