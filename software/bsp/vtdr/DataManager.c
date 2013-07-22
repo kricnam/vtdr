@@ -31,7 +31,6 @@ extern unsigned long CurSpeed;
 extern unsigned long RsSpeed;
 extern CLOCK curTime;
 extern unsigned char CurStatus;
-extern unsigned char TimeChange;	//时锟斤拷浠拷锟街�
 extern unsigned long AddupSpeed;
 extern unsigned short SpeedNb;
 extern unsigned long Curspeed1min;
@@ -40,6 +39,7 @@ PartitionTable pTable;
 StructPara Parameter;
 extern unsigned long PulseTotalNumber;	/*锟斤拷锟斤拷锟斤拷驶锟斤拷锟斤拷锟斤拷锟斤拷*/
 
+unsigned char TimeChange;	//时锟斤拷浠拷锟街�
 unsigned short DriveMinuteLimit;       //疲锟酵硷拷驶锟斤拷驶时锟斤拷锟斤拷锟斤拷
 unsigned short RestMinuteLimit;        //疲锟酵硷拷驶锟斤拷锟斤拷锟斤拷息时锟斤拷锟斤拷锟斤拷
 unsigned char AlarmFlag;
@@ -273,7 +273,8 @@ int InitializeTable()
 	int i;
 	SPI_FLASH_BufferRead(SPI1,(unsigned char *)&pTable,PartitionTable_BASE,sizeof(pTable));
 	SPI_FLASH_BufferRead(SPI1,(unsigned char *)&Parameter,PARAMETER_BASE,sizeof(Parameter));
-	Parameter.DriverDistace = 0x33333333;
+	Parameter.DriverDistace = 0x45678961;
+	//Parameter.PulseCoff = 5000;
 	if(Parameter.mark != 0xaeae)
 	{
 		//
@@ -286,7 +287,6 @@ int InitializeTable()
 		Parameter.AutoInfodata.AutoCode[5] = '3';
 		Parameter.AutoInfodata.AutoCode[6] = '4';
 		Parameter.AutoInfodata.AutoCode[7] = '5';
-		Parameter.PulseCoff = 660;
 		memcpy(Parameter.AutoInfodata.AutoSort,"EQ1195GX24D1",12);
 		memcpy(Parameter.AutoInfodata.AutoVincode,"XTA210900N1093188",17);
 		memcpy(Parameter.DriverLisenseCode ,"440781198602126403",18);
@@ -1069,6 +1069,7 @@ void BaseDataHandler()
 		STATUS1min |= CurStatus;
 		if(TimeChange & (0x01<<SECOND_CHANGE))//锟斤拷一锟斤拷锟斤拷
 		{
+			TimeChange &= ~(0x01<<SECOND_CHANGE);
 			if (curTime.second == 0)
 			{
 
@@ -1102,6 +1103,7 @@ void BaseDataHandler()
 		{
 			if(TimeChange & (0x01<<SECOND_CHANGE))
 			{
+				TimeChange &= ~(0x01<<SECOND_CHANGE);
 				if (curTime.second != 0)
 				{
 					basedata.speed[curTime.second] = 0xff;
@@ -1128,6 +1130,7 @@ void LocationHandler()
 	{
 		if(TimeChange & (0x01<<MINUTE_CHANGE))//锟斤拷一锟斤拷锟斤拷
 		{
+			TimeChange &= ~(0x01<<MINUTE_CHANGE);
 			if (curTime.minute == 0)
 			{
 
@@ -1168,6 +1171,7 @@ void LocationHandler()
 		{
 			if(TimeChange & (0x01<<MINUTE_CHANGE))
 			{
+				TimeChange &= ~(0x01<<MINUTE_CHANGE);
 				if (curTime.minute != 0)
 				{
 					for(i = 0;i<10;i++)
