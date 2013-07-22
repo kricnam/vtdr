@@ -73,17 +73,6 @@ static struct rt_thread led_thread;
 u8 testwritebuff[10];
 u8 testreadbuff[10];
 unsigned long  jonhbak;
-const unsigned short abji[]=
-				{
-						0x0000,0x0000,0x1000,0x1000,
-						0x11F0,0x11F0,0x1110,0x1110,
-						0x7D10,0x7D10,0x1110,0x1110,
-						0x1110,0x1110,0x3910,0x3910,
-						0x3510,0x3510,0x5110,0x5110,
-						0x1110,0x1110,0x1110,0x1110,
-						0x1214,0x1214,0x1214,0x1214,
-						0x140C,0x140C,0x0000,0x0000
-				};
 static void led_thread_entry(void* parameter)
 {
     unsigned int i;
@@ -92,7 +81,7 @@ static void led_thread_entry(void* parameter)
     while (1)
     {
         rt_hw_led_on(0);
-        rt_thread_delay( RT_TICK_PER_SECOND/2 ); /* sleep 0.5 second and switch to other thread */
+        rt_thread_delay( 1); /* sleep 0.5 second and switch to other thread */
        // testreadbuff=I2C_Master_BufferWrite(I2C1,3,0,1,&testwritebuff);
 
 #if 0
@@ -190,7 +179,20 @@ void rt_init_thread_entry(void* parameter)
 		InitializeTable();
 		DisplayNormalUI();
 
-	while(1) { rt_thread_delay(1000);};
+	while(1) {
+        GetSpeedandTime();
+        ValueStatusHandler();
+        AlarmHandler();
+        BaseDataHandler();
+        LocationHandler();
+        OverDriverHandler();
+        DoubltPointHandler();
+        DrvierRegisterHandler();
+        PowerHandle();
+        ModifyHandle();
+        JournalHandle();
+		rt_thread_delay(1);
+	}
 }
 
 int rt_application_init()

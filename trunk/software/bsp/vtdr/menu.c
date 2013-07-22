@@ -1298,15 +1298,15 @@ void DisplayTotalDistance()
 void DisplayWarnReg()
 {
 	lcd_write_matrix(line4,0,(FONT_MATRIX *)bank,12);
-	lcd_write_matrix(line2,12,(FONT_MATRIX *)bank,12);
-	lcd_write_matrix(line2,24,(FONT_MATRIX *)bank,12);
+	lcd_write_matrix(line4,12,(FONT_MATRIX *)bank,12);
+	lcd_write_matrix(line4,24,(FONT_MATRIX *)bank,12);
 	lcd_write_matrix(line4,36,(FONT_MATRIX *)Reg_qing,HAN_ZI);
 	lcd_write_matrix(line4,48,(FONT_MATRIX *)Reg_deng,HAN_ZI);
 	lcd_write_matrix(line4,60,(FONT_MATRIX *)Reg_lu,HAN_ZI);
 	lcd_write_matrix(line4,72,(FONT_MATRIX *)Reg_shen,HAN_ZI);
 	lcd_write_matrix(line4,84,(FONT_MATRIX *)Reg_fen,HAN_ZI);
-	lcd_write_matrix(line2,96,(FONT_MATRIX *)bank,12);
-	lcd_write_matrix(line2,108,(FONT_MATRIX *)bank,12);
+	lcd_write_matrix(line4,96,(FONT_MATRIX *)bank,12);
+	lcd_write_matrix(line4,108,(FONT_MATRIX *)bank,12);
 
 }
 
@@ -2337,10 +2337,10 @@ void DisplayNormalUI()
 	lcd_write_matrix(line1,60,(FONT_MATRIX *)charater_twopoint1,NUM);
 	lcd_write_matrix(line1,66,BCD2LCM(curTime.second,1),NUM);
 	lcd_write_matrix(line1,72,BCD2LCM(curTime.second,0),NUM);
-	lcd_write_matrix(line1,80,(FONT_MATRIX *)Letter_V,ZIMU);
-	lcd_write_matrix(line1,91,(FONT_MATRIX *)charmapRadio,16);
-	lcd_write_matrix(line1,107,BCD2LCM(radionum,1),NUM);
-	lcd_write_matrix(line1,113,BCD2LCM(radionum,0),NUM);
+	lcd_write_matrix(line1,84,(FONT_MATRIX *)Letter_V,ZIMU);
+	lcd_write_matrix(line1,97,(FONT_MATRIX *)charmapRadio,16);
+	lcd_write_matrix(line1,113,BCD2LCM(radionum,1),NUM);
+	lcd_write_matrix(line1,119,BCD2LCM(radionum,0),NUM);
 
 //line3
 	lcd_write_matrix(line2,0,(FONT_MATRIX *)distance_li,HAN_ZI);
@@ -2365,9 +2365,8 @@ void DisplayNormalUI()
 	lcd_write_matrix(line3,30,BCD2LCM(CurSpeed/1000,0),NUM);
 	lcd_write_matrix(line3,36,BCD2LCM(((CurSpeed%1000)/100),0),NUM);
 	lcd_write_matrix(line3,42,BCD2LCM((CurSpeed%100)/10,0),NUM);
-	lcd_write_matrix(line3,48,(FONT_MATRIX *)charater_point,NUM);
-	lcd_write_matrix(line3,54,BCD2LCM((CurSpeed%10),0),NUM);
-	DisplaySpeedDimensoin(60,line3);
+	lcd_write_matrix(line3,48,BCD2LCM((CurSpeed%10),0),NUM);
+	DisplaySpeedDimensoin(54,line3);
 	if(AlarmFlag)
 	{
 		if(((AlarmFlag&ALARM_SPEED_ABOR)== ALARM_SPEED_ABOR)&& (Time30mincnt3 >1))

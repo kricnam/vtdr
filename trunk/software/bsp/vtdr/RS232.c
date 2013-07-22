@@ -313,9 +313,9 @@ void UpLoad_DriverDistance()
 	WriteDataTxTime();
 
 		rt_device_write(&uart2_device, 0, (const void *)(&(para->InstallTime) ), 6);
+		rt_device_write(&uart2_device, 0, (const void *)(&(para->StarDistance) ), 4);
 		rt_device_write(&uart2_device, 0, (const void *)(&(para->DriverDistace) ), 4);
 
-		rt_device_write(&uart2_device, 0, (const void *)(&(para->StarDistance) ), 4);
 	//	at91_usart_write(RS232,(u_char)(>> ((2-i)*8)));
 		SendCheckSum = SendCheckSum^((unsigned char)((para->InstallTime.year) ))^((unsigned char)((para->InstallTime.month) ));
 		SendCheckSum = SendCheckSum^((unsigned char)((para->InstallTime.day) ))^((unsigned char)((para->InstallTime.hour) ));
@@ -945,7 +945,7 @@ void UpLoad_ExVersion()
 void UpLoad_DriverCode()
 {
 	unsigned long i;
-	PartitionTable *para = &pTable;
+	StructPara *para = &Parameter;
 	
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
@@ -1164,8 +1164,10 @@ void UpLoad_RealTime()
 void UpLoad_PulseCoff()
 {
 	unsigned long i;
+	unsigned char temp[2];
 	StructPara *para = &Parameter;
-	
+	temp[0] = para->PulseCoff>>8;
+	temp[1] = para->PulseCoff;
 	//���ȷ���Ӧ��֡����ʼ��ͷ��������
 	RSCmdtxBuf[0] = 0x55;
 	RSCmdtxBuf[1] = 0x7a;
@@ -1176,11 +1178,10 @@ void UpLoad_PulseCoff()
 	SendCheckSum = 0x55^0x7a^0x04^0x00^0x03^0x00;
 	rt_device_write(&uart2_device, 0, RSCmdtxBuf, 6);
 	WriteDataTxTime();
-		
+	rt_device_write(&uart2_device, 0, &temp ,2);
 	for(i = 0; i < 2;i++)
 	{
-		rt_device_write(&uart2_device, 0, (const void *)((para->PulseCoff) >> ((2-i)*8)), 1);
-		SendCheckSum = SendCheckSum^((unsigned char)((para->PulseCoff) >> ((2-i)*8)));
+		SendCheckSum = SendCheckSum^((unsigned char)((para->PulseCoff) >> ((1-i)*8)));
 	}
 
 	//����У���
@@ -2168,6 +2169,7 @@ void Set_Curtime(unsigned char *buf,unsigned short lenth)
 
 			ptr[i]= buf[i];
 		}
+		SetCurrentDateTime(&curTime);
 			WriteParameterTable(&Parameter);
 	}
 }

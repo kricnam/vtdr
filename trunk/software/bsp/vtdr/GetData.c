@@ -18,6 +18,7 @@ extern SizeData location;
 unsigned char CurStatus;
 #define SpeedSpace 4
 
+extern unsigned char TimeChange;
 extern unsigned char DriverStatus ;
 extern unsigned char AlarmFlag;
 extern unsigned char DriverRegstatus;
@@ -30,6 +31,7 @@ unsigned long CurPN = 0;
 unsigned long LastPN20ms = 0;
 unsigned long LastPN1s = 0;
 unsigned long LastPN1min = 0;
+unsigned long RsSpeed;
 unsigned short CurSpeed = 0;	//当前速度（0.2秒平均速度）
 unsigned long Curspeed1s = 0;//1s平均速度
 unsigned long Curspeed1min = 0;//1分钟平均速度
@@ -112,11 +114,12 @@ unsigned long ComputeSpeed(unsigned long pulse)
 	int i;
 	unsigned long spe;
 	unsigned long T;
-	unsigned char PP = 8;
+	unsigned char PP = 2;
 	T = 7200000 / Parameter.PulseCoff;
 	T = (T * 10)/ PP;
 
 	
+	//spe = T*pulse/(2000);
 	spe = T*pulse/(2000);
 
 	if((spe % 10) >= 5)
@@ -151,6 +154,12 @@ void GetSpeedandTime(void)
 		timeflag.Time200msflag = 0;
 		LastPN20ms = CurPN;
 		CurSpeed = ComputeSpeed(pulse);
+		temp = BCD2Char(Parameter.DriverDistace)+100*BCD2Char(Parameter.DriverDistace>>8);
+		temp = 10000*BCD2Char(Parameter.DriverDistace>>16)+temp;
+		temp = 1000000*BCD2Char(Parameter.DriverDistace>>24)+temp;
+		temp = pulse*10/Parameter.PulseCoff+temp;
+		Parameter.DriverDistace = Char2BCD(temp%100)+Char2BCD((temp%10000)/100)*256+Char2BCD((temp%1000000)/10000)*65536
+								+Char2BCD((temp%100000000)/1000000)*16777216;
 	}
 	if(timeflag.Time1sflag == 1)
 	{
@@ -159,6 +168,7 @@ void GetSpeedandTime(void)
 		{
 			DisplayNormalUI();
 		}
+		TimeChange |= (0x01<<SECOND_CHANGE);
 		if(LastPN1s == 0)
 			pulse = CurPN;
 		else
@@ -175,6 +185,7 @@ void GetSpeedandTime(void)
 			pulse = CurPN-LastPN1min;
 		LastPN1min = CurPN;
 		timeflag.Time1minflag = 0;
+		TimeChange |= (0x01<<MINUTE_CHANGE);
 		Curspeed1min = ComputeSpeed(pulse)/300;
 
 	}
@@ -208,7 +219,7 @@ void Time3_irg_handler()
 	    	  {
 	    		  timeflag.Time1sflag = 1;
 	    		  timeflag.Ver1sflag = 1;
-	    		  timecnt.Time1sCnt = 0;
+	    		  timecnt.Time200msCnt = 0;
 	    		  timecnt.Time1sCnt ++;
 	    		  if(Time6sCnt)
 	    		  {
@@ -246,6 +257,7 @@ void Time3_irg_handler()
 	    		  if(timecnt.Time1sCnt >59)
 	    		  {
 	    			  timeflag.Time1minflag = 1;
+
 	    			  timecnt.Time1sCnt = 0;
 					  if(Time30mincnt4)//alarm status handle
 					  {

@@ -39,9 +39,9 @@ static void PlayVol(const unsigned char *buf ,unsigned short lenth)
 	for( i =0;i<lenth ;i++)
 	{
 		DAC_SetChannel1Data(DAC_Align_8b_R,buf[i]);
-		for( n =0;n<200 ;n++);
-		for( n =0;n<200 ;n++);
-		for( n =0;n<200 ;n++);
+		for( n =0;n<150 ;n++);
+		for( n =0;n<150 ;n++);
+		for( n =0;n<150 ;n++);
 	}
 
 }
