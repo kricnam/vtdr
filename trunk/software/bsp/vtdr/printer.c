@@ -749,7 +749,7 @@ void printhaoma()
 		print_buf[i][5] = Pri_hao[i];
 		print_buf[i][6] = Pri_ma[i];
 		print_buf[i][7] = Pri_maohao[i];
-		PrinAutoCode(&print_buf[i][8],i);
+		PrinAutoCode(&print_buf[i][8],i/2);
 
 	}
 	Print1line(&print_buf[0][0]);
@@ -919,7 +919,7 @@ void printRecord(void)
 				{
 					for(j=0;j<18;j++)
 					{
-						print_buf[i][21-j] =ASCII2Print(Readdata[j],i);
+						print_buf[i][21-j] =ASCII2Print(Readdata[j],i/2);
 					}
 				}
 				Print1line(&print_buf[0][0]);
@@ -1018,7 +1018,7 @@ void printOverRecord()
 	memset(print_buf,0,sizeof(print_buf));
 	for(i=0;i<32;i++)
 	{
-		print_buf[i][0] = Pri_zimu2[i];
+		print_buf[i][0] = Pri_zimu2[i/2];
 		print_buf[i][1] = Pri_ge[i];
 		print_buf[i][2] = Pri_ri[i];
 		print_buf[i][3] = Pri_li[i];
