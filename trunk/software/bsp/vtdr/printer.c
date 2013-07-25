@@ -627,6 +627,34 @@ void PrinAutoCode(unsigned short *pbuf ,unsigned char num)
 	}
 
 }
+void PrinAutoCodeDiff(unsigned short *pbuf ,unsigned char num)
+{
+	unsigned short hz;
+	unsigned char j=0,type=0;
+	unsigned char buf =Parameter.AutoInfodata.AutoSort[0];
+	while((buf!='\0')&&(j<17))
+	{
+		if(buf>127)
+		{
+			hz = hz<<8;
+			j++;
+			buf=Parameter.AutoInfodata.AutoSort[j];
+			hz = hz+buf;
+			pbuf[type] = AutoCodeHZ2Print(hz,num);
+			type++;
+
+		}
+		else
+		{
+			pbuf[type] = ASCII2Print(buf,num);
+
+			j++;
+			type++;
+			buf=Parameter.AutoInfodata.AutoSort[j];
+		}
+	}
+
+}
 void PrinterOnelinePoint(unsigned short *prtbuf)
 {
 	unsigned long i,j;
@@ -646,7 +674,7 @@ void PrinterOnelinePoint(unsigned short *prtbuf)
 	lcd_delay(1);
 	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB1);
 	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB2);
-	lcd_delay(1200);
+	lcd_delay(2000);
 	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB1);
 	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB2);
 
@@ -664,7 +692,7 @@ void Print1line(unsigned short *buf)
 	GPIO_SetBits(PRN_CMDB_CTR,PRN_MCSTOP);
 	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC1);
 	GPIO_ResetBits(PRN_CMDB_CTR,PRN_MC2);
-	for(i=0;i<45;i++)
+	for(i=0;i<90;i++)
 	{
 		if((i%2)==0)
 		{
@@ -694,9 +722,9 @@ void Print1line(unsigned short *buf)
 				j= 1;
 			}
 		}
-		if(i<32)
+		if(i<64)
 		{
-			PrinterOnelinePoint((buf+i*24));
+			PrinterOnelinePoint((buf+(i/2)*12));
 		}
 		else
 		{
@@ -741,6 +769,7 @@ void printfenlei()
 		print_buf[i][5] = Pri_fen[i];
 		print_buf[i][6] = Pri_lei[i];
 		print_buf[i][7] = Pri_maohao[i];
+		PrinAutoCodeDiff(&print_buf[i][8],i);
 
 	}
 	Print1line(&print_buf[0][0]);
@@ -769,7 +798,7 @@ void printJSZ()
 	{
 		for(j=0;j<18;j++)
 		{
-			print_buf[i][21-j] =ASCII2Print(Parameter.DriverLisenseCode[j],i);
+			print_buf[i][j+4] =ASCII2Print(Parameter.DriverLisenseCode[j],i);
 		}
 	}
 	Print1line(&print_buf[0][0]);
@@ -792,6 +821,23 @@ void printspeed()
 	}
 	Print1line(&print_buf[0][0]);
 }
+void FTimebuff(unsigned short *pbuf ,CLOCK ctime)
+{
+	unsigned char i;
+	for(i=0;i<32;i++)
+	{
+
+
+		print_buf[i][2] = Pri_zimu2[i];
+		print_buf[i][3] = Pri_zimu0[i];
+		print_buf[i][4] = Pri_maohao[i];
+		print_buf[i][5] =ASCII2Print(((ctime.year>>4)+48),i);
+		print_buf[i][5] =ASCII2Print(((ctime.year&0x0f)+48),i);
+		print_buf[i][5] =;
+
+	}
+
+}
 void printTime()
 {
 	unsigned char i;
@@ -807,6 +853,8 @@ void printTime()
 	}
 	Print1line(&print_buf[0][0]);
 	memset(print_buf,0,sizeof(print_buf));
+
+
 
 }
 void printRecord(void)
@@ -1015,6 +1063,11 @@ void printer()
 	memset(print_buf,0,sizeof(print_buf));
 	Print1line(&print_buf[0][0]);
 	Print1line(&print_buf[0][0]);
+	Print1line(&print_buf[0][0]);
+	Print1line(&print_buf[0][0]);
+	Print1line(&print_buf[0][0]);
+
+
 }
 void printer_pwr_ctrl(unsigned char ctldr)
 {
