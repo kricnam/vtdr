@@ -317,10 +317,6 @@ void Printtest()
 unsigned short AutoCodeHZ2Print(unsigned short data,unsigned char num)
 {
 	unsigned short ret;
-    if(num%2 != 0)
-    {
-    	num = num-1;
-    }
 	switch(data)
 	{
 		case 0xbea9:
@@ -515,10 +511,6 @@ unsigned short AutoCodeHZ2Print(unsigned short data,unsigned char num)
 unsigned short ASCII2Print(unsigned char data,unsigned char num)
 {
 	unsigned short ret;
-    if((num%2 != 0)&&(data >64)&&(data<91))
-    {
-    	num = num-1;
-    }
 	switch(data)
 	{
 		case 48:
@@ -601,19 +593,29 @@ unsigned short ASCII2Print(unsigned char data,unsigned char num)
 }
 void PrinAutoCode(unsigned short *pbuf ,unsigned char num)
 {
-	unsigned short hz;
-	unsigned char j=0,type=0;
+	unsigned short hz =0;
+	unsigned char j=0,type=0,count;
 	unsigned char buf =Parameter.AutoInfodata.AutoCode[0];
 	while((buf!='\0')&&(j<17))
 	{
 		if(buf>127)
 		{
-			hz = hz<<8;
-			j++;
-			buf=Parameter.AutoInfodata.AutoCode[j];
 			hz = hz+buf;
-			pbuf[type] = AutoCodeHZ2Print(hz,num);
-			type++;
+		    if(count == 1)
+		    {
+		    	pbuf[type] = AutoCodeHZ2Print(hz,num);
+		    	type++;
+		    	count = 0;
+		    	hz =0;
+		    }
+		    else
+		    {
+		    	hz = hz<<8;
+		    	count++;
+		    }
+		    j++;
+			buf=Parameter.AutoInfodata.AutoCode[j];
+
 
 		}
 		else
@@ -629,19 +631,28 @@ void PrinAutoCode(unsigned short *pbuf ,unsigned char num)
 }
 void PrinAutoCodeDiff(unsigned short *pbuf ,unsigned char num)
 {
-	unsigned short hz;
-	unsigned char j=0,type=0;
+	unsigned short hz=0;
+	unsigned char j=0,type=0,count;
 	unsigned char buf =Parameter.AutoInfodata.AutoSort[0];
 	while((buf!='\0')&&(j<17))
 	{
 		if(buf>127)
 		{
-			hz = hz<<8;
-			j++;
-			buf=Parameter.AutoInfodata.AutoSort[j];
 			hz = hz+buf;
-			pbuf[type] = AutoCodeHZ2Print(hz,num);
-			type++;
+			if(count == 1)
+			{
+				pbuf[type] = AutoCodeHZ2Print(hz,num);
+				type++;
+				count = 0;
+				hz =0;
+			}
+			else
+			{
+				hz = hz<<8;
+				count++;
+			}
+			j++;
+			buf=Parameter.AutoInfodata.AutoCode[j];
 
 		}
 		else
@@ -674,7 +685,7 @@ void PrinterOnelinePoint(unsigned short *prtbuf)
 	lcd_delay(1);
 	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB1);
 	GPIO_SetBits(PRN_CMDE_CTR,PRN_STB2);
-	lcd_delay(2000);
+	lcd_delay(1200);
 	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB1);
 	GPIO_ResetBits(PRN_CMDE_CTR,PRN_STB2);
 
@@ -724,7 +735,7 @@ void Print1line(unsigned short *buf)
 		}
 		if(i<64)
 		{
-			PrinterOnelinePoint((buf+(i/2)*12));
+			PrinterOnelinePoint((buf+(i/2)*24));
 		}
 		else
 		{
@@ -798,7 +809,7 @@ void printJSZ()
 	{
 		for(j=0;j<18;j++)
 		{
-			print_buf[i][j+4] =ASCII2Print(Parameter.DriverLisenseCode[j],i);
+			print_buf[i][j+2] =ASCII2Print(Parameter.DriverLisenseCode[j],i/2);
 		}
 	}
 	Print1line(&print_buf[0][0]);
@@ -821,19 +832,31 @@ void printspeed()
 	}
 	Print1line(&print_buf[0][0]);
 }
-void FTimebuff(unsigned short *pbuf ,CLOCK ctime)
+void FTimebuff(CLOCK ctime)
 {
-	unsigned char i;
+	unsigned char i,j;
 	for(i=0;i<32;i++)
 	{
+		j= i/2;
+		print_buf[i][2] = Pri_zimu2[j];
+		print_buf[i][3] = Pri_zimu0[j];
+		print_buf[i][4] =ASCII2Print(((ctime.year>>4)+48),j);
+		print_buf[i][5] =ASCII2Print(((ctime.year&0x0f)+48),j);
+		print_buf[i][6] =Pri_zhongheng[j];
+		print_buf[i][7] =ASCII2Print(((ctime.month>>4)+48),j);
+		print_buf[i][8] =ASCII2Print(((ctime.month&0x0f)+48),j);
+		print_buf[i][9] =Pri_zhongheng[j];
+		print_buf[i][10] =ASCII2Print(((ctime.day>>4)+48),j);
+		print_buf[i][11] =ASCII2Print(((ctime.day&0x0f)+48),j);
 
-
-		print_buf[i][2] = Pri_zimu2[i];
-		print_buf[i][3] = Pri_zimu0[i];
-		print_buf[i][4] = Pri_maohao[i];
-		print_buf[i][5] =ASCII2Print(((ctime.year>>4)+48),i);
-		print_buf[i][5] =ASCII2Print(((ctime.year&0x0f)+48),i);
-		print_buf[i][5] =;
+		print_buf[i][14] =ASCII2Print(((ctime.hour>>4)+48),j);
+		print_buf[i][15] =ASCII2Print(((ctime.hour&0x0f)+48),j);
+		print_buf[i][16] =Pri_maohao[i];
+		print_buf[i][17] =ASCII2Print(((ctime.minute>>4)+48),j);
+		print_buf[i][18] =ASCII2Print(((ctime.minute&0x0f)+48),j);
+		print_buf[i][19] =Pri_maohao[i];
+		print_buf[i][20] =ASCII2Print(((ctime.second>>4)+48),j);
+		print_buf[i][21] =ASCII2Print(((ctime.second&0x0f)+48),j);
 
 	}
 
@@ -846,16 +869,15 @@ void printTime()
 	{
 		print_buf[i][0] = Pri_da[i];
 		print_buf[i][1] = Pri_yin[i];
-		print_buf[i][2] = Pri_shi[i];
+		print_buf[i][2] = Pri_shi2[i];
 		print_buf[i][3] = Pri_jian[i];
 		print_buf[i][4] = Pri_maohao[i];
 
 	}
 	Print1line(&print_buf[0][0]);
 	memset(print_buf,0,sizeof(print_buf));
-
-
-
+	FTimebuff(curTime);
+	Print1line(&print_buf[0][0]);
 }
 void printRecord(void)
 {
@@ -1064,10 +1086,6 @@ void printer()
 	Print1line(&print_buf[0][0]);
 	Print1line(&print_buf[0][0]);
 	Print1line(&print_buf[0][0]);
-	Print1line(&print_buf[0][0]);
-	Print1line(&print_buf[0][0]);
-
-
 }
 void printer_pwr_ctrl(unsigned char ctldr)
 {

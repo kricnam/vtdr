@@ -25,6 +25,8 @@ extern unsigned char Time30mincnt1;
 extern unsigned char Time30mincnt2;
 extern unsigned char Time30mincnt3;
 extern unsigned char Time30mincnt4;
+extern unsigned char Time20sCnt1;
+extern unsigned char Time20sCnt2;
 extern unsigned char DisplayMin;
 
 extern unsigned long CurSpeed;
@@ -81,11 +83,11 @@ RecordData_end rec_end;
 unsigned char FinishFlag=0;
 
 extern unsigned char LargeDataBuffer[];
-unsigned short *DoubtData_4k = (unsigned short *)(&(LargeDataBuffer[12*1024]));//[2*1024];
-unsigned char *OTDR_4k = &(LargeDataBuffer[16*1024]);//[4*1024];
-unsigned short *BaseData_4k = (unsigned short *)(&(LargeDataBuffer[20*1024]));//[2*1024];
-unsigned char *Location_4k = &(LargeDataBuffer[28*1024]);
-unsigned char *temp_4k=&(LargeDataBuffer[32*1024]);
+//unsigned short *DoubtData_4k = (unsigned short *)(&(LargeDataBuffer[12*1024]));//[2*1024];
+//unsigned char *OTDR_4k = &(LargeDataBuffer[16*1024]);//[4*1024];
+unsigned short *BaseData_4k = (unsigned short *)(&(LargeDataBuffer[4*1024]));//[2*1024];
+//unsigned char *Location_4k = &(LargeDataBuffer[28*1024]);
+unsigned char *temp_4k=&(LargeDataBuffer[0]);
 
 //*----------------------------------------------------------------------------
 //* Function Name       : Task_GetData
@@ -329,6 +331,7 @@ int InitializeTable()
 		pTable.journalRecord.BaseAddr = JN_BASE;
 		pTable.journalRecord.EndAddr = JN_END;
 		pTable.journalRecord.CurPoint = JN_BASE;
+		Parameter.PulseCoff = 5500;
 
 		if( !WritePartitionTable(&pTable) )
 			return(0);
@@ -343,7 +346,9 @@ void InitialValue()
 	curTime.minute = 0x40;
 	curTime.year = 0x13;
 	curTime.month = 0x05;
+	SetCurrentDateTime(&curTime);
 	CurSpeed =124;
+	Parameter.PulseCoff =4800;
 	//AlarmFlag =1;
 }
 //*----------------------------------------------------------------------------
@@ -404,13 +409,9 @@ int Update4k(unsigned long p,unsigned char *Buffer,unsigned char type)
 	//指锟斤拷之前锟斤拷锟斤拷锟斤拷锟斤拷锟叫达拷锟紽LASH
 	if(type == UpdateFlashTimes)
 	{
-		i=0;
-		while(sector_addr<p)
-		{
-			SPI_FLASH_BufferWrite( SPI1 ,(u8 *)(&Buffer[i]), sector_addr, 2);
-			sector_addr++;
-			i++;
-		}
+
+			SPI_FLASH_BufferWrite( SPI1 ,(u8 *)(&Buffer[i]), sector_addr, p-sector_addr);
+
 	}
 	return(1);
 }
@@ -888,24 +889,23 @@ void WriteRecordData2Flash(StructPT ptbl ,unsigned char *buff,unsigned long num)
 	unsigned long star_addr;
 	unsigned long p;
 	p = ptbl.CurPoint;
-	//erase4kflash(p,num);
 
 		if(((p&0x00000fff)+num)<0x1000)
 		{
 			Update4k(p,temp_4k,UpdateFlashTimes);
 			SPI_FLASH_BufferWrite(SPI1,(unsigned char *)buff , p, num);
 			num_addr =4096-(p&0x00000fff)-num;
-			SPI_FLASH_BufferWrite(SPI1,(unsigned char *)&temp_4k[p+num] , p+num, num_addr);
+			SPI_FLASH_BufferWrite(SPI1,(unsigned char *)&temp_4k[num] , p+num, num_addr);
 		}
 		else
 		{
 			Update4k(p,temp_4k,UpdateFlashTimes);
-			num_addr = 4096-(p&0x00000fff);
+		    num_addr = 4096-(p&0x00000fff);
 			SPI_FLASH_BufferWrite(SPI1,(unsigned char *)buff , p,num_addr);
-			Update4k((p+num)&0x00000fff,temp_4k,UpdateFlashTimes);
-			SPI_FLASH_BufferWrite(SPI1,(unsigned char *)&buff[num_addr] , (p+num)&0x00000fff,num-num_addr);
+			Update4k((p+num)&0xfffff000,temp_4k,UpdateFlashTimes);
+			SPI_FLASH_BufferWrite(SPI1,(unsigned char *)&buff[num_addr] , (p+num)&0xfffff000,num-num_addr);
 			bnum_addr = 4096 +num_addr-num;
-			star_addr = (p+num)&0x00000fff +num-num_addr;
+			star_addr = (p+num)&0xfffff000 +num-num_addr;
 			SPI_FLASH_BufferWrite(SPI1,(unsigned char *)&temp_4k[num-num_addr] , star_addr,bnum_addr);
 		}
 		MovePtablePtr(ptbl,num);
@@ -961,7 +961,7 @@ void ValueStatusHandler()
 			if((AlarmFlag&ALARM_OVER_TIME)!= ALARM_OVER_TIME)
 				AlarmFlag |= ALARM_OVER_TIME;
 		}
-		if((timenowmin-timedriverstartmin)>240)
+		if((timenowmin-timedriverstartmin)>15)
 		{
 			DriverStatus |= DRIVING_OVERTIME;
 		}
@@ -976,7 +976,7 @@ void ValueStatusHandler()
 		//DriverStatus &= ~DRIVING_STAR;
 		timedriverstartmin = timechange(startdriverclk);
 		timestopmin = timechange(curTime);
-		if( (timenowmin-timestopmin)>20)//并且同一个驾驶人
+		if( (timenowmin-timestopmin)>10)//并且同一个驾驶人
 		{
 			DriverStatus &= ~DRIVING_STAR;
 			DriverStatus |= DRIVING_STOP_DRIVER;//连续驾驶结束
@@ -987,16 +987,24 @@ void ValueStatusHandler()
 		}
 	}
 	//疑点数据判断处理状态变化
-	if((Datastatusdata.locationchagestatus == 1)&&(DriverStatus & DRIVING_STAR ))//或者记录仪断电
+	if(((Datastatusdata.locationchagestatus == 1)&&(DriverStatus & DRIVING_STAR ))//或者记录仪断电
+		||(DriverStatus & DRIVING_STOP))
 	{
-		DoubltPointstatus = DBRECORD_END;
+		if( DoubltPointstatus == DBRECORD_START )
+		{
+			DoubltPointstatus = DBRECORD_END;
+		}
 	}
 	else if((DriverStatus & DRIVING_STAR ))
 	{
-		DoubltPointstatus = DBRECORD_START;
+		if(DoubltPointstatus != DBRECORD_START)
+		{
+			DoubltPointstatus = DBRECORD_START;
+		}
 	}
 	else
 	{
+		if(DoubltPointstatus != NONE_DB)
 		DoubltPointstatus= NONE_DB;
 	}
 	//司机登记状态变化
@@ -1042,19 +1050,21 @@ void AlarmHandler()
 {
 	if(((AlarmFlag&ALARM_OVER_TIME)== ALARM_OVER_TIME)&&(Time30mincnt1 ==0))
 	{
-		Time30mincnt1 = 6;
+		Time30mincnt1 = 5;
+		Time20sCnt1 =20;
 	}
 	if(((AlarmFlag&ALARM_NOT_RE)== ALARM_NOT_RE)&&(Time30mincnt2 ==0))
 	{
-		Time30mincnt2 = 6;
+		Time30mincnt2 = 5;
+		Time20sCnt2 =20;
 	}
 	if(((AlarmFlag&ALARM_OVER_SPEED)== ALARM_OVER_SPEED)&&(Time30mincnt3 ==0))
 	{
-		Time30mincnt3 = 6;
+		Time30mincnt3 = 5;
 	}
 	if(((AlarmFlag&ALARM_SPEED_ABOR)== ALARM_SPEED_ABOR)&&(Time30mincnt4 ==0))
 	{
-		Time30mincnt4 = 6;
+		Time30mincnt4 = 5;
 	}
 
 }
@@ -1073,7 +1083,7 @@ void BaseDataHandler()
 			if (curTime.second == 0)
 			{
 
-				if(( InRecordCycle&(1<<BASEDATA))==BASEDATA)
+				if( InRecordCycle&(1<<BASEDATA))
 				{
 					basedata.speed[59] = (unsigned char)Curspeed1s;
 					basedata.status[59] = (unsigned char)CurStatus;
@@ -1089,8 +1099,8 @@ void BaseDataHandler()
 			}
 			else
 			{
-				basedata.speed[curTime.second-1] = (unsigned char)Curspeed1s;
-				basedata.status[curTime.second-1] = (unsigned char)CurStatus;
+				basedata.speed[BCD2Char(curTime.second)-1] = (unsigned char)Curspeed1s;
+				basedata.status[BCD2Char(curTime.second)-1] = (unsigned char)CurStatus;
 
 			}
 
@@ -1099,15 +1109,15 @@ void BaseDataHandler()
 	}
 	else
 	{
-		if(( InRecordCycle&(1<<BASEDATA))==BASEDATA)
+		if(InRecordCycle&(1<<BASEDATA))
 		{
 			if(TimeChange & (0x01<<SECOND_CHANGE))
 			{
 				TimeChange &= ~(0x01<<SECOND_CHANGE);
 				if (curTime.second != 0)
 				{
-					basedata.speed[curTime.second] = 0xff;
-					basedata.status[curTime.second] = 0xff;
+					basedata.speed[BCD2Char(curTime.second)] = 0xff;
+					basedata.status[BCD2Char(curTime.second)] = 0xff;
 				}
 				else
 				{
@@ -1134,7 +1144,7 @@ void LocationHandler()
 			if (curTime.minute == 0)
 			{
 
-				if(( InRecordCycle&(1<<LOCATIONDATA))==LOCATIONDATA)
+				if( InRecordCycle&(1<<LOCATIONDATA))
 				{
 					for(i = 0;i<10;i++)
 					{
@@ -1167,7 +1177,7 @@ void LocationHandler()
 	}
 	else
 	{
-		if(( InRecordCycle&(1<<LOCATIONDATA))==LOCATIONDATA)
+		if( InRecordCycle&(1<<LOCATIONDATA))
 		{
 			if(TimeChange & (0x01<<MINUTE_CHANGE))
 			{
@@ -1205,6 +1215,14 @@ void OverDriverHandler()
 		overdriverdata.startdrivertime.hour =startdriverclk.hour;
 		overdriverdata.startdrivertime.minute =startdriverclk.minute;
 		overdriverdata.startdrivertime.second =startdriverclk.second;
+		for(i = 0;i<18;i++)
+		{
+			overdriverdata.DriverLisenseCode[i] = Parameter.DriverLisenseCode[i];
+		}
+		for(i = 0;i<10;i++)
+		{
+			*((unsigned char *)&overdriverdata.startlocation+i)=*((unsigned char *)&location+i);
+		}
 
 	    if (DriverStatus & DRIVING_STOP_DRIVER )
 		{
@@ -1214,6 +1232,10 @@ void OverDriverHandler()
 			overdriverdata.enddrivertime.hour =enddriverclk.hour;
 			overdriverdata.enddrivertime.minute =enddriverclk.minute;
 			overdriverdata.enddrivertime.second =enddriverclk.second;
+			for(i = 0;i<10;i++)
+			{
+				*((unsigned char *)&overdriverdata.endlocation+i)=*((unsigned char *)&location+i);
+			}
 			WriteRecordData2Flash(pTable.OverSpeedRecord,(unsigned char *)&overdriverdata,50);//write the data
 		}
 
@@ -1232,27 +1254,30 @@ void OverDriverHandler()
 void DoubltPointHandler()
 {
 	unsigned char i,cnt;
-	static unsigned DBcnt = 0;
+	static unsigned DBcnt = 100;
 	unsigned char *ptr ;
+	static unsigned char ddbspeed[100];
+	static unsigned char ddbstatus[100];
 	switch(DoubltPointstatus)
 	{
 		case DBRECORD_START:
-			ddb.data[DBcnt].speed = CurSpeed;
-			ddb.data[DBcnt].status = CurStatus;
-			DBcnt++;
-			if(DBcnt == 100)
-				DBcnt = 0;
+			if(DBcnt == 0)
+						DBcnt = 100;
+			DBcnt--;
+			ddbspeed[DBcnt] = CurSpeed;
+			ddbstatus[DBcnt] = CurStatus;
+
 			break;
 		case DBRECORD_END:
-			for(i= 0;i++;i<100)
+			for(i= 0;i<100;i++)
 			{
 				cnt = DBcnt+i;
 				if(cnt>99)
 				{
 					cnt = cnt-100;
 				}
-				ddb.data[i].speed= ddb.data[cnt].speed;
-				ddb.data[i].status= ddb.data[cnt].status;
+				ddb.data[i].speed= ddbspeed[DBcnt];
+				ddb.data[i].status= ddbstatus[DBcnt];
 			}
 			ptr = (unsigned char *)&ddb.StopTime;
 			for(i = 0;i++;i<6)
@@ -1265,6 +1290,7 @@ void DoubltPointHandler()
 				ptr[i]= (unsigned char )*((unsigned char * )&location+i);
 			}
 			WriteRecordData2Flash(pTable.DoubtPointData,(unsigned char *)&ddb,234);
+			DoubltPointstatus = NONE_DB;
 		break;
 		default:
 			break;
@@ -1300,6 +1326,7 @@ void DrvierRegisterHandler()
 
 			}
 			WriteRecordData2Flash(pTable.DriverReRecord,(unsigned char *)&driverregisterdata,25);
+			DriverRegstatus = 0;
 		}
 }
 
@@ -1310,11 +1337,13 @@ void PowerHandle()
 
 	if((powerstatus & POWER_ON)||(DriverRegstatus & POWER_OFF))
 	{
+		powerdata.powerstatus =powerstatus ;
+		powerstatus = 0;
 		for(i=0;i++;i<6)
 		{
 			ptr[i] = (unsigned char )*((unsigned char * )(&curTime+i));
 		}
-		powerdata.powerstatus = paramodifystatus;
+
 		WriteRecordData2Flash(pTable.PowerOffRunRecord,(unsigned char *)&modifydata,7);
 	}
 
@@ -1326,11 +1355,11 @@ void ModifyHandle()
 	unsigned char *ptr = (unsigned char *)&modifydata.modifytime;
 	if(paramodifystatus)
 	{
+		paramodifystatus = 0;
 		for(i=0;i++;i<6)
 		{
 			ptr[i] = (unsigned char )*((unsigned char * )(&curTime+i));
 		}
-		modifydata.modifystatus = powerstatus;
 		WriteRecordData2Flash(pTable.ModifyRecord,(unsigned char *)&modifydata,7);
 	}
 
