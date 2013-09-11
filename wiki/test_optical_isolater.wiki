@@ -1,13 +1,31 @@
-#summary One-sentence summary of this page.
+#光电隔离测试
 
-= Introduction =
+输入3.3V（JP2 PIN9)
 
-Add your content here.
+PINs
 
+{12 ... 2}
 
-= Details =
+{11 9.. 1}
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+Vinput:3.716
+
+Vpin7-8=1.141
+
+Vr36=1.860
+
+Vr37=4.301
+
+Vqbe=0.712
+
+Vpower=5.446
+
+上拉电阻 100K， 5V
+
+TP521 PIN10 PIN9
+
+Voltage 0.024V
+
+pullup R 5.012
+
+Vsource=5.037
