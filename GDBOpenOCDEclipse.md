@@ -1,0 +1,137 @@
+# 环境配置 #
+
+以下程序均运行于Linux操作系统。
+
+参考：
+
+http://vtdr.googlecode.com/files/%E7%8E%AF%E5%A2%83%E8%AF%A6%E7%BB%86%E6%90%AD%E5%BB%BA.pdf
+
+## 1 在Windows下可以安装虚拟机VirtualBox ##
+
+虚拟机下载地址：
+
+https://www.virtualbox.org/wiki/Downloads
+
+下载安装后需要安装
+
+VM VirtualBox Extension Pack
+
+支持USB2.0接口
+
+## 2 在虚拟机上安装Ubuntu ##
+
+下载Ubuntu安装光盘镜像
+
+http://www.ubuntu.com/download/desktop/zh-CN
+
+完成后，打开vbox,创建新机器，并挂载光盘镜像，开始安装Ubuntu系统
+
+虚拟硬盘选择20G，应该够用
+
+## 3 安装应用程序 ##
+
+安装完操作系统后，使用Ubuntu的软件工具安装eclipse和openocd, scons
+命令行安装openocd和scons如下
+```
+sudo apt-get install openocd
+sudo apt-get install scons
+sudo apt-get install subversion
+sudo apt-get install eclipse
+```
+
+## 4 安装arm编译工具链 ##
+
+下载
+http://vtdr.googlecode.com/files/arm-2012.03-56-arm-none-eabi-i686-pc-linux-gnu.tar.bz2
+
+到/opt目录
+然后在/opt目录下解压缩
+
+```
+sudo tar -xvf arm-2012.03-56-arm-none-eabi-i686-pc-linux-gnu.tar.bz2
+```
+
+## 5 eclipse插件安装 ##
+
+启动Eclipse后 在Help->Install New Software中安装
+
+安装SVN插件：
+
+加入以下地址：
+
+http://subclipse.tigris.org/update_1.6.x
+
+
+## 6 同步SVN代码 ##
+
+在Eclipse中
+
+菜单File->Import
+
+选择从SVN中导入C/C++工程
+
+输入SVN地址： https://vtdr.googlecode.com/svn/trunk/
+
+
+# 调试步骤 #
+
+
+## 1、启动openOCD ##
+
+链接JLink和开发板，在Ubuntu中打开终端，进入工程目录
+
+```
+openocd -f interface/jlink.cfg -f target/stm32f1x.cfg
+```
+
+
+2、（可选）烧写更新程序
+
+打开新的终端窗口，输入
+
+```
+telnet localhost 4444
+>reset halt
+>flash probe 0
+>stm32f1x mass_erase 0
+>flash write_image rtthread-stm32.axf
+device id = 0x10016418
+flash size = 256kbytes
+wrote 93176 bytes from file rtthread-stm32.axf in 10.639984s (8.552 KiB/s)
+> 
+```
+
+3、启动gdb
+
+打开新的终端窗口，输入
+
+```
+arm-none-eabi-gdb rtthread-stm32.axf
+```
+
+```
+GNU gdb (Sourcery CodeBench Lite 2011.09-69) 7.2.50.20100908-cvs
+Copyright (C) 2010 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "--host=i686-pc-linux-gnu --target=arm-none-eabi".
+For bug reporting instructions, please see:
+<https://support.codesourcery.com/GNUToolchain/>...
+Reading symbols from /workspace/vtdr/software/bsp/vtdr/rtthread-stm32.axf...done.
+(gdb) target remote localhost:3333
+Remote debugging using localhost:3333
+Reset_Handler () at Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/startup/gcc_ride7/startup_stm32f10x_cl.s:68
+68	  movs  r1, #0
+(gdb) b main
+Breakpoint 1 at 0x8000456: file startup.c, line 135.
+(gdb) c
+Continuing.
+Note: automatically using hardware breakpoints for read-only addresses.
+
+Breakpoint 1, main () at startup.c:135
+135		level = rt_hw_interrupt_disable();
+(gdb) 
+
+```

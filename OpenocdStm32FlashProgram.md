@@ -1,0 +1,6 @@
+
+```
+openocd -d0 -f interface/jlink.cfg -f target/stm32.cfg \
+ -c init -c targets -c "halt" -c "flash write_image erase test.elf" \
+ -c "verify_image test.elf" -c "reset run" -c shutdown
+```
